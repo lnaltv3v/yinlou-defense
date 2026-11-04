@@ -1473,6 +1473,7 @@
       });
       if (dualInk) {
         state._dualInkSeen = (state._dualInkSeen || 0) + 1;
+        state._dualInkActive = true;
         state.bossBanner.kind = 'dual_ink';
         state.bossBanner.blurb = '雙墨同場 — 兩帳同時翻開，護銀分路清影';
         state.bossBanner.name = '雙墨同場';

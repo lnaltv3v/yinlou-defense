@@ -1517,6 +1517,77 @@
       ],
     },
 
+    {
+      id: 14,
+      name: '雙墨夜帳',
+      story:
+        '翻帳未盡，第二帳從裂縫並肩翻開——雙墨同場，銀袋兩頭抽。\n\n' +
+        '護銀分路：鎖倉減抽、鐵衛分頂兩線；先清暗盤影再開合星連擊攞階梯銀。\n\n' +
+        '末波兩帳幾乎同步入場；銀兩唔好堆死，合星連擊階梯會回補。',
+      challenge: true,
+      startSilver: 428,
+      coreHp: 455,
+      unlockHeroes: Object.keys(HEROES),
+      firstClearBonus: 480,
+      waves: [
+        wavePack([
+          { enemy: 'dark_tape', count: 11, lane: 'cycle', interval: 0.34 },
+          { enemy: 'retail_tide', count: 12, lane: 'random', interval: 0.28, delay: 0.2 },
+          { enemy: 'rumor_swarm', count: 10, lane: 'cycle', interval: 0.26, delay: 0.35 },
+        ]),
+        wavePack([
+          { enemy: 'dark_tape', count: 13, lane: 'cycle', interval: 0.28 },
+          { enemy: 'halt_seal', count: 8, lane: 'random', interval: 0.5, delay: 0.45 },
+          { enemy: 'margin_call', count: 8, lane: 'cycle', interval: 0.5, delay: 0.6 },
+        ]),
+        wavePack([
+          { enemy: 'panic_board', count: 5, lane: 'cycle', interval: 0.8, delay: 0.25, elite: true },
+          { enemy: 'dark_tape', count: 14, lane: 'random', interval: 0.24, delay: 0.18 },
+          { enemy: 'leverage_fiend', count: 3, lane: 'cycle', interval: 0.95, delay: 0.9 },
+        ]),
+        wavePack([
+          { enemy: 'rumor_swarm', count: 12, lane: 'cycle', interval: 0.22 },
+          { enemy: 'dark_tape', count: 14, lane: 'random', interval: 0.26, delay: 0.18 },
+          { enemy: 'halt_seal', count: 9, lane: 'cycle', interval: 0.46, delay: 0.5 },
+          { enemy: 'margin_call', count: 8, lane: 'random', interval: 0.46, delay: 0.35 },
+        ]),
+        wavePack([
+          { enemy: 'panic_board', count: 6, lane: 'cycle', interval: 0.72 },
+          { enemy: 'dark_tape', count: 15, lane: 'random', interval: 0.22, delay: 0.15 },
+          { enemy: 'ink_specter', count: 1, lane: 1, interval: 0, delay: 3.0, hpMul: 0.78 },
+          { enemy: 'leverage_fiend', count: 3, lane: 'cycle', interval: 0.88, delay: 0.75, elite: true },
+        ]),
+        wavePack([
+          { enemy: 'halt_seal', count: 10, lane: 'cycle', interval: 0.4 },
+          { enemy: 'dark_tape', count: 15, lane: 'random', interval: 0.24, delay: 0.18 },
+          { enemy: 'panic_board', count: 5, lane: 'cycle', interval: 0.75, delay: 0.45 },
+          { enemy: 'chase_zombie', count: 9, lane: 'random', interval: 0.38, delay: 0.3 },
+        ]),
+        wavePack([
+          { enemy: 'dark_tape', count: 16, lane: 'cycle', interval: 0.2 },
+          { enemy: 'rumor_swarm', count: 13, lane: 'random', interval: 0.22, delay: 0.15 },
+          { enemy: 'margin_call', count: 10, lane: 'cycle', interval: 0.4, delay: 0.28 },
+          { enemy: 'ink_specter', count: 1, lane: 2, interval: 0, delay: 2.6, hpMul: 0.88 },
+        ]),
+        wavePack([
+          { enemy: 'panic_board', count: 6, lane: 'cycle', interval: 0.68 },
+          { enemy: 'dark_tape', count: 16, lane: 'random', interval: 0.2, delay: 0.12 },
+          { enemy: 'halt_seal', count: 10, lane: 'cycle', interval: 0.36, delay: 0.3 },
+          { enemy: 'leverage_fiend', count: 4, lane: 'random', interval: 0.8, delay: 0.55, elite: true },
+        ]),
+        wavePack([
+          { enemy: 'dark_tape', count: 17, lane: 'cycle', interval: 0.18 },
+          { enemy: 'panic_board', count: 7, lane: 'random', interval: 0.58, delay: 0.18 },
+          { enemy: 'halt_seal', count: 11, lane: 'cycle', interval: 0.34, delay: 0.28 },
+          { enemy: 'margin_call', count: 10, lane: 'random', interval: 0.38, delay: 0.3 },
+          { enemy: 'ink_specter', count: 1, lane: 1, interval: 0, delay: 1.8, hpMul: 1.0 },
+          { enemy: 'ink_specter', count: 1, lane: 3, interval: 0, delay: 4.6, hpMul: 1.05 },
+          { enemy: 'leverage_fiend', count: 4, lane: 'cycle', interval: 0.75, delay: 0.5, elite: true },
+          { enemy: 'chase_zombie', count: 8, lane: 'random', interval: 0.4, delay: 0.45 },
+        ]),
+      ],
+    },
+
   ];
 
   const ENDLESS = {
@@ -1551,6 +1622,7 @@
     { wave: 90, silver: 820, label: '九十浪長城' },
     { wave: 100, silver: 1000, label: '百浪墨城' },
     { wave: 110, silver: 1150, label: '百十浪帳守' },
+    { wave: 120, silver: 1350, label: '百廿浪雙墨' },
   ];
 
   function endlessMilestone(waveIndex) {
@@ -2937,6 +3009,11 @@
     { id: 'endless110', cat: 'combat', name: '百十浪帳守', blurb: '無盡最佳 ≥ 110 波', check: (s) => (s.bestEndlessWave || 0) >= 110 },
     { id: 'dual_ink', cat: 'combat', name: '雙墨同場', blurb: '單局同時面對兩隻墨影帳', check: (s) => !!s.ach && !!s.ach.dual_ink },
     { id: 'merge_combo3', cat: 'merge', name: '合星三連', blurb: '短時間內連續合星 ≥ 3 次', check: (s) => !!s.ach && !!s.ach.merge_combo3 },
+    { id: 'stage14', cat: 'stage', name: '雙墨夜帳', blurb: '通關第 14 關「雙墨夜帳」', check: (s) => (s.maxStageCleared || 0) >= 14 },
+    { id: 'all14', cat: 'stage', name: '十四關皆破', blurb: '通關全部主線關卡（含雙墨）', check: (s) => (s.maxStageCleared || 0) >= STAGES.length },
+    { id: 'endless120', cat: 'combat', name: '百廿浪雙墨', blurb: '無盡最佳 ≥ 120 波', check: (s) => (s.bestEndlessWave || 0) >= 120 },
+    { id: 'merge_combo5', cat: 'merge', name: '合星五連', blurb: '短時間內連續合星 ≥ 5 次', check: (s) => !!s.ach && !!s.ach.merge_combo5 },
+    { id: 'wall_mode', cat: 'meta', name: '牆影切換', blurb: '喺時間軸切換無盡／連週走勢', check: (s) => !!s.ach && !!s.ach.wall_mode },
   ];
 
   /** 首通銀兩獎勵（入累計帳） */
@@ -2954,7 +3031,8 @@
     11: 340,
     12: 380,
     13: 440,
-    all: 540,
+    14: 480,
+    all: 600,
   };
 
   function stageFirstClearBonus(stageId) {
@@ -2984,7 +3062,8 @@
     const late50 = n >= 50 ? Math.min(n - 50, 25) * 0.018 : 0;
     const late75 = n >= 75 ? (n - 75) * 0.011 : 0;
     const late90 = n >= 90 ? (n - 90) * 0.008 : 0;
-    const mul = 1 + (n - 1) * 0.105 + late50 + late75 + late90;
+    const late120 = n >= 120 ? (n - 120) * 0.006 : 0;
+    const mul = 1 + (n - 1) * 0.105 + late50 + late75 + late90 + late120;
     const countLate = n >= 50 ? Math.min(n - 50, 25) * 0.01 + (n >= 75 ? (n - 75) * 0.006 : 0) : 0;
     const count = (base) => {
       let raw = Math.max(1, Math.round(base * (1 + (n - 1) * 0.072 + countLate)));
@@ -3163,6 +3242,20 @@
         });
       }
     }
+
+    if (n === 120) {
+      spawns.push({ enemy: 'ink_specter', count: 1, lane: 1, interval: 0, delay: 2.2, hpMul: mul * 1.08 });
+      spawns.push({ enemy: 'ink_specter', count: 1, lane: 3, interval: 0, delay: 5.0, hpMul: mul * 1.12 });
+      spawns.push({
+        enemy: 'dark_tape',
+        count: count(5),
+        lane: 'cycle',
+        interval: 0.36,
+        delay: 0.8,
+        hpMul: mul * 0.95,
+      });
+    }
+
     return { spawns, hpMul: mul };
   }
 
@@ -3270,7 +3363,7 @@
   function mergeRebate(heroId, newStar) {
     const def = HEROES[heroId];
     if (!def) return 0;
-    return Math.round(def.cost * 0.184 * newStar);
+    return Math.round(def.cost * 0.186 * newStar);
   }
 
   function activeBonds(heroes) {
@@ -3310,7 +3403,7 @@
 
   function defaultSave() {
     return {
-      version: 27,
+      version: 28,
       totalSilver: 0,
       totalKills: 0,
       maxStageCleared: 0,
@@ -3654,6 +3747,10 @@
     if (stage && stage.id === 13) {
       const lu = LINEUPS.find((x) => x.id === 'ink_guard') || LINEUPS[0];
       return { lineup: lu, reason: '墨影翻帳——護銀抗墨：鐵衛＋鎖倉清影' };
+    }
+    if (stage && stage.id === 14) {
+      const lu = LINEUPS.find((x) => x.id === 'ink_guard') || LINEUPS[0];
+      return { lineup: lu, reason: '雙墨夜帳——分路護銀：鐵衛雙線＋鎖倉減抽＋合星階梯' };
     }
     const counts = {};
     const waves = (stage && stage.waves) || [];

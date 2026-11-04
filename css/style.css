@@ -771,3 +771,38 @@ header.title {
   color: #E8DCC8;
   font-size: 14px;
 }
+
+
+/* v2.8.0 */
+#hud.dual-ink {
+  box-shadow: inset 0 0 0 1px #B07AD4;
+}
+#hud .dual-ink-stat strong {
+  color: #B07AD4;
+}
+.wall-spark-modes {
+  display: flex;
+  gap: 6px;
+  margin: 6px 0 8px;
+  flex-wrap: wrap;
+}
+.wall-mode-btn {
+  background: #2A2218;
+  color: #E8DCC8;
+  border: 1px solid #5A4030;
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.wall-mode-btn.selected {
+  border-color: #C9A227;
+  color: #C9A227;
+  background: #1A1510;
+}
+.mod-icon {
+  margin-right: 2px;
+}
+.mod-row strong {
+  letter-spacing: 0.02em;
+}

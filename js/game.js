@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 主循環 v2.7.0
+ * 銀樓防衛 — 主循環 v2.8.0
  * v1.9.0：第7關／鎖倉居士／週連續＋本地最佳牆／手感平衡
  */
 (function () {
@@ -387,6 +387,7 @@
       const inkAlive = (state.enemies || []).filter(
         (e) => e.hp > 0 && (e.id === 'ink_specter' || (e.def && e.def.id === 'ink_specter'))
       ).length;
+      state._dualInkActive = inkAlive >= 2;
       if (inkAlive >= 2 || (state._dualInkSeen || 0) >= 1) {
         if (!save.ach) save.ach = {};
         if (!save.ach.dual_ink) {
@@ -691,10 +692,10 @@
           ? st.name || '每日'
           : '第 ' + st.id + ' 關・' + st.name;
     const rec =
-      !state.endless && !state.daily && !state.weekly && st && st.id === 13 && recommendForStage
+      !state.endless && !state.daily && !state.weekly && st && (st.id === 13 || st.id === 14) && recommendForStage
         ? recommendForStage(st, false, false, false)
         : null;
-    const rich = !!(rec && rec.lineup) || (st && st.id === 13 && !state.endless);
+    const rich = !!(rec && rec.lineup) || (st && (st.id === 13 || st.id === 14) && !state.endless);
     UI.showStory(
       title,
       story,
@@ -717,7 +718,7 @@
         .map((id) => (HEROES[id] ? HEROES[id].name : id))
         .join('＋');
     const long =
-      state.stage && state.stage.id === 13 && !state.endless
+      state.stage && (state.stage.id === 13 || state.stage.id === 14) && !state.endless
         ? '本關推薦｜' + rec.lineup.name + '（' + (heroes || '') + '）— ' + rec.reason
         : '本關推薦｜' + rec.lineup.name + ' — ' + rec.reason;
     UI.toast(long, state.stage && state.stage.id === 13 ? 3400 : 2800);
@@ -1541,6 +1542,15 @@
           UI.toast('時間軸不可用');
           return;
         }
+        window.__yinlouMarkWallMode = () => {
+          if (!save.ach) save.ach = {};
+          if (!save.ach.wall_mode) {
+            save.ach.wall_mode = true;
+            writeSave(save);
+            notifyAchievements();
+            UI.toast('成就｜牆影切換', 1800);
+          }
+        };
         UI.showWallTimeline(
           () => save,
           () => syncAll(),
@@ -1769,12 +1779,29 @@
     }
     state._mergeComboT = nowMs;
     if (state._mergeCombo >= 2) {
+      const ladder = { 2: 6, 3: 12, 4: 18, 5: 28 };
+      const step = state._mergeCombo;
+      const bonus = ladder[step] || (step > 5 ? 28 + (step - 5) * 4 : 0);
+      if (bonus > 0 && (state._mergeComboPaid || 0) < step) {
+        state._mergeComboPaid = step;
+        state.silver += bonus;
+        Battle.pushFloat(state.floats, {
+          x: now.x + 24,
+          y: now.y - 72,
+          text: '階梯 +' + bonus + '兩',
+          color: '#B07AD4',
+          size: 13,
+          vy: -26,
+          life: 1.0,
+          bounce: 1.05,
+        });
+      }
       Battle.pushFloat(state.floats, {
         x: now.x,
         y: now.y - 96,
-        text: '合星連擊 ×' + state._mergeCombo,
-        color: '#E8DCC8',
-        size: 15 + Math.min(4, state._mergeCombo),
+        text: '合星連擊 ×' + state._mergeCombo + (bonus ? '｜階梯' : ''),
+        color: step >= 5 ? '#B07AD4' : '#E8DCC8',
+        size: 15 + Math.min(5, state._mergeCombo),
         vy: -30,
         life: 1.1,
         bounce: 1.1,
@@ -1785,6 +1812,17 @@
         writeSave(save);
         notifyAchievements();
       }
+      if (state._mergeCombo >= 5) {
+        if (!save.ach) save.ach = {};
+        if (!save.ach.merge_combo5) {
+          save.ach.merge_combo5 = true;
+          writeSave(save);
+          notifyAchievements();
+          UI.toast('成就｜合星五連', 2200);
+        }
+      }
+    } else {
+      state._mergeComboPaid = 0;
     }
     if (now.star >= 3 && !save.ach.star3) {
       save.ach.star3 = true;

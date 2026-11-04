@@ -46,3 +46,6 @@ Canvas **960×540**，硬邊／嚴格色盤，PNG RGBA。
 
 ## v2.7
 - mid／props 無新加厚；`CACHE_VER=2.7.0`。
+
+## v2.8
+- mid／props 無新加厚；`CACHE_VER=2.8.0`。

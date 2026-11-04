@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v2.7.0
+ * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v2.8.0
  */
 (function (global) {
   const {
@@ -96,7 +96,7 @@
       ink +
       '"></i>' +
       gear;
-    const src = (window.YDSprites && window.YDSprites.urlFor) ? window.YDSprites.urlFor(def.id) : ('assets/sprites/' + def.id + '.png?v=2.7.0');
+    const src = (window.YDSprites && window.YDSprites.urlFor) ? window.YDSprites.urlFor(def.id) : ('assets/sprites/' + def.id + '.png?v=2.8.0');
     return (
       '<span class="hero-avatar" aria-hidden="true" data-hero="' +
       def.id +
@@ -436,6 +436,15 @@
   function updateHud(state) {
     $('stat-silver').textContent = Math.floor(state.silver);
     $('stat-hp').textContent = Math.max(0, Math.ceil(state.coreHp));
+    const hudRoot = $('hud');
+    if (hudRoot) {
+      hudRoot.classList.toggle('dual-ink', !!(state && state._dualInkActive));
+    }
+    const hpEl = $('stat-hp');
+    if (hpEl && hpEl.parentElement) {
+      hpEl.parentElement.classList.toggle('dual-ink-stat', !!(state && state._dualInkActive));
+      hpEl.parentElement.title = state && state._dualInkActive ? '雙墨同場｜護銀分路' : '';
+    }
     if (state.endless) {
       $('stat-wave').textContent = state.waveIndex + '/∞';
     } else {
@@ -762,7 +771,7 @@
     const src = id && window.YDSprites && window.YDSprites.urlFor
       ? window.YDSprites.urlFor(id)
       : id
-        ? 'assets/sprites/' + id + '.png?v=2.7.0'
+        ? 'assets/sprites/' + id + '.png?v=2.8.0'
         : '';
     const fallback =
       '<span class="codex-thumb-fallback" style="background:' + c + '"></span>';
@@ -1004,9 +1013,15 @@
     ];
     for (const m of mods || []) {
       const tag = m.late100 ? '【100+】' : m.late90 ? '【90+】' : '';
+      const icon = m.late100 ? '⬡ ' : m.late90 ? '◇ ' : '◆ ';
+      const col = m.late100 ? '#E8DCC8' : m.late90 ? '#8A9BB0' : '#C9A227';
       parts.push(
-        '<div class="paper-entry card-thick">' +
-          '<strong style="color:#C9A227">' +
+        '<div class="paper-entry card-thick mod-row">' +
+          '<strong style="color:' +
+          col +
+          '"><span class="mod-icon" aria-hidden="true">' +
+          icon +
+          '</span>' +
           tag +
           (m.name || '') +
           '</strong><span>' +
@@ -1046,13 +1061,18 @@
     if (spark && spark.bars) {
       sawSpark = true;
       parts.push(
-        '<div class="paper-entry card-thick wall-spark">' +
+        '<div class="paper-entry card-thick wall-spark" id="wall-spark-box">' +
           '<strong style="color:#C9A227">差值走勢</strong>' +
-          '<span class="wall-spark-bars mono">' +
+          '<div class="wall-spark-modes" role="tablist">' +
+          '<button type="button" class="wall-mode-btn selected" data-mode="endless">本局·無盡</button>' +
+          '<button type="button" class="wall-mode-btn" data-mode="week">本週·連週</button>' +
+          '<button type="button" class="wall-mode-btn" data-mode="stages">主線</button>' +
+          '</div>' +
+          '<span class="wall-spark-bars mono" id="wall-spark-bars">' +
           (spark.bars || '') +
           '</span>' +
           '<canvas id="wall-spark-canvas" class="wall-spark-canvas" width="320" height="56" aria-label="牆走勢"></canvas>' +
-          '<span class="card-meta">' +
+          '<span class="card-meta" id="wall-spark-meta">' +
           (spark.label || '') +
           '</span></div>'
       );
@@ -1098,8 +1118,44 @@
     parts.push('</div>');
     $('overlay-msg').innerHTML = parts.join('');
     const sparkCv = $('wall-spark-canvas');
+    let sparkMode = 'endless';
+    const applySparkMode = (mode) => {
+      sparkMode = mode || 'endless';
+      const box = $('wall-spark-box');
+      if (box) {
+        box.querySelectorAll('.wall-mode-btn').forEach((b) => {
+          b.classList.toggle('selected', b.getAttribute('data-mode') === sparkMode);
+        });
+      }
+      if (sparkCv && spark) drawWallSparkCanvas(sparkCv, spark, sparkMode);
+      const barsEl = $('wall-spark-bars');
+      const metaEl = $('wall-spark-meta');
+      const vals =
+        sparkMode === 'week' ? spark.week || [] : sparkMode === 'stages' ? spark.stages || [] : spark.endless || [];
+      const chars = '▁▂▃▄▅▆▇█';
+      const max = Math.max.apply(null, vals.concat([1]));
+      const bars = vals.map((v) => chars[Math.min(7, Math.floor((v / max) * 7))]).join('');
+      if (barsEl) barsEl.textContent = bars;
+      if (metaEl) {
+        const title =
+          sparkMode === 'week' ? '連週最佳' : sparkMode === 'stages' ? '主線進度' : '無盡波次';
+        metaEl.textContent = title + '（舊→新）｜' + (vals.join('→') || '—');
+      }
+    };
     if (sparkCv && spark && spark.endless && spark.endless.length) {
-      drawWallSparkCanvas(sparkCv, spark);
+      applySparkMode('endless');
+      const box = $('wall-spark-box');
+      if (box) {
+        box.querySelectorAll('.wall-mode-btn').forEach((b) => {
+          b.onclick = () => {
+            applySparkMode(b.getAttribute('data-mode'));
+            if (typeof onMark === 'function') {
+              /* mark wall_mode via parent */
+            }
+            if (window.__yinlouMarkWallMode) window.__yinlouMarkWallMode();
+          };
+        });
+      }
     }
     const btn = $('btn-overlay');
     btn.textContent = '關閉';
@@ -1112,12 +1168,14 @@
     if (onMark) onMark(sawDelta, sawSpark);
   }
 
-  function drawWallSparkCanvas(canvas, spark) {
+  function drawWallSparkCanvas(canvas, spark, mode) {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     const w = canvas.width;
     const h = canvas.height;
-    const vals = spark.endless || [];
+    const m = mode || 'endless';
+    const vals =
+      m === 'week' ? spark.week || [] : m === 'stages' ? spark.stages || [] : spark.endless || [];
     ctx.clearRect(0, 0, w, h);
     ctx.fillStyle = '#1A1510';
     ctx.fillRect(0, 0, w, h);
@@ -1128,17 +1186,19 @@
     const pad = 8;
     const n = vals.length;
     const gap = (w - pad * 2) / Math.max(1, n);
+    const accent = m === 'week' ? '#8A9BB0' : m === 'stages' ? '#3A7A6A' : '#C9A227';
     for (let i = 0; i < n; i++) {
       const bh = Math.max(2, Math.round(((vals[i] || 0) / max) * (h - pad * 2 - 4)));
       const x = pad + i * gap + 2;
       const bw = Math.max(4, gap - 6);
-      ctx.fillStyle = i === n - 1 ? '#C9A227' : '#3A7A6A';
+      ctx.fillStyle = i === n - 1 ? accent : m === 'week' ? '#5A6A80' : '#3A7A6A';
       ctx.fillRect(x, h - pad - bh, bw, bh);
     }
     ctx.fillStyle = '#A09070';
     ctx.font = '10px sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillText('無盡波次（舊→新）', pad, 12);
+    const title = m === 'week' ? '連週最佳（舊→新）' : m === 'stages' ? '主線進度（舊→新）' : '無盡波次（舊→新）';
+    ctx.fillText(title, pad, 12);
   }
 
   function showAchievements(getSave, onClose) {

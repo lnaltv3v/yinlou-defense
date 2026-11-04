@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — Canvas 繪製 v2.7.0
+ * 銀樓防衛 — Canvas 繪製 v2.8.0
  * v1.5：場景四層 ground→mid→wall→props；halt_seal PNG；擊破／暴擊
  */
 (function (global) {
@@ -732,7 +732,20 @@
     }
     const bw = r * 2;
     drawPixelRect(ctx, e.x - r, e.y - r - 8 + bob, bw, 3, '#1A1510');
-    drawPixelRect(ctx, e.x - r, e.y - r - 8 + bob, bw * (e.hp / e.maxHp), 3, '#C45C4A');
+    let hpCol = '#C45C4A';
+    if (e.id === 'ink_specter') {
+      const dual = !!(state && state._dualInkActive);
+      hpCol = dual ? '#B07AD4' : '#8A9BB0';
+    } else if (e.id === 'circuit_swan') hpCol = '#E8C96A';
+    else if (e.id === 'halt_tide') hpCol = '#C4A070';
+    else if (e.boss) hpCol = '#C9A227';
+    drawPixelRect(ctx, e.x - r, e.y - r - 8 + bob, bw * (e.hp / e.maxHp), 3, hpCol);
+    if (e.id === 'ink_specter' && state && state._dualInkActive) {
+      ctx.fillStyle = '#B07AD4';
+      ctx.font = 'bold 9px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('雙墨', e.x, e.y - r - 18 + bob);
+    }
     ctx.globalAlpha = 1;
   }
 
@@ -1098,6 +1111,24 @@
     }
   }
 
+
+  function drawDualInkHud(ctx, state) {
+    if (!state || !state._dualInkActive) return;
+    const pulse = 0.55 + 0.45 * Math.sin((performance.now() || 0) / 280);
+    ctx.globalAlpha = 0.88;
+    drawPixelRect(ctx, 300, 38, 360, 26, '#1A1510');
+    ctx.strokeStyle = '#B07AD4';
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = 0.55 + 0.45 * pulse;
+    ctx.strokeRect(300, 38, 360, 26);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#B07AD4';
+    ctx.font = 'bold 13px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('雙墨同場｜護銀分路 · 血條轉紫', 480, 56);
+    ctx.globalAlpha = 1;
+  }
+
   function drawModStrip(ctx, state) {
     const mods = state.modifiers;
     if (!mods || !mods.length) return;
@@ -1108,7 +1139,8 @@
         : late.some((m) => m.late100)
           ? '【100+】'
           : '【90+】';
-    const label = badge + mods.map((m) => m.name).join(' · ');
+    const iconFor = (m) => (m.late100 ? '⬡' : m.late90 ? '◇' : '◆');
+    const label = badge + mods.map((m) => iconFor(m) + m.name).join(' · ');
     ctx.globalAlpha = 0.92;
     drawPixelRect(ctx, 220, 8, 520, 22, '#1A1510');
     ctx.strokeStyle = late.length ? '#8A9BB0' : '#5A4030';
@@ -1176,48 +1208,46 @@
     ctx.globalAlpha = Math.min(1, alpha);
     const elite = b.kind === 'elite';
     const circuit = b.kind === 'circuit' || b.kind === 'dual';
-    const ink = b.kind === 'ink';
+    const dualInk = b.kind === 'dual_ink';
+    const ink = b.kind === 'ink' || dualInk;
     const quad = b.kind === 'quad';
     const tripleB = b.kind === 'triple';
     const dual = b.kind === 'dual';
     const tide = b.kind === 'halt_tide';
     const h = b.blurb ? 72 : 56;
     drawPixelRect(ctx, 140, 188, 680, h, '#1A1510');
-    ctx.strokeStyle = elite
+    const accent = elite
       ? '#C45C4A'
-      : quad || tripleB
-        ? '#C45C4A'
-        : ink
-          ? '#8A9BB0'
-          : dual || circuit
-            ? '#E8C96A'
-            : tide
-              ? '#C4A070'
-              : '#C9A227';
-    ctx.lineWidth = circuit || dual || tide || ink || quad || tripleB ? 4 : 3;
+      : dualInk
+        ? '#B07AD4'
+        : quad || tripleB
+          ? '#C45C4A'
+          : ink
+            ? '#8A9BB0'
+            : dual || circuit
+              ? '#E8C96A'
+              : tide
+                ? '#C4A070'
+                : '#C9A227';
+    ctx.strokeStyle = accent;
+    ctx.lineWidth = circuit || dual || tide || ink || quad || tripleB || dualInk ? 4 : 3;
     ctx.strokeRect(142, 190, 676, h - 4);
-    ctx.fillStyle = elite
-      ? '#C45C4A'
-      : quad || tripleB
-        ? '#C45C4A'
-        : ink
-          ? '#8A9BB0'
-          : dual || circuit
-            ? '#E8C96A'
-            : tide
-              ? '#C4A070'
-              : '#C9A227';
+    ctx.fillStyle = accent;
     ctx.font = 'bold 22px sans-serif';
     ctx.textAlign = 'center';
     const prefix = elite
       ? '⚔ 精英來襲 — '
-      : dual
-        ? '🦢🦢 雙天鵝 — '
-        : circuit
-          ? '🔔 熔斷 Boss — '
-          : tide
-            ? '⛔ 停牌潮 — '
-            : '⚠ Boss 入場 — ';
+      : dualInk
+        ? '墨墨 雙墨同場 — '
+        : dual
+          ? '🦢🦢 雙天鵝 — '
+          : circuit
+            ? '🔔 熔斷 Boss — '
+            : tide
+              ? '⛔ 停牌潮 — '
+              : ink
+                ? '墨 墨影 — '
+                : '⚠ Boss 入場 — ';
     ctx.fillText(prefix + b.name, 480, 222);
     if (b.blurb) {
       ctx.fillStyle = '#E8DCC8';

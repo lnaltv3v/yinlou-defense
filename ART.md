@@ -125,3 +125,6 @@
 
 ## v2.7
 - 牆走勢 mini canvas；mid／props 無新檔；`CACHE_VER=2.7.0`。
+
+## v2.8
+- mid／props 無新檔；`CACHE_VER=2.8.0`；雙墨 HUD 色差。
