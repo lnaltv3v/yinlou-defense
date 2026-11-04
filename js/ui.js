@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v2.3.0
+ * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v2.4.0
  */
 (function (global) {
   const {
@@ -27,6 +27,7 @@
     recordWallSnapshot,
     formatWallTimeline,
     listBossPreviews,
+    QUAD_TIDE_LESSON,
     exportLocalWallShare,
     pickFailTip,
     UPGRADE_PATHS,
@@ -495,6 +496,7 @@
       onCompareWallShare,
       onSnapWall,
       onWallTimeline,
+      onQuadLesson,
     } = opts;
     const save = getSave();
     const ov = $('overlay');
@@ -663,6 +665,7 @@
     if (onCompareWallShare) mk('對照牆短碼', () => onCompareWallShare(), false, true);
     if (onSnapWall) mk('留下牆快照', () => onSnapWall(), false, true);
     if (onWallTimeline) mk('牆快照時間軸', () => onWallTimeline(), false, true);
+    if (onQuadLesson) mk('四潮教學', () => onQuadLesson(), false, true);
     section('本關');
     mk(
       '重開本關',
@@ -880,6 +883,45 @@
   }
 
 
+  function showQuadTideLesson(getSave, onClose, onDone) {
+    const lesson = QUAD_TIDE_LESSON || {
+      title: '四潮教學',
+      blurb: '黑羽＋金邊＋臨停＋墨影',
+      steps: [],
+    };
+    const ov = $('overlay');
+    ov.classList.remove('settings-mode');
+    ov.classList.add('codex-mode', 'paper-panel');
+    $('overlay-title').textContent = lesson.title || '四潮教學';
+    const parts = [
+      '<div class="paper-body">',
+      '<p class="paper-note">' + (lesson.blurb || '') + '｜靜態短頁｜唔做影片</p>',
+    ];
+    for (const step of lesson.steps || []) {
+      parts.push(
+        '<div class="paper-entry card-thick">' +
+          '<strong style="color:#C9A227">' +
+          (step.name || '') +
+          '</strong><span>' +
+          (step.text || '') +
+          '</span></div>'
+      );
+    }
+    parts.push(
+      '<p class="paper-note">圖鑑「Boss 入場預覽」可重溫各潮入場。墨影帳已接正式 PNG（ink_specter）；缺檔先借暗盤影，再幾何。</p></div>'
+    );
+    $('overlay-msg').innerHTML = parts.join('');
+    const btn = $('btn-overlay');
+    btn.textContent = '明白';
+    btn.onclick = () => {
+      hideOverlay();
+      if (onDone) onDone();
+      if (onClose) onClose();
+    };
+    $('overlay-extra').innerHTML = '';
+    ov.classList.add('show');
+  }
+
   function showWallTimeline(getSave, onClose, onMark) {
     const save = getSave();
     const ov = $('overlay');
@@ -887,12 +929,28 @@
     ov.classList.add('codex-mode', 'paper-panel');
     $('overlay-title').textContent = '牆快照時間軸';
     const rows = typeof formatWallTimeline === 'function' ? formatWallTimeline(save) : [];
-    const parts = ['<div class="paper-body">', '<p class="paper-note">本機牆影（新→舊）｜唔做線上排行</p>'];
+    const parts = [
+      '<div class="paper-body">',
+      '<p class="paper-note">本機牆影（新→舊）｜對照上一快照差值｜唔做線上排行</p>',
+    ];
+    let sawDelta = false;
     if (!rows.length) {
       parts.push('<div class="paper-entry dim card-thick"><strong>尚無快照</strong><span>通關週挑戰／刷新無盡最佳／或設定「留下牆快照」</span></div>');
     } else {
       parts.push('<div class="wall-timeline">');
       for (const r of rows) {
+        if (r.delta) sawDelta = true;
+        const up =
+          r.delta && (r.delta.endless > 0 || r.delta.weekStreakBest > 0 || r.delta.stages > 0);
+        const down =
+          r.delta && (r.delta.endless < 0 || r.delta.weekStreakBest < 0 || r.delta.stages < 0);
+        const deltaHtml = r.deltaLabel
+          ? '<span class="wall-snap-delta' +
+            (up ? ' up' : down ? ' down' : '') +
+            '">較上一筆：' +
+            r.deltaLabel +
+            '</span>'
+          : '';
         parts.push(
           '<div class="paper-entry card-thick wall-snap-row">' +
             '<div class="card-body">' +
@@ -904,6 +962,7 @@
             '<span class="card-meta">' +
             (r.short || '') +
             '</span>' +
+            deltaHtml +
             '<span class="mono wall-snap-code">' +
             (r.code || '') +
             '</span>' +
@@ -922,7 +981,7 @@
     };
     $('overlay-extra').innerHTML = '';
     ov.classList.add('show');
-    if (onMark) onMark();
+    if (onMark) onMark(sawDelta);
   }
 
   function showAchievements(getSave, onClose) {
@@ -1152,6 +1211,7 @@
     showStory,
     showCodex,
     showWallTimeline,
+    showQuadTideLesson,
     showAchievements,
     setHint,
     refreshWeekProgress,

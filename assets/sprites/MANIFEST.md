@@ -66,4 +66,7 @@
 
 
 ## v2.3
-- `ink_specter`：程式 id 已入 `KNOWN_IDS`；缺檔借 `dark_tape`；`CACHE_VER=2.3.0`。
+- `ink_specter`（墨影帳／第四 Boss）：`ink_specter.png`／`_attack`／`_sheet` 正式 PNG（48×48／sheet 96×48）；帳幔＋帳頁裂縫墨核＋金邊帳角＋墨霧；有別 `dark_tape` 窄身披風。生成：`tools/gen_ink_specter.py`（Pillow 點陣，2026-11-05）。
+
+## v2.4
+- `ink_specter`／`_attack`／`_sheet`：正式接入遊戲載入路徑（同 halt_tide／circuit_swan）；`CACHE_VER=2.4.0`。

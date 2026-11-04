@@ -1477,7 +1477,8 @@
     { wave: 40, silver: 340, label: '四十浪三潮' },
     { wave: 50, silver: 420, label: '五十浪潮守' },
     { wave: 60, silver: 520, label: '六十浪四潮' },
-    { wave: 75, silver: 640, label: '七十五浪硬頂' },
+    { wave: 75, silver: 700, label: '七十五浪硬頂' },
+    { wave: 90, silver: 820, label: '九十浪長城' },
   ];
 
   function endlessMilestone(waveIndex) {
@@ -2520,6 +2521,20 @@
     },
   ];
 
+  /** 四潮教學（靜態短頁；v2.4） */
+  const QUAD_TIDE_LESSON = {
+    id: 'quad_tide',
+    title: '四潮教學',
+    blurb: '黑羽＋金邊＋臨停＋墨影——無盡每 60 波同場',
+    steps: [
+      { name: '① 鎖倉清符', text: '停牌潮帶停牌符；鎖倉居士減攻，先清符再硬頂潮心。' },
+      { name: '② 守鐘護核', text: '熔斷天鵝停刀鐘響——鐵衛扛前排，內息／甲厚撐過停刀窗。' },
+      { name: '③ 收羽軋空', text: '黑天鵝減速震核；逼空客＋標記收割，合星後再開逼。' },
+      { name: '④ 護銀抗墨', text: '墨影帳降攻抽銀；暗盤影優先清，銀兩唔好堆住等人抽。' },
+      { name: '⑤ 無盡節奏', text: '30 波三潮、60 波四潮；75+ 密度升但血量增速略收，合 3–4 星優先。' },
+    ],
+  };
+
   /** 失敗後隨機提示 */
   const FAIL_TIPS = [
     '前排放莊家鐵衛擋路，後排放空頭劍客／細價股刺客。',
@@ -2550,6 +2565,10 @@
     '停牌潮唔係熔斷天鵝：專範圍臨停＋帶動停牌符；先清符再軋潮心。',
     '本地最佳牆可喺設定匯出 JSON／文字（本機｜唔做線上排行）。',
     '主線十一關：雙天鵝後試停牌潮；推薦「臨停鎖倉／軋空鎖倉」。',
+    '第 12 關「三潮同場」後無盡每 60 波「四潮同場」——先鎖倉清符，再收雙羽同墨影。',
+    '墨影帳抽銀降攻：護住銀袋，暗盤影優先清，再軋帳心。',
+    '無盡 75+：潮變密但血量增速略收；合 3–4 星＋鎖倉鐵壁優先於亂召。',
+    '牆快照時間軸可對照上一筆差值（本機｜唔做線上排行）。',
   ];
 
 
@@ -2564,6 +2583,7 @@
     '波次間先合併再強化；唔好銀兩堆住等死。',
     '第十關以後推薦跟「軋空鎖倉／臨停鎖倉」芯片。',
     '失敗後睇推薦陣容同失敗提示——對齊而家關卡敵組成。',
+    '四潮先鎖倉清符，再收黑羽／金邊／墨影；銀兩唔好俾墨影抽乾。',
   ];
 
   function pickStuckTip(seed) {
@@ -2652,6 +2672,9 @@
     { id: 'endless60', cat: 'combat', name: '六十浪四潮', blurb: '無盡最佳 ≥ 60 波', check: (s) => (s.bestEndlessWave || 0) >= 60 },
     { id: 'quad_tide_clear', cat: 'combat', name: '四潮過招', blurb: '單局擊破四潮 Boss 各 ≥1', check: (s) => !!s.ach && !!s.ach.quad_tide_clear },
     { id: 'wall_timeline', cat: 'meta', name: '牆影時間軸', blurb: '打開一次牆快照時間軸', check: (s) => !!s.ach && !!s.ach.wall_timeline },
+    { id: 'endless75', cat: 'combat', name: '七十五浪硬頂', blurb: '無盡最佳 ≥ 75 波', check: (s) => (s.bestEndlessWave || 0) >= 75 },
+    { id: 'wall_delta', cat: 'meta', name: '牆影對盤', blurb: '喺時間軸睇過快照差值', check: (s) => !!s.ach && !!s.ach.wall_delta },
+    { id: 'quad_lesson', cat: 'meta', name: '四潮入門', blurb: '讀完一次四潮教學', check: (s) => !!s.ach && !!s.ach.quad_lesson },
   ];
 
   /** 首通銀兩獎勵（入累計帳） */
@@ -2694,8 +2717,19 @@
 
   function buildEndlessWave(n) {
     // v1.8：前期略軟、後期仍升；熔斷天鵝週期入場
-    const mul = 1 + (n - 1) * 0.105 + (n >= 50 ? (n - 50) * 0.018 : 0);
-    const count = (base) => Math.max(1, Math.round(base * (1 + (n - 1) * 0.072 + (n >= 50 ? (n - 50) * 0.01 : 0))));
+    // v2.4：50–74 加厚；75+ 密度續升但血量增速略收，避免軟鎖
+    const late50 = n >= 50 ? Math.min(n - 50, 25) * 0.018 : 0;
+    const late75 = n >= 75 ? (n - 75) * 0.011 : 0;
+    const mul = 1 + (n - 1) * 0.105 + late50 + late75;
+    const countLate = n >= 50 ? Math.min(n - 50, 25) * 0.01 + (n >= 75 ? (n - 75) * 0.006 : 0) : 0;
+    const count = (base) => {
+      let raw = Math.max(1, Math.round(base * (1 + (n - 1) * 0.072 + countLate)));
+      // v2.4：絕對軟頂——75+ 壓力改由 Boss／精英／間隔承担，避免符紙／暗盤洪峰
+      if (n >= 75) raw = Math.min(raw, 20 + Math.min(8, Math.floor((n - 75) / 5)));
+      else if (n >= 50) raw = Math.min(raw, 26);
+      else if (n >= 30) raw = Math.min(raw, 34);
+      return raw;
+    };
     const spawns = [
       { enemy: 'retail_tide', count: count(6 + n), lane: 'cycle', interval: Math.max(0.26, 0.68 - n * 0.018) },
     ];
@@ -2769,18 +2803,41 @@
         enemy: 'dark_tape',
         count: count(2 + Math.floor((n - 50) / 3)),
         lane: 'cycle',
-        interval: Math.max(0.28, 0.48 - (n - 50) * 0.008),
+        interval: Math.max(0.28, 0.48 - Math.min(n - 50, 25) * 0.008),
         delay: 0.5,
         hpMul: mul * 0.95,
       });
+      // 75+ 略減符紙洪峰，改以恐慌／槓桿壓節奏
+      const sealN = n >= 75 ? count(1 + Math.floor((n - 50) / 5)) : count(2 + Math.floor((n - 50) / 4));
       spawns.push({
         enemy: 'halt_seal',
-        count: count(2 + Math.floor((n - 50) / 4)),
+        count: sealN,
         lane: 'random',
-        interval: 0.48,
+        interval: n >= 75 ? 0.55 : 0.48,
         delay: 1.0,
         hpMul: mul * 0.98,
       });
+    }
+    if (n >= 75) {
+      spawns.push({
+        enemy: 'panic_board',
+        count: count(1 + Math.floor((n - 75) / 4)),
+        lane: 'cycle',
+        interval: Math.max(0.55, 0.85 - (n - 75) * 0.01),
+        delay: 1.4,
+        hpMul: mul * 0.97,
+      });
+      if (n % 10 === 0) {
+        spawns.push({
+          enemy: 'leverage_fiend',
+          count: 1,
+          lane: 'random',
+          interval: 0,
+          delay: 2.8,
+          elite: true,
+          hpMul: mul * 1.05,
+        });
+      }
     }
     if (n >= 60 && n % 60 === 0) {
       spawns.push({ enemy: 'black_swan', count: 1, lane: 0, interval: 0, delay: 1.8, hpMul: mul });
@@ -2949,7 +3006,7 @@
   function mergeRebate(heroId, newStar) {
     const def = HEROES[heroId];
     if (!def) return 0;
-    return Math.round(def.cost * 0.176 * newStar);
+    return Math.round(def.cost * 0.178 * newStar);
   }
 
   function activeBonds(heroes) {
@@ -2989,7 +3046,7 @@
 
   function defaultSave() {
     return {
-      version: 23,
+      version: 24,
       totalSilver: 0,
       totalKills: 0,
       maxStageCleared: 0,
@@ -3021,6 +3078,7 @@
       wallSnapshots: [],
       localBest: { endless: 0, weeklyStreak: 0, stageClears: 0 },
       post12EndlessBonus: false,
+      quadTideTutorialDone: false,
       firstBootDone: false,
       tutorialDone: false,
     };
@@ -3093,6 +3151,10 @@
     const snaps = Array.isArray(save && save.wallSnapshots) ? save.wallSnapshots.slice() : [];
     // 新→舊
     snaps.reverse();
+    function fmtDelta(n, label) {
+      if (!n) return label + '持平';
+      return label + (n > 0 ? '+' + n : String(n));
+    }
     return snaps.map(function (s, i) {
       const at = s.at || '';
       let local = at;
@@ -3118,6 +3180,18 @@
         auto: '自動',
         test: '測試',
       };
+      const older = snaps[i + 1] || null;
+      let delta = null;
+      let deltaLabel = '';
+      if (older) {
+        const dE = (s.endless || 0) - (older.endless || 0);
+        const dS = (s.weekStreakBest || 0) - (older.weekStreakBest || 0);
+        const dM = (s.stages || 0) - (older.stages || 0);
+        delta = { endless: dE, weekStreakBest: dS, stages: dM };
+        deltaLabel = [fmtDelta(dE, '無盡'), fmtDelta(dS, '連週'), fmtDelta(dM, '主線')].join('｜');
+      } else {
+        deltaLabel = '基準快照';
+      }
       return {
         index: i,
         at: at,
@@ -3129,6 +3203,8 @@
         endless: s.endless || 0,
         weekStreakBest: s.weekStreakBest || 0,
         stages: s.stages || 0,
+        delta: delta,
+        deltaLabel: deltaLabel,
       };
     });
   }
@@ -3182,7 +3258,7 @@
         game: 'yinlou-defense',
         kind: 'local-best-wall',
         exportedAt: new Date().toISOString(),
-        version: (save && save.version) || 23,
+        version: (save && save.version) || 24,
         note: '本機進度牆｜唔做線上排行',
       },
       wall: wall,
@@ -3237,7 +3313,7 @@
     const body = data && data.save ? data.save : data;
     if (!body || typeof body !== 'object') throw new Error('無效存檔');
     const merged = { ...defaultSave(), ...body };
-    merged.version = Math.max(23, merged.version || 23);
+    merged.version = Math.max(24, merged.version || 24);
     if (merged.weekStreak == null) merged.weekStreak = 0;
     if (merged.weekStreakBest == null) merged.weekStreakBest = 0;
     if (!merged.lastWeeklyClearKey) merged.lastWeeklyClearKey = '';
@@ -3245,6 +3321,7 @@
     if (!Array.isArray(merged.wallSnapshots)) merged.wallSnapshots = [];
     if (!merged.localBest || typeof merged.localBest !== 'object') merged.localBest = { endless: 0, weeklyStreak: 0, stageClears: 0 };
     if (merged.post12EndlessBonus == null) merged.post12EndlessBonus = false;
+    if (merged.quadTideTutorialDone == null) merged.quadTideTutorialDone = false;
     if (!merged.weekDailyMap) merged.weekDailyMap = {};
     if (!merged.firstClears) merged.firstClears = {};
     if (!merged.seenHeroes) merged.seenHeroes = {};
@@ -3384,6 +3461,7 @@
     saveStats,
     LINEUPS,
     FAIL_TIPS,
+    QUAD_TIDE_LESSON,
     STUCK_TIPS,
     RUN_MODIFIERS,
     MAX_STAR,

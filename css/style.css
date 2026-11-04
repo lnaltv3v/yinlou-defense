@@ -705,3 +705,14 @@ header.title {
 .wall-timeline { display: flex; flex-direction: column; gap: 6px; }
 .wall-snap-row .wall-snap-code { display: block; font-size: 11px; opacity: 0.85; margin-top: 2px; }
 .boss-preview .card-skill { color: #C9A227; }
+
+
+/* v2.4 牆快照差值 */
+.wall-snap-delta {
+  display: block;
+  font-size: 12px;
+  color: #A09070;
+  margin-top: 2px;
+}
+.wall-snap-delta.up { color: #3A7A6A; }
+.wall-snap-delta.down { color: #C45C4A; }

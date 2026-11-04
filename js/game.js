@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 主循環 v2.3.0
+ * 銀樓防衛 — 主循環 v2.4.0
  * v1.9.0：第7關／鎖倉居士／週連續＋本地最佳牆／手感平衡
  */
 (function () {
@@ -25,6 +25,7 @@
     recordWallSnapshot,
     formatWallTimeline,
     listBossPreviews,
+    QUAD_TIDE_LESSON,
     exportLocalWallShare,
     importSaveJson,
     pickFailTip,
@@ -74,6 +75,7 @@
   if (!save.seenHeroes) save.seenHeroes = {};
   if (!save.seenEnemies) save.seenEnemies = {};
   if (!save.ach) save.ach = {};
+  if (save.quadTideTutorialDone == null) save.quadTideTutorialDone = false;
   if (!save.unlockedAch) save.unlockedAch = {};
   if (save.totalKills == null) save.totalKills = 0;
   if (save.showSkillCd == null) save.showSkillCd = true;
@@ -696,6 +698,23 @@
       if (enterStage(0, true, false, false)) {
         const lab = modifierLabel(state.modifiers || []);
         const allClear = (save.maxStageCleared || 0) >= STAGES.length;
+        if (!save.quadTideTutorialDone && (allClear || (save.maxStageCleared || 0) >= 10)) {
+          setTimeout(() => {
+            if (UI.showQuadTideLesson) {
+              UI.showQuadTideLesson(
+                () => save,
+                () => syncAll(),
+                () => {
+                  save.quadTideTutorialDone = true;
+                  if (!save.ach) save.ach = {};
+                  save.ach.quad_lesson = true;
+                  writeSave(save);
+                  notifyAchievements();
+                }
+              );
+            }
+          }, 600);
+        }
         if (allClear && !save.post12EndlessBonus) {
           save.post12EndlessBonus = true;
           if (!save.ach) save.ach = {};
@@ -788,6 +807,20 @@
     if (state.phase !== 'prep') return;
     if (!state.endless && state.waveIndex >= state.stage.waves.length) return;
     state.waveIndex += 1;
+    if (
+      state.endless &&
+      !state._quadTipShown &&
+      (state.waveIndex === 28 || state.waveIndex === 55 || state.waveIndex === 72)
+    ) {
+      state._quadTipShown = true;
+      const tip =
+        state.waveIndex >= 72
+          ? '無盡 75+：雜兵軟頂，壓力在 Boss／精英——合星＋鎖倉優先'
+          : state.waveIndex >= 55
+            ? '四潮將至（60 波）——先鎖倉清符，再收羽同墨'
+            : '三潮將至（30 波）——黑羽＋金邊＋臨停';
+      UI.toast(tip, 2800);
+    }
     const waveDef = currentWaveDef();
     state.spawner = Battle.createSpawner(waveDef);
     state._eliteAnnounced = false;
@@ -1439,9 +1472,27 @@
         UI.showWallTimeline(
           () => save,
           () => syncAll(),
-          () => {
+          (sawDelta) => {
             if (!save.ach) save.ach = {};
             save.ach.wall_timeline = true;
+            if (sawDelta) save.ach.wall_delta = true;
+            writeSave(save);
+            notifyAchievements();
+          }
+        );
+      },
+      onQuadLesson: () => {
+        if (!UI.showQuadTideLesson) {
+          UI.toast('四潮教學不可用');
+          return;
+        }
+        UI.showQuadTideLesson(
+          () => save,
+          () => syncAll(),
+          () => {
+            save.quadTideTutorialDone = true;
+            if (!save.ach) save.ach = {};
+            save.ach.quad_lesson = true;
             writeSave(save);
             notifyAchievements();
           }
