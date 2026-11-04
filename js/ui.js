@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v4.9.0
+ * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v5.0.0
  */
 (function (global) {
   const {
@@ -51,6 +51,13 @@
     formatCharmLockSummary,
     formatDualShareText,
     mergeSnapStarLegendHtml,
+    formatMergeSnapLessonHtml,
+    mergeSnapLessonDetail,
+    buildShortDeepLink,
+    parseShortDeepLink,
+    formatShortDeepLinkPreview,
+    exportWallMultiPack,
+    compareWallMultiPack,
     mergeSnapRadius,
     syncMergeSnapDevice,
     loadMergeSnapDevice,
@@ -619,6 +626,27 @@
       lockEl.textContent = locked || procs ? locked + (procs ? '/' + procs : '') : '—';
       lockEl.title = '場上鎖倉數／本局鎖倉印次數';
     }
+    // v5.0：超千五潮相 HUD
+    let tideEl = $('tide-phase-hud');
+    if (!tideEl) {
+      tideEl = document.createElement('div');
+      tideEl.id = 'tide-phase-hud';
+      tideEl.className = 'tide-phase-hud';
+      tideEl.setAttribute('role', 'status');
+      const host = $('hud') || $('wrap') || document.body;
+      host.appendChild(tideEl);
+    }
+    const tide = state && state._tidePhase;
+    if (tide && tide.label) {
+      tideEl.style.borderColor = tide.hue || '#C9A227';
+      tideEl.style.color = tide.hue || '#C9A227';
+      tideEl.textContent = '潮相｜' + tide.label;
+      tideEl.title = tide.blurb || tide.label;
+      tideEl.classList.add('show');
+    } else {
+      tideEl.textContent = '';
+      tideEl.classList.remove('show');
+    }
     // v3.3：鏡稅剩餘秒數 HUD
     let taxEl = $('mirage-tax-hud');
     if (!taxEl) {
@@ -849,6 +877,8 @@ function fillWallCompareHist(save, dayFilter) {
       '<button type="button" class="wall-mode-btn" id="wall-hist-export">匯出文字</button>' +
       '<button type="button" class="wall-mode-btn" id="wall-hist-json">匯出 JSON</button>' +
       '<button type="button" class="wall-mode-btn" id="wall-hist-thick">加厚短碼</button>' +
+      '<button type="button" class="wall-mode-btn" id="wall-multi-export">匯出多檔包</button>' +
+      '<button type="button" class="wall-mode-btn" id="wall-multi-compare">對照多檔</button>' +
       '<button type="button" class="wall-mode-btn" id="wall-hist-import">匯入對照</button>' +
       '<button type="button" class="wall-mode-btn" id="wall-hist-clear"' +
       (rows.length || (save.wallCompareHistory && save.wallCompareHistory.length) ? '' : ' disabled') +
@@ -935,6 +965,49 @@ function fillWallCompareHist(save, dayFilter) {
           (typeof formatLocalBestWall === 'function' ? formatLocalBestWall(save).label : '');
         copyOut(pack, '__yinlouMarkWallShortThick');
         if (window.__yinlouMarkWallShortThick) window.__yinlouMarkWallShortThick();
+      };
+    }
+    const multiExp = $('wall-multi-export');
+    if (multiExp) {
+      multiExp.onclick = function () {
+        const text = window.__yinlouExportWallMultiPack
+          ? window.__yinlouExportWallMultiPack(true)
+          : typeof exportWallMultiPack === 'function'
+            ? exportWallMultiPack(save, { asText: true })
+            : '';
+        copyOut(text || '{}', null);
+        toast('已匯出牆多檔包', 1800);
+      };
+    }
+    const multiCmp = $('wall-multi-compare');
+    if (multiCmp) {
+      multiCmp.onclick = function () {
+        const raw = prompt('貼上牆多檔包 JSON 或含多行 YL-E… 短碼', '');
+        if (raw == null || !String(raw).trim()) return;
+        const res = window.__yinlouCompareWallMultiPack
+          ? window.__yinlouCompareWallMultiPack(raw)
+          : typeof compareWallMultiPack === 'function'
+            ? compareWallMultiPack(save, raw)
+            : { ok: false, error: '無函式' };
+        if (!res || !res.ok) {
+          toast((res && res.error) || '對照失敗', 2200);
+          return;
+        }
+        const lines = (res.rows || [])
+          .map(function (r, i) {
+            const c = r.cmp || {};
+            return (
+              '#' +
+              (i + 1) +
+              ' ' +
+              (r.code || '') +
+              '｜' +
+              (c.summary || (c.parts && c.parts.join('·')) || c.error || (c.ok ? 'OK' : '—'))
+            );
+          })
+          .join('\n');
+        alert('牆多檔對照\n' + lines);
+        toast('已對照 ' + res.count + ' 檔', 2000);
       };
     }
     const impBtn = $('wall-hist-import');
@@ -1318,7 +1391,12 @@ function fillWallCompareHist(save, dayFilter) {
       (typeof formatCharmLockSummary === 'function'
         ? formatCharmLockSummary(save)
         : '') +
-      '</p>';
+      '</p>' +
+      '<div class="lock-deep-row">' +
+      '<button type="button" class="wall-mode-btn" id="charm-lock-deeplink">複製深鏈</button>' +
+      '<button type="button" class="wall-mode-btn" id="charm-lock-preview">預覽深鏈</button>' +
+      '</div>' +
+      '<div id="charm-lock-deep-preview" class="deep-preview-box"></div>';
     ov.classList.add('show');
     if (window.__yinlouMarkSetBadgeDetail) window.__yinlouMarkSetBadgeDetail();
     const lockExp = $('charm-lock-export');
@@ -1345,6 +1423,59 @@ function fillWallCompareHist(save, dayFilter) {
         if (window.__yinlouImportCharmLockShort) window.__yinlouImportCharmLockShort(code);
         else if (typeof importCharmLockShort === 'function') importCharmLockShort(save, code);
         showCharmSetDetail(focusSet, getSave || window.__yinlouGetSave);
+      };
+    }
+    const lockDeep = $('charm-lock-deeplink');
+    if (lockDeep) {
+      lockDeep.onclick = function () {
+        const code =
+          typeof exportCharmLockShort === 'function' ? exportCharmLockShort(save) : '';
+        const url =
+          window.__yinlouBuildShortDeepLink
+            ? window.__yinlouBuildShortDeepLink({ lock: code, preview: '1' })
+            : typeof buildShortDeepLink === 'function'
+              ? buildShortDeepLink({ lock: code, preview: '1' })
+              : '';
+        if (!url) {
+          toast('無鎖欄可分享', 1600);
+          return;
+        }
+        const done = function () {
+          if (window.__yinlouPreviewShortDeepLink) window.__yinlouPreviewShortDeepLink(url);
+          toast('深鏈已複製', 1800);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(url).then(done).catch(function () {
+            prompt('鎖欄深鏈', url);
+            done();
+          });
+        } else {
+          prompt('鎖欄深鏈', url);
+          done();
+        }
+      };
+    }
+    const lockPrev = $('charm-lock-preview');
+    if (lockPrev) {
+      lockPrev.onclick = function () {
+        const code =
+          ($('charm-lock-short-input') && $('charm-lock-short-input').value) ||
+          (typeof exportCharmLockShort === 'function' ? exportCharmLockShort(save) : '');
+        const url =
+          typeof buildShortDeepLink === 'function'
+            ? buildShortDeepLink({ lock: code, preview: '1' })
+            : '';
+        const parsed =
+          (window.__yinlouPreviewShortDeepLink && window.__yinlouPreviewShortDeepLink(url)) ||
+          (typeof parseShortDeepLink === 'function' ? parseShortDeepLink(url) : null);
+        const box = $('charm-lock-deep-preview');
+        if (box) {
+          box.innerHTML =
+            typeof formatShortDeepLinkPreview === 'function'
+              ? formatShortDeepLinkPreview(parsed)
+              : '';
+        }
+        toast('深鏈預覽', 1400);
       };
     }
     document.querySelectorAll('[data-equip-next]').forEach(function (b) {
@@ -2082,7 +2213,7 @@ function fillWallCompareHist(save, dayFilter) {
         (dlt.kills != null ? dlt.kills : '—') +
         '｜Δ銀 ' +
         (dlt.silver != null ? dlt.silver : '—') +
-        '｜本機｜v4.9';
+        '｜本機｜v5.0';
       if (share) {
         const dualCode =
           typeof exportDualPresetsShort === 'function' ? exportDualPresetsShort(save) : '';
@@ -2539,10 +2670,10 @@ function fillWallCompareHist(save, dayFilter) {
       ' · buzz ' +
       (save.mergeSnapBuzz !== false ? '開' : '關') +
       '</strong></div>' +
-      '<div class="paper-row"><span>版本</span><strong>v4.9.0｜存檔 v' +
-      (save.version || 49) +
+      '<div class="paper-row"><span>版本</span><strong>v5.0.0｜存檔 v' +
+      (save.version || 50) +
       '</strong></div>' +
-      '<p class="paper-note">v4.9：二十一池1450–1500、超千四複合節奏、鎖欄套裝／星級摘要、分享文案、合失敗紅環＋星級圖例。本地牆本機｜唔做線上排行。</p>' +
+      '<p class="paper-note">v5.0：二十二池1550–1600、超千五潮相 HUD、合吸教學、牆多檔包、短碼深鏈預覽。本地牆本機｜唔做線上排行。</p>' +
       (typeof mergeSnapStarLegendHtml === 'function' ? mergeSnapStarLegendHtml() : '') +
       '<div id="charm-equip-bar" class="charm-equip-bar"></div>' +
       '</div>';
@@ -2850,6 +2981,10 @@ function fillWallCompareHist(save, dayFilter) {
     })();
 
     if (onQuadLesson) mk('四潮教學', () => onQuadLesson(), false, true);
+    mk('合失敗／吸附教學', () => {
+      if (window.__yinlouOpenMergeSnapLesson) window.__yinlouOpenMergeSnapLesson();
+      else showMergeSnapLesson(save);
+    }, false, true);
     section('本關');
     mk(
       '重開本關',
@@ -3783,8 +3918,72 @@ function fillWallCompareHist(save, dayFilter) {
     if (el) el.textContent = text;
   }
 
+
+  function showMergeSnapLesson(save) {
+    const ov = $('overlay');
+    if (!ov) return;
+    ov.classList.add('show', 'paper-panel');
+    ov.classList.remove('settings-mode');
+    $('overlay-title').textContent = '合失敗／吸附教學';
+    const body =
+      typeof formatMergeSnapLessonHtml === 'function'
+        ? formatMergeSnapLessonHtml()
+        : '<p>拖同星合併；紅環＝非法合。</p>';
+    $('overlay-msg').innerHTML = body;
+    const extra = $('overlay-extra');
+    if (extra) extra.innerHTML = '';
+    const btn = $('btn-overlay');
+    btn.textContent = '關閉';
+    btn.onclick = function () {
+      hideOverlay();
+    };
+    const detail = $('merge-lesson-detail');
+    const tip = function (key) {
+      return typeof mergeSnapLessonDetail === 'function' ? mergeSnapLessonDetail(key) : '';
+    };
+    ov.querySelectorAll('.lesson-chip').forEach(function (chip) {
+      chip.onclick = function () {
+        ov.querySelectorAll('.lesson-chip').forEach(function (c) {
+          c.classList.remove('selected');
+        });
+        chip.classList.add('selected');
+        if (detail) detail.textContent = tip(chip.getAttribute('data-lesson') || 'snap');
+      };
+    });
+    ov.querySelectorAll('.snap-star-swatch').forEach(function (sw) {
+      sw.onclick = function () {
+        const star = sw.getAttribute('data-star');
+        if (detail) {
+          detail.textContent =
+            star === 'fail'
+              ? '合失敗紅閃：非法合時於目標格畫紅環約 0.5 秒。'
+              : '★' + star + ' 吸附環色示範；拖曳同星同種時套用此色。';
+        }
+      };
+    });
+    try {
+      const A = window.YDAudio;
+      if (A && A.play) A.play('lesson_open');
+    } catch (_) {}
+  }
+
+  function showShortDeepLinkPreview(parsed, save) {
+    const html =
+      typeof formatShortDeepLinkPreview === 'function'
+        ? formatShortDeepLinkPreview(parsed)
+        : '';
+    showOverlay(
+      '短碼深鏈預覽',
+      html +
+        '<p class="paper-note">可喺鎖欄／分享文案複製深鏈；打開帶 ?lock=／?dual=／?wall= 會自動預覽（唔自動覆寫本機）。</p>',
+      '關閉'
+    );
+  }
+
   global.YDUI = {
     $,
+    showMergeSnapLesson,
+    showShortDeepLinkPreview,
     toast,
     buildShop,
     buildSpeedBar,
