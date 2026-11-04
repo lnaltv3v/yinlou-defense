@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 靜態資料 v0.6.0
+ * 銀樓防衛 — 靜態資料 v0.7.0
  * 角色為原創綽號，影射金融江湖氣氛；唔用真人真名／金庸名／Fortias IP。
  */
 (function (global) {
@@ -305,6 +305,14 @@
       attackRange: 48,
       attackCd: 1.05,
       preferHero: 0.7,
+      skill: {
+        id: 'fomo_bite',
+        name: 'FOMO 撕咬',
+        every: 4,
+        blurb: '精英技：吸血回血',
+        type: 'lifesteal',
+        healRatio: 0.45,
+      },
     },
     leverage_fiend: {
       id: 'leverage_fiend',
@@ -318,6 +326,17 @@
       attackRange: 55,
       attackCd: 1.2,
       preferHero: 0.45,
+      skill: {
+        id: 'margin_shout',
+        name: '槓上加槓',
+        every: 5,
+        blurb: '精英／Boss 技：附近敵人短暫加速＋加攻',
+        type: 'rally',
+        radius: 90,
+        speedMul: 1.35,
+        atkMul: 1.25,
+        dur: 2.5,
+      },
     },
     black_swan: {
       id: 'black_swan',
@@ -332,6 +351,16 @@
       attackRange: 70,
       attackCd: 1.4,
       preferHero: 0.35,
+      skill: {
+        id: 'swan_scream',
+        name: '黑羽驚惶',
+        every: 4,
+        blurb: '每第 4 擊：全體短暫減速＋核心震盪',
+        type: 'scream',
+        slow: 0.4,
+        slowDur: 2.2,
+        coreDmg: 10,
+      },
     },
     margin_call: {
       id: 'margin_call',
@@ -345,6 +374,14 @@
       attackRange: 40,
       attackCd: 0.75,
       preferHero: 0.8,
+      skill: {
+        id: 'call_mark',
+        name: '限期追保',
+        every: 3,
+        blurb: '精英技：標記目標，該下額外受傷',
+        type: 'mark',
+        dmgMul: 1.75,
+      },
     },
     rumor_swarm: {
       id: 'rumor_swarm',
@@ -371,6 +408,16 @@
       attackRange: 50,
       attackCd: 0.95,
       preferHero: 0.65,
+      skill: {
+        id: 'panic_rush',
+        name: '踏空急殺',
+        every: 4,
+        blurb: '精英技：自身加速衝鋒並下一下傷害提高',
+        type: 'rush',
+        speedMul: 1.55,
+        dmgMul: 1.6,
+        dur: 1.8,
+      },
     },
   };
 
@@ -382,6 +429,7 @@
     {
       id: 1,
       name: '錢莊初夜',
+      story: '夜雨初歇，錢莊門楣掛起「銀樓」燈籠。散戶潮聞風而至——你要喺開市前擺好第一盤棋。',
       startSilver: 165,
       coreHp: 185,
       unlockHeroes: Object.keys(HEROES),
@@ -411,6 +459,7 @@
     {
       id: 2,
       name: '午市殺跌',
+      story: '午市鐘響，追保令滿天飛。多空對決開倉，誰守得住盤口，誰就係今日莊家。',
       startSilver: 155,
       coreHp: 180,
       unlockHeroes: Object.keys(HEROES),
@@ -450,6 +499,7 @@
     {
       id: 3,
       name: '夜盤黑潮',
+      story: '夜盤無聲，傳聞蚊起舞。黑羽掠過屋脊——黑天鵝唔敲門，只破門。',
       startSilver: 175,
       coreHp: 205,
       unlockHeroes: Object.keys(HEROES),
@@ -499,6 +549,7 @@
     {
       id: 4,
       name: '清算之夜',
+      story: '清算之夜，槓桿反噬。銀樓鐵壁若齊人，尚有一息；否則只剩空倉同空城。',
       startSilver: 200,
       coreHp: 235,
       unlockHeroes: Object.keys(HEROES),
@@ -555,6 +606,7 @@
     {
       id: 5,
       name: '熔斷黎明',
+      story: '熔斷黎明前最後一炷香。恐慌盤如潮，套利行者跨 lane 收割——撐過呢一浪，江湖記得你名。',
       startSilver: 210,
       coreHp: 250,
       unlockHeroes: Object.keys(HEROES),
@@ -615,6 +667,7 @@
   const ENDLESS = {
     id: 'endless',
     name: '無盡殺跌',
+    story: '殺跌無盡，浪高過浪。里程碑銀兩係你唯一嘅喘息——守得愈久，江湖傳聞愈響。',
     startSilver: 170,
     coreHp: 190,
     unlockHeroes: Object.keys(HEROES),
@@ -673,6 +726,7 @@
       date: s,
       name: '每日·' + theme.name,
       blurb: theme.blurb,
+      story: '今日盤口：' + theme.blurb + '。江湖唔等人——佈陣、合併、強化，守住銀樓。',
       focus: theme.focus,
       startSilver: 160 + (h % 5) * 8,
       coreHp: 185 + (h % 4) * 10,
@@ -775,6 +829,7 @@
     '精英波／Boss 前先合成到 2 星以上再硬頂。',
     '拖放可調位：坦克靠左、輸出靠右（敵人由右入）。',
     '開波前睇羈絆列：齊人先開波，收益更大。',
+    '點場上俠客可強化：刀利／甲厚／內息（花銀兩，合併會保留較高強化）。',
   ];
 
   const ACHIEVEMENTS = [
@@ -793,6 +848,7 @@
     { id: 'daily', name: '日日開盤', blurb: '完成一次每日關', check: (s) => !!s.ach && s.ach.daily },
     { id: 'elite', name: '精英過招', blurb: '擊敗一次精英敵', check: (s) => !!s.ach && s.ach.elite },
     { id: 'lineup', name: '跟單上陣', blurb: '使用一次推薦陣容芯片', check: (s) => !!s.ach && s.ach.lineup },
+    { id: 'upgrade', name: '鍛打開倉', blurb: '首次強化場上俠客', check: (s) => !!s.ach && s.ach.upgrade },
   ];
 
   function buildEndlessWave(n) {
@@ -876,6 +932,59 @@
 
   const SPEED_OPTIONS = [1, 1.5, 2];
 
+
+  /** v0.7 場上強化（銀兩升級，擇攻／防／技能加速） */
+  const UPGRADE_PATHS = {
+    atk: {
+      id: 'atk',
+      name: '刀利',
+      blurb: '攻擊 +12%／級',
+      maxLv: 3,
+      costBase: 18,
+      costPerLv: 12,
+      atkMulPer: 0.12,
+    },
+    def: {
+      id: 'def',
+      name: '甲厚',
+      blurb: '最大血 +15%／級',
+      maxLv: 3,
+      costBase: 16,
+      costPerLv: 10,
+      hpMulPer: 0.15,
+    },
+    haste: {
+      id: 'haste',
+      name: '內息',
+      blurb: '冷卻 −8%／級（技能更快）',
+      maxLv: 3,
+      costBase: 20,
+      costPerLv: 14,
+      cdMulPer: 0.08,
+    },
+  };
+
+  function upgradeCost(pathId, currentLv) {
+    const p = UPGRADE_PATHS[pathId];
+    if (!p) return 999;
+    const lv = currentLv || 0;
+    if (lv >= p.maxLv) return 0;
+    return p.costBase + lv * p.costPerLv;
+  }
+
+  function upgradeLabel(hero) {
+    if (!hero) return '';
+    const a = hero.upAtk || 0;
+    const d = hero.upDef || 0;
+    const h = hero.upHaste || 0;
+    if (!a && !d && !h) return '';
+    const parts = [];
+    if (a) parts.push('刀' + a);
+    if (d) parts.push('甲' + d);
+    if (h) parts.push('息' + h);
+    return parts.join('·');
+  }
+
   const SAVE_KEY = 'yinlou-defense-save-v1';
 
   /** 最高星級（v0.6：可合成至 4 星） */
@@ -947,7 +1056,7 @@
 
   function defaultSave() {
     return {
-      version: 6,
+      version: 7,
       totalSilver: 0,
       totalKills: 0,
       maxStageCleared: 0,
@@ -958,6 +1067,7 @@
       showCellHints: true,
       showSkillCd: true,
       reduceShake: false,
+      sfxEnabled: true,
       autoPauseOnBond: false,
       seenHeroes: {},
       seenEnemies: {},
@@ -971,7 +1081,7 @@
 
   function exportSaveJson(save) {
     const payload = {
-      meta: { game: 'yinlou-defense', exportedAt: new Date().toISOString(), version: save.version || 6 },
+      meta: { game: 'yinlou-defense', exportedAt: new Date().toISOString(), version: save.version || 7 },
       save: { ...defaultSave(), ...save },
     };
     return JSON.stringify(payload, null, 2);
@@ -982,7 +1092,7 @@
     const body = data && data.save ? data.save : data;
     if (!body || typeof body !== 'object') throw new Error('無效存檔');
     const merged = { ...defaultSave(), ...body };
-    merged.version = Math.max(6, merged.version || 6);
+    merged.version = Math.max(7, merged.version || 7);
     if (!merged.seenHeroes) merged.seenHeroes = {};
     if (!merged.seenEnemies) merged.seenEnemies = {};
     if (!merged.ach) merged.ach = {};
@@ -1042,6 +1152,9 @@
     LINEUPS,
     FAIL_TIPS,
     MAX_STAR,
+    UPGRADE_PATHS,
+    upgradeCost,
+    upgradeLabel,
     ENDLESS_MILESTONES,
     buildEndlessWave,
     buildDailyWaves,

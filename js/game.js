@@ -1,6 +1,6 @@
 /**
- * 銀樓防衛 — 主循環 v0.6.0
- * 4 星合併／第 5 關／無盡里程碑／觸控拖放／橫屏提示
+ * 銀樓防衛 — 主循環 v0.7.0
+ * 強化系統／劇情開場／Boss 技／Web Audio／效能
  */
 (function () {
   const {
@@ -10,6 +10,9 @@
     SPEED_OPTIONS,
     LINEUPS,
     MAX_STAR,
+    UPGRADE_PATHS,
+    upgradeCost,
+    upgradeLabel,
     loadSave,
     writeSave,
     defaultSave,
@@ -30,6 +33,7 @@
     markSeenEnemy,
     refreshAchievements,
   } = YD;
+  const AudioSfx = window.YDAudio;
   const Battle = YDBattle;
   const UI = YDUI;
 
@@ -47,14 +51,17 @@
   if (save.showSkillCd == null) save.showSkillCd = true;
   if (save.reduceShake == null) save.reduceShake = false;
   if (save.firstBootDone == null) save.firstBootDone = false;
-  if (save.version < 6) {
-    save.version = 6;
+  if (save.sfxEnabled == null) save.sfxEnabled = true;
+  if (save.version < 7) {
+    save.version = 7;
     writeSave(save);
   }
+  if (AudioSfx) AudioSfx.setEnabled(save.sfxEnabled !== false);
 
   let shopApi = null;
   let speedApi = null;
   let stageApi = null;
+  let upgradeApi = null;
 
   function notifyAchievements() {
     const newly = refreshAchievements(save);
@@ -71,6 +78,7 @@
       stage = {
         id: 'daily',
         name: meta.name,
+        story: meta.story,
         startSilver: meta.startSilver,
         coreHp: meta.coreHp,
         unlockHeroes: meta.unlockHeroes,
@@ -81,6 +89,7 @@
       stage = {
         id: ENDLESS.id,
         name: ENDLESS.name,
+        story: ENDLESS.story,
         startSilver: ENDLESS.startSilver,
         coreHp: ENDLESS.coreHp,
         unlockHeroes: ENDLESS.unlockHeroes,
@@ -153,6 +162,7 @@
     if (shopApi) shopApi.refresh();
     if (speedApi) speedApi.refresh();
     if (stageApi) stageApi.refresh(state.endless || state.daily ? null : state.stage.id, state.endless, state.daily);
+    if (upgradeApi) upgradeApi.refresh();
     UI.updateHud(state);
     updateHint();
   }
@@ -195,7 +205,13 @@
       return;
     }
     if (state.mergeFromUid) {
-      UI.setHint('已選場上俠客 — 拖到同種同星合併，或拖到空格調位');
+      const h = state.heroes.find((x) => x.uid === state.mergeFromUid);
+      const ul = h ? upgradeLabel(h) : '';
+      UI.setHint(
+        '已選場上俠客' +
+          (ul ? '（' + ul + '）' : '') +
+          ' — 下方強化｜拖同種同星合併｜拖空格調位'
+      );
       return;
     }
     const bondTxt =
@@ -294,8 +310,80 @@
       writeSave(save);
       syncAll();
       UI.toast('速度 ' + sp + '×');
+      if (AudioSfx) AudioSfx.play('click');
     }
   );
+
+  function selectedHero() {
+    if (!state.mergeFromUid) return null;
+    return state.heroes.find((h) => h.uid === state.mergeFromUid) || null;
+  }
+
+  function tryUpgrade(pathId) {
+    const hero = selectedHero();
+    if (!hero) {
+      UI.toast('先點場上俠客再強化');
+      return;
+    }
+    if (state.phase === 'won' || state.phase === 'lost') return;
+    const path = UPGRADE_PATHS[pathId];
+    if (!path) return;
+    const key = pathId === 'atk' ? 'upAtk' : pathId === 'def' ? 'upDef' : 'upHaste';
+    const lv = hero[key] || 0;
+    if (lv >= path.maxLv) {
+      UI.toast(path.name + '已滿級');
+      return;
+    }
+    const cost = upgradeCost(pathId, lv);
+    if (state.silver < cost) {
+      UI.toast('銀兩不足（要 ' + cost + '）');
+      return;
+    }
+    const res = Battle.upgradeHero(hero, pathId);
+    if (!res.ok) {
+      UI.toast(res.reason || '無法強化');
+      return;
+    }
+    state.silver -= res.cost;
+    Battle.pushFloat(state.floats, {
+      x: hero.x,
+      y: hero.y - 42,
+      text: path.name + ' +' + res.level,
+      color: '#C9A227',
+      size: 14,
+      vy: -26,
+      life: 0.9,
+    });
+    state.fx.push({ type: 'hit', x: hero.x, y: hero.y, color: '#C9A227', life: 0.35, r: 22 });
+    if (!save.ach.upgrade) {
+      save.ach.upgrade = true;
+      writeSave(save);
+      notifyAchievements();
+    }
+    if (AudioSfx) AudioSfx.play('upgrade');
+    UI.toast(HEROES[hero.id].name + '・' + path.name + ' → ' + res.level + '（−' + res.cost + '兩）');
+    syncAll();
+  }
+
+  upgradeApi = UI.buildUpgradeBar(selectedHero, () => state.silver, tryUpgrade);
+
+  function showStageStory(thenToast) {
+    const st = state.stage;
+    const story = st && st.story;
+    if (!story || save.skipTutorial) {
+      if (thenToast) UI.toast(thenToast);
+      return;
+    }
+    const title = state.endless
+      ? '無盡殺跌'
+      : state.daily
+        ? st.name || '每日'
+        : '第 ' + st.id + ' 關・' + st.name;
+    UI.showStory(title, story, () => {
+      if (thenToast) UI.toast(thenToast);
+      syncAll();
+    });
+  }
 
   function enterStage(idx, endless, daily) {
     if (state.phase === 'wave' && !state.paused) {
@@ -306,6 +394,7 @@
     state = freshState(idx, endless, daily);
     resetWaveBtn();
     syncAll();
+    showStageStory(null);
     return true;
   }
 
@@ -382,6 +471,7 @@
     }
     state.phase = 'wave';
     advanceTutorial(3);
+    if (AudioSfx) AudioSfx.play('wave');
     UI.toast((state.endless ? '無盡第 ' : state.daily ? '每日第 ' : '第 ') + state.waveIndex + ' 波來襲！');
     syncAll();
     const btn = document.getElementById('btn-wave');
@@ -392,6 +482,7 @@
     state.spawner = null;
     if (!state.endless && state.waveIndex >= state.stage.waves.length) {
       state.phase = 'won';
+      if (AudioSfx) AudioSfx.play('win');
       save.totalSilver += Math.floor(state.silver);
       save.totalKills = (save.totalKills || 0) + state.kills;
 
@@ -524,6 +615,7 @@
   function lose() {
     state.phase = 'lost';
     state.paused = false;
+    if (AudioSfx) AudioSfx.play('lose');
     save.totalKills = (save.totalKills || 0) + state.kills;
     if (state.endless) {
       save.bestEndlessWave = Math.max(save.bestEndlessWave || 0, state.waveIndex);
@@ -632,6 +724,15 @@
         save.reduceShake = !save.reduceShake;
         writeSave(save);
         state.reduceShake = !!save.reduceShake;
+        syncAll();
+      },
+      onToggleSfx: () => {
+        save.sfxEnabled = save.sfxEnabled === false;
+        writeSave(save);
+        if (AudioSfx) {
+          AudioSfx.setEnabled(save.sfxEnabled !== false);
+          if (save.sfxEnabled !== false) AudioSfx.play('click');
+        }
         syncAll();
       },
       onSkipTutorial: () => {
@@ -757,6 +858,7 @@
     markSeenHero(save, shopId);
     writeSave(save);
     notifyAchievements();
+    if (AudioSfx) AudioSfx.play('summon');
     UI.toast('上陣：' + def.name + '（−' + cost + '）');
     advanceTutorial(1);
     const nextCost = summonCost(shopId, state.summonCounts);
@@ -782,6 +884,7 @@
       });
     }
     Battle.spawnMergeFx(state, now);
+    if (AudioSfx) AudioSfx.play('merge');
     if (now.star >= 3 && !save.ach.star3) {
       save.ach.star3 = true;
       writeSave(save);
@@ -866,8 +969,14 @@
       state.selectedHeroUid = occupied.uid;
       state.mergeFromUid = occupied.uid;
       const sk = HEROES[occupied.id].skill;
+      const ul = upgradeLabel(occupied);
+      if (AudioSfx) AudioSfx.play('click');
       UI.toast(
-        '已選 ' + HEROES[occupied.id].name + (sk ? '｜' + sk.name : '') + ' — 合併或調位'
+        '已選 ' +
+          HEROES[occupied.id].name +
+          (ul ? '（' + ul + '）' : '') +
+          (sk ? '｜' + sk.name : '') +
+          ' — 下方可強化／合併／調位'
       );
       syncAll();
     }
@@ -1108,10 +1217,13 @@
         writeSave(save);
         notifyAchievements();
       }
-      if (enemy.boss) Battle.announceBoss(state, enemy);
-      else if (enemy.elite && !state._eliteAnnounced) {
+      if (enemy.boss) {
+        Battle.announceBoss(state, enemy);
+        if (AudioSfx) AudioSfx.play('boss');
+      } else if (enemy.elite && !state._eliteAnnounced) {
         state._eliteAnnounced = true;
         Battle.announceElite(state, enemy);
+        if (AudioSfx) AudioSfx.play('elite');
         UI.toast('精英波！強化敵人入場', 2000);
       }
       job.left -= 1;
@@ -1160,7 +1272,13 @@
 
     state._bonds = activeBonds(state.heroes);
     YDRender.render(ctx, state);
-    UI.updateHud(state);
+    // HUD 唔使每幀 DOM 寫入（敵人多時穩 60fps）
+    if (!frame._hudAcc) frame._hudAcc = 0;
+    frame._hudAcc += rawDt;
+    if (frame._hudAcc >= 0.12 || state.phase !== 'wave') {
+      frame._hudAcc = 0;
+      UI.updateHud(state);
+    }
     requestAnimationFrame(frame);
   }
 
@@ -1172,9 +1290,9 @@
   }
   UI.showOverlay(
     '銀樓防衛',
-    '合併塔防 v0.5.0\n' +
-      '拖放放置 → 合併升星 → 開波守銀樓。\n' +
-      '新：技能冷卻條、羈絆提示、精英波、推薦陣容、存檔匯出／匯入。\n' +
+    '合併塔防 v0.7.0\n' +
+      '拖放放置 → 合併升星（最高 4）→ 點俠客強化 → 開波守銀樓。\n' +
+      '新：刀利／甲厚／內息強化、Boss／精英技能、關卡劇情、簡易音效。\n' +
       (bonus > 0 ? '新手加銀 +' + bonus + ' 兩（僅首局）\n' : '') +
       '今日：' +
       dailyMeta.name +
@@ -1186,11 +1304,12 @@
     '開始',
     () => {
       UI.hideOverlay();
+      if (AudioSfx) AudioSfx.unlock();
       if (!save.firstBootDone) {
         save.firstBootDone = true;
         writeSave(save);
       }
-      UI.toast(state.tutorialStep < 99 ? '跟提示三步就識；可撳推薦陣容' : '準備就緒');
+      showStageStory(state.tutorialStep < 99 ? '跟提示三步就識；可撳推薦陣容' : '準備就緒');
       syncAll();
     }
   );

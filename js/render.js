@@ -1,104 +1,110 @@
 /**
- * 銀樓防衛 — Canvas 繪製 v0.5.0
- * 場景再加厚、技能 CD 條、精英／羈絆橫幅、單位細節
+ * 銀樓防衛 — Canvas 繪製 v0.7.0
+ * 強化標記、背景快取（效能）、精英／Boss 技閃
  */
 (function (global) {
-  const { COLORS, GRID, CORE, HEROES, ENEMIES, MAX_STAR } = global.YD;
+  const { COLORS, GRID, CORE, HEROES, ENEMIES, MAX_STAR, upgradeLabel } = global.YD;
+
+  let bgCache = null;
+  let bgCacheW = 0;
+  let bgCacheH = 0;
 
   function drawPixelRect(ctx, x, y, w, h, color) {
     ctx.fillStyle = color;
     ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
   }
 
-  function drawBackground(ctx, w, h, state) {
-    const t = (state && state._animT) || 0;
-    drawPixelRect(ctx, 0, 0, w, h, '#221C16');
-    // 遠景山影
-    ctx.globalAlpha = 0.35;
-    drawPixelRect(ctx, 0, 0, w, 56, '#1A1510');
+  function ensureBgCache(w, h) {
+    if (bgCache && bgCacheW === w && bgCacheH === h) return bgCache;
+    const c = document.createElement('canvas');
+    c.width = w;
+    c.height = h;
+    const g = c.getContext('2d');
+    g.imageSmoothingEnabled = false;
+    // 靜態層（唔含火把閃爍）
+    drawPixelRect(g, 0, 0, w, h, '#221C16');
+    g.globalAlpha = 0.35;
+    drawPixelRect(g, 0, 0, w, 56, '#1A1510');
     for (let i = 0; i < 7; i++) {
       const mx = 80 + i * 130;
-      drawPixelRect(ctx, mx, 18 + (i % 3) * 4, 90, 40, '#16120E');
+      drawPixelRect(g, mx, 18 + (i % 3) * 4, 90, 40, '#16120E');
     }
-    ctx.globalAlpha = 1;
-
-    // 宣紙紋
-    ctx.globalAlpha = 0.06;
-    for (let y = 0; y < h; y += 4) drawPixelRect(ctx, 0, y, w, 1, COLORS.paper);
-    ctx.globalAlpha = 1;
-
+    g.globalAlpha = 1;
+    g.globalAlpha = 0.06;
+    for (let y = 0; y < h; y += 4) drawPixelRect(g, 0, y, w, 1, COLORS.paper);
+    g.globalAlpha = 1;
     const floorTop = GRID.originY - 14;
     const floorBot = GRID.originY + GRID.lanes * (GRID.cellH + GRID.gapY) + 10;
-
-    // 主戰場地板（磚＋草點，密度對齊參考但原創）
-    drawPixelRect(ctx, 36, floorTop, w - 52, floorBot - floorTop, '#3A3228');
+    drawPixelRect(g, 36, floorTop, w - 52, floorBot - floorTop, '#3A3228');
     for (let y = floorTop; y < floorBot; y += 14) {
       for (let x = 36; x < w - 16; x += 20) {
         const odd = ((x / 20) | 0) + ((y / 14) | 0);
         const shade = odd & 1 ? '#4A4034' : '#352E26';
-        drawPixelRect(ctx, x, y, 18, 12, shade);
-        drawPixelRect(ctx, x, y, 18, 1, '#2A241C');
-        drawPixelRect(ctx, x, y, 1, 12, '#2A241C');
-        // 磚縫高光
-        if ((x * 11 + y * 5) % 23 === 0) drawPixelRect(ctx, x + 4, y + 3, 3, 2, '#5A5040');
-        // 草／落葉點
-        if ((x * 13 + y * 7) % 19 === 0) drawPixelRect(ctx, x + 10, y + 7, 2, 2, '#3A5A40');
-        if ((x * 17 + y * 3) % 29 === 0) drawPixelRect(ctx, x + 6, y + 5, 2, 2, '#6A5030');
+        drawPixelRect(g, x, y, 18, 12, shade);
+        drawPixelRect(g, x, y, 18, 1, '#2A241C');
+        drawPixelRect(g, x, y, 1, 12, '#2A241C');
+        if ((x * 11 + y * 5) % 23 === 0) drawPixelRect(g, x + 4, y + 3, 3, 2, '#5A5040');
+        if ((x * 13 + y * 7) % 19 === 0) drawPixelRect(g, x + 10, y + 7, 2, 2, '#3A5A40');
+        if ((x * 17 + y * 3) % 29 === 0) drawPixelRect(g, x + 6, y + 5, 2, 2, '#6A5030');
       }
     }
-
-    // 右方出生帶陰影
     for (let i = 0; i < 10; i++) {
-      ctx.globalAlpha = 0.03 + i * 0.018;
-      drawPixelRect(ctx, w - 36 - i * 5, floorTop, 7, floorBot - floorTop, '#1A1510');
+      g.globalAlpha = 0.03 + i * 0.018;
+      drawPixelRect(g, w - 36 - i * 5, floorTop, 7, floorBot - floorTop, '#1A1510');
     }
-    ctx.globalAlpha = 1;
-
-    // 左方木牆／拒馬（銀樓防線）
+    g.globalAlpha = 1;
     const wallX = 108;
     for (let y = floorTop; y < floorBot; y += 10) {
-      drawPixelRect(ctx, wallX, y, 14, 9, '#5A4030');
-      drawPixelRect(ctx, wallX + 2, y + 2, 10, 5, '#6A5040');
-      drawPixelRect(ctx, wallX, y, 14, 1, '#2A241C');
+      drawPixelRect(g, wallX, y, 14, 9, '#5A4030');
+      drawPixelRect(g, wallX + 2, y + 2, 10, 5, '#6A5040');
+      drawPixelRect(g, wallX, y, 14, 1, '#2A241C');
     }
-    // 牆柱
     for (let i = 0; i < 5; i++) {
       const py = floorTop + 8 + i * ((floorBot - floorTop - 16) / 4);
-      drawPixelRect(ctx, wallX - 4, py, 8, 22, '#4A3020');
-      drawPixelRect(ctx, wallX - 2, py + 2, 4, 6, '#C45C4A'); // 硃紅綁帶
-      // 火把
+      drawPixelRect(g, wallX - 4, py, 8, 22, '#4A3020');
+      drawPixelRect(g, wallX - 2, py + 2, 4, 6, '#C45C4A');
+      drawPixelRect(g, wallX + 12, py + 2, 4, 10, '#3A2820');
+    }
+    drawPixelRect(g, 88, floorBot - 36, 18, 14, '#5A4030');
+    drawPixelRect(g, 90, floorBot - 34, 14, 4, '#C9A227');
+    drawPixelRect(g, 86, floorBot - 48, 10, 10, '#6A5040');
+    drawPixelRect(g, 88, floorBot - 46, 6, 3, '#C9A227');
+    drawPixelRect(g, wallX + 18, floorTop + 20, 3, 28, '#3A2820');
+    drawPixelRect(g, wallX + 21, floorTop + 20, 14, 10, '#C45C4A');
+    drawPixelRect(g, wallX + 21, floorTop + 30, 14, 8, '#E8DCC8');
+    drawPixelRect(g, w - 90, floorBot - 28, 40, 10, '#4A4034');
+    drawPixelRect(g, w - 86, floorBot - 36, 8, 12, '#5A4030');
+    drawPixelRect(g, w - 70, floorBot - 34, 8, 10, '#5A4030');
+    g.globalAlpha = 0.2;
+    drawPixelRect(g, 200, 10, 60, 10, '#1A1510');
+    drawPixelRect(g, 420, 6, 80, 12, '#1A1510');
+    drawPixelRect(g, 700, 12, 50, 8, '#1A1510');
+    g.globalAlpha = 1;
+    for (let lane = 1; lane < GRID.lanes; lane++) {
+      const y = GRID.originY + lane * (GRID.cellH + GRID.gapY) - GRID.gapY / 2;
+      g.globalAlpha = 0.25;
+      drawPixelRect(g, GRID.originX, y, GRID.slots * (GRID.cellW + GRID.gapX), 1, '#1A1510');
+      g.globalAlpha = 1;
+    }
+    bgCache = c;
+    bgCacheW = w;
+    bgCacheH = h;
+    return c;
+  }
+
+  function drawBackground(ctx, w, h, state) {
+    const t = (state && state._animT) || 0;
+    ctx.drawImage(ensureBgCache(w, h), 0, 0);
+    // 動態火把閃爍（輕量）
+    const floorTop = GRID.originY - 14;
+    const floorBot = GRID.originY + GRID.lanes * (GRID.cellH + GRID.gapY) + 10;
+    const wallX = 108;
+    for (let i = 0; i < 5; i++) {
+      const py = floorTop + 8 + i * ((floorBot - floorTop - 16) / 4);
       const flicker = 0.6 + 0.4 * Math.sin(t * 8 + i);
-      drawPixelRect(ctx, wallX + 12, py + 2, 4, 10, '#3A2820');
       ctx.globalAlpha = flicker;
       drawPixelRect(ctx, wallX + 11, py - 4, 6, 6, '#C45C4A');
       drawPixelRect(ctx, wallX + 12, py - 6, 4, 3, '#C9A227');
-      ctx.globalAlpha = 1;
-    }
-
-    // 牆邊木箱／旗／銅錢堆／燈籠柱
-    drawPixelRect(ctx, 88, floorBot - 36, 18, 14, '#5A4030');
-    drawPixelRect(ctx, 90, floorBot - 34, 14, 4, '#C9A227');
-    drawPixelRect(ctx, 86, floorBot - 48, 10, 10, '#6A5040');
-    drawPixelRect(ctx, 88, floorBot - 46, 6, 3, '#C9A227');
-    drawPixelRect(ctx, wallX + 18, floorTop + 20, 3, 28, '#3A2820');
-    drawPixelRect(ctx, wallX + 21, floorTop + 20, 14, 10, '#C45C4A');
-    drawPixelRect(ctx, wallX + 21, floorTop + 30, 14, 8, '#E8DCC8');
-    // 右下拒馬／沙袋
-    drawPixelRect(ctx, w - 90, floorBot - 28, 40, 10, '#4A4034');
-    drawPixelRect(ctx, w - 86, floorBot - 36, 8, 12, '#5A4030');
-    drawPixelRect(ctx, w - 70, floorBot - 34, 8, 10, '#5A4030');
-    // 天上墨點雲
-    ctx.globalAlpha = 0.2;
-    drawPixelRect(ctx, 200, 10, 60, 10, '#1A1510');
-    drawPixelRect(ctx, 420, 6, 80, 12, '#1A1510');
-    drawPixelRect(ctx, 700, 12, 50, 8, '#1A1510');
-    ctx.globalAlpha = 1;
-
-    // lane 分隔細線
-    for (let lane = 1; lane < GRID.lanes; lane++) {
-      const y = GRID.originY + lane * (GRID.cellH + GRID.gapY) - GRID.gapY / 2;
-      ctx.globalAlpha = 0.25;
-      drawPixelRect(ctx, GRID.originX - 8, y, GRID.slots * (GRID.cellW + GRID.gapX) + 40, 1, '#1A1510');
       ctx.globalAlpha = 1;
     }
   }
@@ -344,6 +350,14 @@
     ctx.textAlign = 'center';
     const starLabel = h.star >= 4 ? '★★★★' : '★'.repeat(h.star);
     ctx.fillText(starLabel, h.x + lean, h.y + 30);
+    if (!ghost && upgradeLabel) {
+      const ul = upgradeLabel(h);
+      if (ul) {
+        ctx.fillStyle = '#C9A227';
+        ctx.font = 'bold 9px sans-serif';
+        ctx.fillText(ul, h.x + lean, h.y + 40);
+      }
+    }
 
     if (!ghost) {
       const bw = 36;
@@ -418,6 +432,13 @@
       ctx.lineWidth = 2;
       ctx.strokeRect(e.x - r - 3, e.y - r - 3 + bob, r * 2 + 6, r * 2 + 6);
       drawPixelRect(ctx, e.x - 4, e.y - r - 10 + bob, 8, 4, '#C45C4A');
+    }
+    if (e.skillFlash > 0) {
+      ctx.globalAlpha = Math.min(1, e.skillFlash * 2);
+      ctx.strokeStyle = '#E8DCC8';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(e.x - r - 6, e.y - r - 6 + bob, r * 2 + 12, r * 2 + 12);
+      ctx.globalAlpha = 1;
     }
     if (e.mode === 'fight') {
       ctx.strokeStyle = '#C45C4A';

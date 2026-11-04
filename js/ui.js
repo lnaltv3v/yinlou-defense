@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔 v0.6.0
+ * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v0.7.0
  */
 (function (global) {
   const {
@@ -14,6 +14,9 @@
     hkDateString,
     dailyStageMeta,
     pickFailTip,
+    UPGRADE_PATHS,
+    upgradeCost,
+    upgradeLabel,
   } = global.YD;
 
   function $(id) {
@@ -183,6 +186,71 @@
     };
   }
 
+
+  function buildUpgradeBar(getHero, getSilver, onUpgrade) {
+    let bar = $('upgrade-bar');
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.id = 'upgrade-bar';
+      bar.className = 'tool-bar upgrade-bar';
+      bar.setAttribute('aria-label', '強化');
+      const hud = $('hud');
+      if (hud && hud.parentNode) hud.parentNode.insertBefore(bar, hud.nextSibling);
+      else document.getElementById('app').appendChild(bar);
+    }
+    bar.innerHTML = '';
+    const label = document.createElement('span');
+    label.className = 'speed-label';
+    label.id = 'upgrade-label';
+    label.textContent = '強化';
+    bar.appendChild(label);
+    const paths = ['atk', 'def', 'haste'];
+    for (const pid of paths) {
+      const p = UPGRADE_PATHS[pid];
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'upgrade-btn';
+      btn.dataset.path = pid;
+      btn.innerHTML = '<strong>' + p.name + '</strong><span class="up-cost">—</span>';
+      btn.title = p.blurb;
+      btn.addEventListener('click', () => onUpgrade(pid));
+      bar.appendChild(btn);
+    }
+    return {
+      refresh() {
+        const hero = getHero();
+        const silver = getSilver();
+        if (!hero) {
+          bar.classList.remove('show');
+          return;
+        }
+        bar.classList.add('show');
+        const name = HEROES[hero.id] ? HEROES[hero.id].name : hero.id;
+        const ul = upgradeLabel(hero);
+        label.textContent = '強化・' + name + (ul ? '（' + ul + '）' : '');
+        bar.querySelectorAll('.upgrade-btn').forEach((btn) => {
+          const pid = btn.dataset.path;
+          const p = UPGRADE_PATHS[pid];
+          const key = pid === 'atk' ? 'upAtk' : pid === 'def' ? 'upDef' : 'upHaste';
+          const lv = hero[key] || 0;
+          const cost = upgradeCost(pid, lv);
+          const full = lv >= p.maxLv;
+          const costEl = btn.querySelector('.up-cost');
+          if (costEl) costEl.textContent = full ? '滿' : cost + '兩・' + lv + '/' + p.maxLv;
+          btn.disabled = full || silver < cost;
+          btn.classList.toggle('maxed', full);
+        });
+      },
+    };
+  }
+
+  function showStory(title, body, onContinue) {
+    showOverlay(title, body, '繼續', () => {
+      hideOverlay();
+      if (onContinue) onContinue();
+    });
+  }
+
   function buildStageBar(getSave, onPickStage, onEndless, onDaily) {
     const bar = $('stage-bar');
     if (!bar) return;
@@ -313,6 +381,7 @@
       onSkipTutorial,
       onToggleSkillCd,
       onToggleShake,
+      onToggleSfx,
       onClearSave,
       onClose,
       onRestart,
@@ -334,6 +403,8 @@
       (save.showSkillCd !== false ? '開' : '關') +
       '｜震屏：' +
       (save.reduceShake ? '減弱' : '正常') +
+      '｜音效：' +
+      (save.sfxEnabled !== false ? '開' : '關') +
       '\n教學：' +
       (save.skipTutorial ? '已略過' : '會顯示') +
       '｜羈絆 ' +
@@ -342,7 +413,7 @@
       achN +
       '/' +
       ACHIEVEMENTS.length +
-      '\n存檔可匯出 JSON 備份，或由檔案匯入。';
+      '\n點場上俠客可強化（刀利／甲厚／內息）。存檔可匯出 JSON。';
     const btn = $('btn-overlay');
     btn.textContent = '關閉';
     btn.onclick = () => {
@@ -384,6 +455,17 @@
         save.reduceShake ? '震屏：正常' : '震屏：減弱',
         () => {
           onToggleShake();
+          showSettings(opts);
+        },
+        false,
+        true
+      );
+    }
+    if (onToggleSfx) {
+      mk(
+        save.sfxEnabled !== false ? '關閉音效' : '開啟音效',
+        () => {
+          onToggleSfx();
           showSettings(opts);
         },
         false,
@@ -488,7 +570,8 @@
             def.atk +
             (def.boss ? '（Boss）' : '') +
             '／賞' +
-            def.reward
+            def.reward +
+            (def.skill ? '｜技：' + def.skill.name + '（' + def.skill.blurb + '）' : '')
         );
       } else {
         lines.push('· ？？？ — 尚未遭遇');
@@ -540,10 +623,12 @@
     buildShop,
     buildSpeedBar,
     buildStageBar,
+    buildUpgradeBar,
     updateHud,
     showOverlay,
     hideOverlay,
     showSettings,
+    showStory,
     showCodex,
     showAchievements,
     setHint,

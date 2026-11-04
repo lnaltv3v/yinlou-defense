@@ -1,8 +1,8 @@
 /**
- * 銀樓防衛 — 戰鬥／生成／合併邏輯 v0.6.0
+ * 銀樓防衛 — 戰鬥／生成／合併邏輯 v0.7.0
  */
 (function (global) {
-  const { HEROES, ENEMIES, GRID, CORE, heroStats, activeBonds, bondModsFor, MAX_STAR } = global.YD;
+  const { HEROES, ENEMIES, GRID, CORE, heroStats, activeBonds, bondModsFor, MAX_STAR, UPGRADE_PATHS, upgradeCost } = global.YD;
 
   function cellCenter(lane, slot) {
     const x = GRID.originX + slot * (GRID.cellW + GRID.gapX) + GRID.cellW / 2;
@@ -14,11 +14,12 @@
     return GRID.originY + lane * (GRID.cellH + GRID.gapY) + GRID.cellH / 2;
   }
 
-  function makeHero(id, lane, slot, star) {
+  function makeHero(id, lane, slot, star, upgrades) {
     const def = HEROES[id];
     const st = heroStats(def, star);
     const c = cellCenter(lane, slot);
-    return {
+    const up = upgrades || {};
+    const hero = {
       uid: 'h' + Math.random().toString(36).slice(2, 9),
       id,
       lane,
@@ -31,6 +32,9 @@
       atk: st.atk,
       range: st.range,
       cooldown: st.cooldown,
+      baseAtk: st.atk,
+      baseMaxHp: st.maxHp,
+      baseCooldown: st.cooldown,
       cd: Math.random() * 0.3,
       auraT: 0,
       auraTicks: 0,
@@ -41,8 +45,49 @@
       swingT: 0,
       idlePhase: Math.random() * Math.PI * 2,
       guardProcT: 0,
+      upAtk: up.upAtk || 0,
+      upDef: up.upDef || 0,
+      upHaste: up.upHaste || 0,
       def,
     };
+    applyHeroUpgrades(hero, true);
+    return hero;
+  }
+
+  /** 依強化等級重算 atk／hp／cooldown；fillHp=true 時補滿相對血量 */
+  function applyHeroUpgrades(hero, fillHp) {
+    const def = hero.def || HEROES[hero.id];
+    const st = heroStats(def, hero.star);
+    const atkMul = 1 + (hero.upAtk || 0) * (UPGRADE_PATHS.atk.atkMulPer || 0.12);
+    const hpMul = 1 + (hero.upDef || 0) * (UPGRADE_PATHS.def.hpMulPer || 0.15);
+    const cdMul = 1 - (hero.upHaste || 0) * (UPGRADE_PATHS.haste.cdMulPer || 0.08);
+    const ratio = hero.maxHp > 0 ? hero.hp / hero.maxHp : 1;
+    hero.baseAtk = st.atk;
+    hero.baseMaxHp = st.maxHp;
+    hero.baseCooldown = st.cooldown;
+    hero.atk = Math.round(st.atk * atkMul);
+    hero.maxHp = Math.round(st.maxHp * hpMul);
+    hero.cooldown = Math.max(0.18, st.cooldown * cdMul);
+    hero.range = st.range;
+    if (fillHp) hero.hp = hero.maxHp;
+    else hero.hp = Math.max(1, Math.round(hero.maxHp * Math.min(1, ratio)));
+    return hero;
+  }
+
+  function upgradeHero(hero, pathId) {
+    if (!hero || !UPGRADE_PATHS[pathId]) return { ok: false, reason: '無效' };
+    const key = pathId === 'atk' ? 'upAtk' : pathId === 'def' ? 'upDef' : 'upHaste';
+    const path = UPGRADE_PATHS[pathId];
+    const cur = hero[key] || 0;
+    if (cur >= path.maxLv) return { ok: false, reason: '已滿級' };
+    const cost = upgradeCost(pathId, cur);
+    hero[key] = cur + 1;
+    applyHeroUpgrades(hero, false);
+    if (pathId === 'def') {
+      // 升甲即刻回一小截血
+      hero.hp = Math.min(hero.maxHp, hero.hp + Math.round(hero.maxHp * 0.12));
+    }
+    return { ok: true, cost, level: hero[key], path };
   }
 
   function makeEnemy(typeId, lane, extra) {
@@ -74,6 +119,12 @@
       preferHero: def.preferHero != null ? def.preferHero : 0.5,
       mode: 'march',
       hitFlash: 0,
+      atkCount: 0,
+      skillFlash: 0,
+      rushT: 0,
+      rushDmgMul: 1,
+      atkBuffMul: 1,
+      atkBuffT: 0,
     };
   }
 
@@ -93,7 +144,12 @@
     const ratio = target.hp / target.maxHp;
     const keepUid = target.uid;
 
-    const next = makeHero(target.id, lane, slot, nextStar);
+    const ups = {
+      upAtk: Math.max(source.upAtk || 0, target.upAtk || 0),
+      upDef: Math.max(source.upDef || 0, target.upDef || 0),
+      upHaste: Math.max(source.upHaste || 0, target.upHaste || 0),
+    };
+    const next = makeHero(target.id, lane, slot, nextStar, ups);
     next.uid = keepUid;
     next.hp = Math.max(1, Math.round(next.maxHp * Math.min(1, ratio + 0.28)));
 
@@ -146,6 +202,7 @@
   }
 
   function pushFloat(floats, opts) {
+    if (floats.length > 48) floats.splice(0, floats.length - 40);
     floats.push({
       x: opts.x + (Math.random() * 10 - 5),
       y: opts.y,
@@ -159,9 +216,16 @@
     });
   }
 
+  function pushFx(state, fx) {
+    if (!state.fx) state.fx = [];
+    if (state.fx.length > 36) state.fx.splice(0, state.fx.length - 28);
+    state.fx.push(fx);
+  }
+
   function applyDamage(enemy, amount, floats, kind) {
     enemy.hp -= amount;
     enemy.hitFlash = 0.12;
+    if (global.YDAudio) global.YDAudio.play(kind === 'crit' ? 'crit' : 'hit');
     const crit = kind === 'crit' || amount >= 28;
     pushFloat(floats, {
       x: enemy.x,
@@ -509,6 +573,81 @@
     return best;
   }
 
+
+  function enemySkillProc(enemy, hero, state, sk) {
+    pushFloat(state.floats, {
+      x: enemy.x,
+      y: enemy.y - 28,
+      text: (sk.name || '技') + '！',
+      color: enemy.elite ? '#C45C4A' : '#C9A227',
+      size: 13,
+      vy: -24,
+      life: 0.8,
+    });
+    pushFx(state, {
+      type: 'skill',
+      x: enemy.x,
+      y: enemy.y,
+      color: enemy.def.color,
+      life: 0.45,
+      text: sk.name,
+    });
+    if (sk.type === 'scream') {
+      for (const h of state.heroes) {
+        if (h.hp <= 0) continue;
+        // 視覺：短暫 hitFlash；實際減速敵我透過 core＋敵方加速感
+        h.hitFlash = Math.max(h.hitFlash || 0, 0.2);
+      }
+      for (const o of state.enemies) {
+        if (o.hp <= 0 || o.uid === enemy.uid) continue;
+        o.slowT = 0;
+        o.speed = o.baseSpeed * (1 + 0.15);
+        o.rushT = Math.max(o.rushT || 0, 0.8);
+      }
+      // 英雄側：用 atkBuff 負向唔啱；改 core 震盪
+      if (sk.coreDmg) {
+        state.coreHp -= sk.coreDmg;
+        state.coreHitFlash = 0.4;
+        state.shake = Math.max(state.shake || 0, 0.25);
+        pushFloat(state.floats, {
+          x: CORE.x,
+          y: CORE.y - 48,
+          text: '驚惶 -' + sk.coreDmg,
+          color: '#5A4060',
+          size: 15,
+          vy: -28,
+          life: 1.0,
+        });
+      }
+      // 同 lane 俠客短暫減速輸出：加長 cd
+      for (const h of state.heroes) {
+        if (h.hp <= 0) continue;
+        if (Math.abs(h.lane - enemy.lane) <= 1) {
+          h.cd = Math.max(h.cd, 0.55);
+        }
+      }
+    } else if (sk.type === 'rally') {
+      const rad = sk.radius || 90;
+      for (const o of state.enemies) {
+        if (o.hp <= 0) continue;
+        if (Math.hypot(o.x - enemy.x, o.y - enemy.y) > rad) continue;
+        o.atkBuffMul = sk.atkMul || 1.25;
+        o.atkBuffT = sk.dur || 2.5;
+        o.speed = o.baseSpeed * (sk.speedMul || 1.3);
+        o.rushT = sk.dur || 2.5;
+      }
+    } else if (sk.type === 'rush') {
+      enemy.speed = enemy.baseSpeed * (sk.speedMul || 1.5);
+      enemy.rushT = sk.dur || 1.8;
+      enemy.rushDmgMul = sk.dmgMul || 1.5;
+      enemy.mode = 'march';
+    } else if (sk.type === 'mark') {
+      // 傷害加成喺呼叫處處理
+    } else if (sk.type === 'lifesteal') {
+      // 回血喺呼叫處處理
+    }
+  }
+
   function tickEnemies(state, dt) {
     const arrived = [];
     for (const e of state.enemies) {
@@ -529,22 +668,69 @@
         e.mode = 'march';
       }
 
+      if (e.atkBuffT > 0) {
+        e.atkBuffT -= dt;
+        if (e.atkBuffT <= 0) {
+          e.atkBuffT = 0;
+          e.atkBuffMul = 1;
+        }
+      }
+      if (e.rushT > 0) {
+        e.rushT -= dt;
+        if (e.rushT <= 0) {
+          e.rushT = 0;
+          e.rushDmgMul = 1;
+          if (!e.slowT || e.slowT <= 0) e.speed = e.baseSpeed;
+        }
+      }
+      if (e.skillFlash > 0) e.skillFlash -= dt;
+
       if (e.mode === 'fight' && hero && hero.hp > 0) {
         if (e.cd <= 0) {
           e.cd = e.attackCd;
-          applyHeroDamage(hero, e.atk, state.floats, state);
-          state.fx.push({
+          e.atkCount = (e.atkCount || 0) + 1;
+          let dmg = Math.round(e.atk * (e.atkBuffMul || 1) * (e.rushDmgMul || 1));
+          const sk = e.def.skill;
+          const canSkill = sk && (e.boss || e.elite) && sk.every && e.atkCount % sk.every === 0;
+          if (canSkill) {
+            enemySkillProc(e, hero, state, sk);
+            if (sk.type === 'mark' || sk.type === 'rush') {
+              dmg = Math.round(dmg * (sk.dmgMul || 1.5));
+            }
+            e.skillFlash = 0.45;
+            if (global.YDAudio) global.YDAudio.play('skill');
+          }
+          applyHeroDamage(hero, dmg, state.floats, state);
+          if (canSkill && sk.type === 'lifesteal') {
+            const heal = Math.round(dmg * (sk.healRatio || 0.4));
+            e.hp = Math.min(e.maxHp, e.hp + heal);
+            pushFloat(state.floats, {
+              x: e.x,
+              y: e.y - 20,
+              text: '+' + heal,
+              color: '#A04040',
+              size: 12,
+              vy: -20,
+              life: 0.6,
+            });
+          }
+          pushFx(state, {
             type: 'hit',
             x: hero.x,
             y: hero.y,
             color: e.def.color,
             life: 0.16,
-            r: 12,
+            r: 12 + (canSkill ? 6 : 0),
           });
-          if (!state.shake || state.shake < 0.1) state.shake = 0.1;
+          if (!state.shake || state.shake < 0.1) state.shake = canSkill ? 0.16 : 0.1;
+          // 用完衝鋒傷害加成
+          if (e.rushDmgMul && e.rushDmgMul > 1 && (!sk || sk.type !== 'rush' || !canSkill)) {
+            e.rushDmgMul = 1;
+          }
         }
       } else {
-        e.x -= e.speed * dt;
+        const spd = e.speed * (e.rushT > 0 && e.def.skill && e.def.skill.speedMul ? 1 : 1);
+        e.x -= spd * dt;
       }
 
       if (e.x - e.radius <= CORE.x + 20) arrived.push(e);
@@ -563,7 +749,8 @@
         vy: -34,
         life: 1.0,
       });
-      state.fx.push({ type: 'coreHit', life: 0.35 });
+      pushFx(state, { type: 'coreHit', life: 0.35 });
+      if (global.YDAudio) global.YDAudio.play('core');
       e.hp = 0;
     }
   }
@@ -623,8 +810,10 @@
       f._bounceY = bounce;
     }
     state.floats = state.floats.filter((f) => f.life > 0);
+    if (state.floats.length > 48) state.floats.length = 48;
     for (const fx of state.fx) fx.life -= dt;
     state.fx = state.fx.filter((fx) => fx.life > 0);
+    if (state.fx.length > 36) state.fx.length = 36;
     if (state.shake > 0) state.shake = Math.max(0, state.shake - dt);
     if (state.coreHitFlash > 0) state.coreHitFlash = Math.max(0, state.coreHitFlash - dt);
     if (state.bossBanner && state.bossBanner.life > 0) {
@@ -771,6 +960,8 @@
     findHeroAt,
     canMerge,
     mergeHeroes,
+    applyHeroUpgrades,
+    upgradeHero,
     tickHeroes,
     tickEnemies,
     collectDead,
@@ -780,10 +971,12 @@
     hitTestHero,
     spawnMergeFx,
     pushFloat,
+    pushFx,
     announceBoss,
     announceElite,
     announceBond,
     skillMeter,
     activeBonds,
+    enemySkillProc,
   };
 })(window);
