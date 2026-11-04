@@ -1,5 +1,14 @@
 # Changelog
 
+## v3.9.0 — 2026-11-05
+
+- **第十一池／450–500**：`RUN_MODIFIERS_450` 四枚；里程碑 450／500；晚期標籤【450+】；成就 `late450_run`
+- **符咒升星／雙欄**：★1–3（`upgradeCharmStar`）；`equippedCharmIds` 最多 2 欄；星級帶入本局修飾；重抽同咒升星；成就 `charm_star`／`charm_multi`
+- **牆圖 PNG／分享卡**：canvas raster 匯出對照圖與分享卡；成就 `wall_chart_png`
+- **回放篩選／收藏／對照圖**：全部／收藏／≥50／≥100；★收藏；本局 vs 上局柱狀對照；成就 `replay_fav`／`replay_chart`
+- **教學全五步箭嘴**：①底欄／②合併／③強化／④開波／⑤結算；成就 `tut_merge_arrow`／`tut_wave_arrow`
+- mid／props 無新檔；存檔 **version 39**；`?v=3.9.0`／`CACHE_VER=3.9.0`；Pages 全樹一次；無正式音檔（分層 Web Audio buzz）
+
 ## v3.8.0 — 2026-11-05
 
 - **第十池／400**：里程碑「四百浪十池城」；`RUN_MODIFIERS_400`；軟頂 late400

@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v3.8.0
+ * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v3.9.0
  */
 (function (global) {
   const {
@@ -34,6 +34,10 @@
     formatWallCompareChart,
     formatEndlessReplay,
     compareEndlessReplay,
+    formatEndlessReplayChart,
+    toggleEndlessReplayFav,
+    upgradeCharmStar,
+    getEquippedCharms,
     listOwnedCharms,
     equipCharm,
     getEquippedCharm,
@@ -109,7 +113,7 @@
       ink +
       '"></i>' +
       gear;
-    const src = (window.YDSprites && window.YDSprites.urlFor) ? window.YDSprites.urlFor(def.id) : ('assets/sprites/' + def.id + '.png?v=3.8.0');
+    const src = (window.YDSprites && window.YDSprites.urlFor) ? window.YDSprites.urlFor(def.id) : ('assets/sprites/' + def.id + '.png?v=3.9.0');
     return (
       '<span class="hero-avatar" aria-hidden="true" data-hero="' +
       def.id +
@@ -723,7 +727,9 @@
       '<div class="wall-chart" id="wall-chart-root">' +
       svg +
       '<div class="wall-chart-legend"><span class="c-e">無盡Δ</span><span class="c-w">連週Δ</span><span class="c-m">主線Δ</span>' +
-      '<button type="button" class="wall-mode-btn" id="wall-chart-export-svg">匯出 SVG</button></div>' +
+      '<button type="button" class="wall-mode-btn" id="wall-chart-export-svg">匯出 SVG</button>' +
+      '<button type="button" class="wall-mode-btn" id="wall-chart-export-png">匯出 PNG</button>' +
+      '<button type="button" class="wall-mode-btn" id="wall-chart-share-card">分享卡</button></div>' +
       '<div class="wall-chart-detail" id="wall-chart-detail">悬停／點柱睇詳情</div></div>'
     );
   }
@@ -930,6 +936,79 @@ function fillWallCompareHist(save, dayFilter) {
           toast('已匯出牆圖 SVG', 1800);
         };
       }
+      const expPng = $('wall-chart-export-png');
+      const expCard = $('wall-chart-share-card');
+      function rasterWallCard(kind) {
+        const chart =
+          typeof formatWallCompareChart === 'function'
+            ? formatWallCompareChart(save, { day: dayFilter || null })
+            : { bars: [], maxAbs: 1 };
+        const W = kind === 'card' ? 640 : 480;
+        const H = kind === 'card' ? 360 : 220;
+        const canvas = document.createElement('canvas');
+        canvas.width = W;
+        canvas.height = H;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#1A1510';
+        ctx.fillRect(0, 0, W, H);
+        ctx.strokeStyle = '#C9A227';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(8, 8, W - 16, H - 16);
+        ctx.fillStyle = '#C9A227';
+        ctx.font = 'bold 18px sans-serif';
+        ctx.fillText(kind === 'card' ? '銀樓防衛｜牆影分享卡' : '銀樓防衛｜牆對照圖', 24, 36);
+        ctx.fillStyle = '#E8DCC8';
+        ctx.font = '12px sans-serif';
+        const code = typeof encodeWallShort === 'function' ? encodeWallShort(save) : '';
+        ctx.fillText(code || 'YL—', 24, 56);
+        if (kind === 'card' && typeof formatLocalBestWall === 'function') {
+          const w = formatLocalBestWall(save);
+          ctx.fillText((w && (w.short || w.label)) || '', 24, 74);
+        }
+        const bars = chart.bars || [];
+        const maxAbs = chart.maxAbs || 1;
+        const mid = H - 100;
+        ctx.strokeStyle = '#5A4A38';
+        ctx.beginPath();
+        ctx.moveTo(24, mid);
+        ctx.lineTo(W - 24, mid);
+        ctx.stroke();
+        const groupW = Math.max(28, (W - 60) / Math.max(1, bars.length));
+        bars.forEach(function (b, i) {
+          const x0 = 30 + i * groupW;
+          const cols = [
+            { v: b.endless || 0, c: '#C9A227' },
+            { v: b.week || 0, c: '#3A7A6A' },
+            { v: b.stages || 0, c: '#C45C4A' },
+          ];
+          cols.forEach(function (col, j) {
+            const bh = Math.round((Math.abs(col.v) / maxAbs) * 50);
+            const y = col.v >= 0 ? mid - bh : mid;
+            ctx.fillStyle = col.c;
+            ctx.fillRect(x0 + j * 8, y, 7, Math.max(2, bh));
+          });
+        });
+        ctx.fillStyle = '#A89070';
+        ctx.font = '10px sans-serif';
+        ctx.fillText('本機｜唔做線上排行｜v3.9', 24, H - 16);
+        canvas.toBlob(function (blob) {
+          if (!blob) {
+            toast('PNG 匯出失敗', 1800);
+            return;
+          }
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = kind === 'card' ? 'yinlou-wall-card.png' : 'yinlou-wall-chart.png';
+          a.click();
+          setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+          if (window.__yinlouMarkWallChartPng) window.__yinlouMarkWallChartPng();
+          if (window.__yinlouMarkWallChartExport) window.__yinlouMarkWallChartExport();
+          toast(kind === 'card' ? '已匯出分享卡 PNG' : '已匯出牆圖 PNG', 1800);
+        }, 'image/png');
+      }
+      if (expPng) expPng.onclick = function () { rasterWallCard('chart'); };
+      if (expCard) expCard.onclick = function () { rasterWallCard('card'); };
     }
 
   }
@@ -950,7 +1029,7 @@ function fillWallCompareHist(save, dayFilter) {
       el.classList.remove('show');
       el.setAttribute('aria-hidden', 'true');
       el.innerHTML = '';
-      ['tut-shop-arrow', 'tut-upgrade-arrow', 'tut-settle-arrow'].forEach(function (id) {
+      ['tut-shop-arrow', 'tut-merge-arrow', 'tut-upgrade-arrow', 'tut-wave-arrow', 'tut-settle-arrow'].forEach(function (id) {
         const arrowHide = $(id);
         if (arrowHide) arrowHide.classList.remove('show');
       });
@@ -1012,7 +1091,7 @@ function fillWallCompareHist(save, dayFilter) {
         if (window.__yinlouSetTutorialStep) window.__yinlouSetTutorialStep(step1 - 1);
       };
     });
-    // v3.7：教學多步箭嘴 — ①②底欄／③強化／⑤開波結算
+    // v3.9：教學全五步箭嘴 — ①底欄／②合併／③強化／④開波／⑤結算
     function ensureTutArrow(id, cls, label) {
       let el = $(id);
       if (!el) {
@@ -1024,36 +1103,69 @@ function fillWallCompareHist(save, dayFilter) {
           '<span class="tut-arrow-stem"></span><span class="tut-arrow-label">' + label + '</span>';
         const host = $('wrap') || document.body;
         host.appendChild(el);
+      } else {
+        const lab = el.querySelector('.tut-arrow-label');
+        if (lab) lab.textContent = label;
       }
       return el;
     }
-    const shopArrow = ensureTutArrow('tut-shop-arrow', 'tut-shop-arrow', '底欄召俠');
-    const upArrow = ensureTutArrow('tut-upgrade-arrow', 'tut-shop-arrow tut-upgrade-arrow', '點場上強化');
-    const settleArrow = ensureTutArrow('tut-settle-arrow', 'tut-shop-arrow tut-settle-arrow', '開波／結算');
-    shopArrow.classList.toggle('show', cur <= 2);
+    const shopArrow = ensureTutArrow('tut-shop-arrow', 'tut-shop-arrow', '① 底欄召俠');
+    const mergeArrow = ensureTutArrow('tut-merge-arrow', 'tut-shop-arrow tut-merge-arrow', '② 同種合併升星');
+    const upArrow = ensureTutArrow('tut-upgrade-arrow', 'tut-shop-arrow tut-upgrade-arrow', '③ 點場上強化');
+    const waveArrow = ensureTutArrow('tut-wave-arrow', 'tut-shop-arrow tut-wave-arrow', '④ 開波守銀樓');
+    const settleArrow = ensureTutArrow('tut-settle-arrow', 'tut-shop-arrow tut-settle-arrow', '⑤ 失敗可重開');
+    shopArrow.classList.toggle('show', cur === 1);
+    mergeArrow.classList.toggle('show', cur === 2);
     upArrow.classList.toggle('show', cur === 3);
+    waveArrow.classList.toggle('show', cur === 4);
     settleArrow.classList.toggle('show', cur === 5);
-    if (cur <= 2 && window.__yinlouMarkTutShopArrow) window.__yinlouMarkTutShopArrow();
+    if (cur === 1 && window.__yinlouMarkTutShopArrow) window.__yinlouMarkTutShopArrow();
+    if (cur === 2 && window.__yinlouMarkTutMergeArrow) window.__yinlouMarkTutMergeArrow();
     if (cur === 3 && window.__yinlouMarkTutUpgradeArrow) window.__yinlouMarkTutUpgradeArrow();
+    if (cur === 4 && window.__yinlouMarkTutWaveArrow) window.__yinlouMarkTutWaveArrow();
     if (cur === 5 && window.__yinlouMarkTutSettleArrow) window.__yinlouMarkTutSettleArrow();
   }
 
 
-  function showEndlessReplay(getSave, onClose) {
+  function showEndlessReplay(getSave, onClose, filterOpts) {
+    filterOpts = filterOpts || {};
     const save = getSave();
     const ov = $('overlay');
     ov.classList.remove('settings-mode');
     ov.classList.add('codex-mode', 'paper-panel');
     $('overlay-title').textContent = '無盡回放列表';
-    const rows = typeof formatEndlessReplay === 'function' ? formatEndlessReplay(save) : [];
+    const favOnly = !!filterOpts.favOnly;
+    const minWave = filterOpts.minWave || 0;
+    const rows =
+      typeof formatEndlessReplay === 'function'
+        ? formatEndlessReplay(save, { favOnly: favOnly, minWave: minWave || null })
+        : [];
     let html = '<div class="paper-body endless-replay-page">';
+    html +=
+      '<div class="replay-filters">' +
+      '<button type="button" class="wall-mode-btn' +
+      (!favOnly && !minWave ? ' selected' : '') +
+      '" data-rf="all">全部</button>' +
+      '<button type="button" class="wall-mode-btn' +
+      (favOnly ? ' selected' : '') +
+      '" data-rf="fav">收藏</button>' +
+      '<button type="button" class="wall-mode-btn' +
+      (minWave >= 50 ? ' selected' : '') +
+      '" data-rf="w50">≥50浪</button>' +
+      '<button type="button" class="wall-mode-btn' +
+      (minWave >= 100 ? ' selected' : '') +
+      '" data-rf="w100">≥100浪</button></div>';
     if (!rows.length) {
-      html += '<p class="card-meta">尚無回放 — 無盡失守後會自動留底（最多 8 局）</p>';
+      html += '<p class="card-meta">此篩選尚無回放</p>';
     } else {
       const curr = rows[0];
       const prev = rows[1] || null;
       const cmp =
         typeof compareEndlessReplay === 'function' ? compareEndlessReplay(curr, prev) : null;
+      const chart =
+        typeof formatEndlessReplayChart === 'function'
+          ? formatEndlessReplayChart(curr, prev)
+          : null;
       if (cmp) {
         html +=
           '<div class="endless-replay-cmp card-thick">' +
@@ -1067,7 +1179,39 @@ function fillWallCompareHist(save, dayFilter) {
             : '<span class="full dim">（首局）</span>') +
           '<span class="full">' +
           (cmp.summary || '') +
-          '</span></div></div>';
+          '</span></div>';
+        if (chart && chart.bars && chart.bars.length) {
+          const maxV = chart.max || 1;
+          html += '<div class="replay-cmp-chart" aria-label="回放對照圖">';
+          chart.bars.forEach(function (b) {
+            const pc = Math.round((b.curr / maxV) * 100);
+            const pp = Math.round((b.prev / maxV) * 100);
+            html +=
+              '<div class="rcc-row"><span>' +
+              b.name +
+              '</span><div class="rcc-bars">' +
+              '<i class="rcc-curr" style="width:' +
+              pc +
+              '%;background:' +
+              b.color +
+              '" title="本局 ' +
+              b.curr +
+              '"></i>' +
+              '<i class="rcc-prev" style="width:' +
+              pp +
+              '%" title="上局 ' +
+              b.prev +
+              '"></i></div>' +
+              '<b>' +
+              b.curr +
+              '</b><span class="dim">' +
+              b.prev +
+              '</span></div>';
+          });
+          html += '</div>';
+          if (window.__yinlouMarkReplayChart) window.__yinlouMarkReplayChart();
+        }
+        html += '</div>';
         if (window.__yinlouMarkEndlessReplayCmp) window.__yinlouMarkEndlessReplayCmp();
       }
       html += '<ul class="endless-replay-list">';
@@ -1075,17 +1219,24 @@ function fillWallCompareHist(save, dayFilter) {
         html +=
           '<li class="paper-entry' +
           (i === 0 ? ' done' : '') +
+          (r.fav ? ' fav' : '') +
           '"><strong>' +
           (i === 0 ? '最新｜' : '#' + (i + 1) + '｜') +
           (r.label || '') +
-          '</strong><span class="card-meta">' +
+          '</strong>' +
+          '<button type="button" class="wall-mode-btn replay-fav-btn" data-fav-at="' +
+          (r.at || '') +
+          '">' +
+          (r.fav ? '★收藏' : '☆收藏') +
+          '</button>' +
+          '<span class="card-meta">' +
           (r.bosses || '') +
           (r.mods ? ' · ' + r.mods : '') +
           '</span></li>';
       });
       html += '</ul>';
     }
-    html += '<p class="paper-note">本機回放｜唔做線上排行</p></div>';
+    html += '<p class="paper-note">本機回放｜唔做線上排行｜v3.9 篩選／收藏／對照圖</p></div>';
     $('overlay-msg').innerHTML = html;
     const btn = $('btn-overlay');
     btn.textContent = '關閉';
@@ -1095,6 +1246,28 @@ function fillWallCompareHist(save, dayFilter) {
     };
     $('overlay-extra').innerHTML = '';
     ov.classList.add('show');
+    document.querySelectorAll('[data-rf]').forEach(function (b) {
+      b.onclick = function () {
+        const k = b.getAttribute('data-rf');
+        const next = { favOnly: false, minWave: 0 };
+        if (k === 'fav') next.favOnly = true;
+        if (k === 'w50') next.minWave = 50;
+        if (k === 'w100') next.minWave = 100;
+        showEndlessReplay(getSave, onClose, next);
+      };
+    });
+    document.querySelectorAll('[data-fav-at]').forEach(function (b) {
+      b.onclick = function (ev) {
+        ev.stopPropagation();
+        const at = b.getAttribute('data-fav-at');
+        if (window.__yinlouToggleReplayFav) {
+          window.__yinlouToggleReplayFav(at);
+        } else if (typeof toggleEndlessReplayFav === 'function') {
+          toggleEndlessReplayFav(save, at);
+        }
+        showEndlessReplay(getSave, onClose, filterOpts);
+      };
+    });
     if (window.__yinlouMarkEndlessReplayList) window.__yinlouMarkEndlessReplayList();
   }
 
@@ -1214,7 +1387,9 @@ function fillWallCompareHist(save, dayFilter) {
       onQuadLesson,
       onEndlessReplay,
       onEquipCharm,
+      onUpgradeCharm,
     } = opts;
+    opts.onUpgradeCharm = onUpgradeCharm;
     const save = getSave();
     const ov = $('overlay');
     ov.classList.add('settings-mode', 'paper-panel');
@@ -1276,20 +1451,17 @@ function fillWallCompareHist(save, dayFilter) {
       (function () {
         const list = typeof listOwnedCharms === 'function' ? listOwnedCharms(save) : [];
         const owned = list.filter(function (c) { return c.owned; });
-        const eq = owned.find(function (c) { return c.equipped; });
-        return (
-          (eq ? '裝·' + eq.name : '未裝備') +
-          '｜庫 ' +
-          owned.length +
-          '/' +
-          (list.length || 4)
-        );
+        const eq = owned.filter(function (c) { return c.equipped; });
+        const eqLab = eq.length
+          ? eq.map(function (c) { return c.name + '★' + c.star; }).join('·')
+          : '未裝備';
+        return eqLab + '｜庫 ' + owned.length + '/' + (list.length || 4);
       })() +
       '</strong></div>' +
-      '<div class="paper-row"><span>版本</span><strong>v3.8.0｜存檔 v' +
-      (save.version || 38) +
+      '<div class="paper-row"><span>版本</span><strong>v3.9.0｜存檔 v' +
+      (save.version || 39) +
       '</strong></div>' +
-      '<p class="paper-note">v3.8：十池400、符咒入欄、牆圖互動、無盡回放列表、教學結算聯動。本地牆本機｜唔做線上排行。</p>' +
+      '<p class="paper-note">v3.9：十一池450–500、符咒升星／雙欄、牆圖 PNG／分享卡、回放篩選收藏對照圖、教學五步箭嘴。本地牆本機｜唔做線上排行。</p>' +
       '<div id="charm-equip-bar" class="charm-equip-bar"></div>' +
       '</div>';
     const btn = $('btn-overlay');
@@ -1434,17 +1606,22 @@ function fillWallCompareHist(save, dayFilter) {
     if (onSnapWall) mk('留下牆快照', () => onSnapWall(), false, true);
     if (onWallTimeline) mk('牆快照時間軸', () => onWallTimeline(), false, true);
     if (onEndlessReplay) mk('無盡回放列表', () => onEndlessReplay(), false, true);
-    // v3.8 符咒裝備欄
+    // v3.9 符咒雙欄＋升星
     (function wireCharmBar() {
       const bar = $('charm-equip-bar');
       if (!bar || typeof listOwnedCharms !== 'function') return;
       const list = listOwnedCharms(save);
-      let html = '<div class="charm-equip-label">雙五符咒／飾品（裝備→下一局無盡修飾欄）</div><div class="charm-chips">';
+      const slots = (save.equippedCharmIds && save.equippedCharmIds.length) || (save.equippedCharmId ? 1 : 0);
+      let html =
+        '<div class="charm-equip-label">雙五符咒／飾品（最多雙欄｜升星★1–3｜下一局入修飾欄）｜已裝 ' +
+        slots +
+        '/2</div><div class="charm-chips">';
       html +=
         '<button type="button" class="wall-mode-btn' +
-        (!save.equippedCharmId ? ' selected' : '') +
-        '" data-charm="">卸下</button>';
+        (!slots ? ' selected' : '') +
+        '" data-charm="">全卸</button>';
       list.forEach(function (c) {
+        const stars = c.star > 0 ? '★'.repeat(c.star) : '';
         html +=
           '<button type="button" class="wall-mode-btn' +
           (c.equipped ? ' selected' : '') +
@@ -1456,7 +1633,15 @@ function fillWallCompareHist(save, dayFilter) {
           '>' +
           (c.kind === 'debuff' ? '⚠' : '✦') +
           c.name +
+          stars +
+          (c.equipped ? '·' + (c.slot + 1) : '') +
           '</button>';
+        if (c.owned && c.star < 3) {
+          html +=
+            '<button type="button" class="wall-mode-btn charm-up" data-charm-up="' +
+            c.id +
+            '" title="升星">▲</button>';
+        }
       });
       html += '</div>';
       bar.innerHTML = html;
@@ -1464,6 +1649,14 @@ function fillWallCompareHist(save, dayFilter) {
         b.onclick = function () {
           const id = b.getAttribute('data-charm') || '';
           if (onEquipCharm) onEquipCharm(id);
+          showSettings(opts);
+        };
+      });
+      bar.querySelectorAll('[data-charm-up]').forEach(function (b) {
+        b.onclick = function () {
+          const id = b.getAttribute('data-charm-up');
+          if (opts.onUpgradeCharm) opts.onUpgradeCharm(id);
+          else if (window.__yinlouUpgradeCharm) window.__yinlouUpgradeCharm(id);
           showSettings(opts);
         };
       });
@@ -1521,7 +1714,7 @@ function fillWallCompareHist(save, dayFilter) {
     const src = id && window.YDSprites && window.YDSprites.urlFor
       ? window.YDSprites.urlFor(id)
       : id
-        ? 'assets/sprites/' + id + '.png?v=3.8.0'
+        ? 'assets/sprites/' + id + '.png?v=3.9.0'
         : '';
     const fallback =
       '<span class="codex-thumb-fallback" style="background:' + c + '"></span>';

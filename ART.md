@@ -133,6 +133,10 @@
 - mid／props 無新檔；`CACHE_VER=2.9.0`；牆走勢可匯出 PNG。
 
 
+### v3.9.0 十一池／符咒升星
+- mid／props：**無新檔**（維持 v3.8 02:50）；`CACHE_VER=3.9.0`。
+- 牆圖／分享卡為 canvas raster，唔改場景層。
+
 ### v3.8.0 帳鏡蜃
 - `assets/sprites/ledger_mirage.png`（48×48 idle）
 - `ledger_mirage_attack.png`（48×48）

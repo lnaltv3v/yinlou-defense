@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 主循環 v3.0.0
+ * 銀樓防衛 — 主循環 v3.9.0
  * v1.9.0：第7關／鎖倉居士／週連續＋本地最佳牆／手感平衡
  */
 (function () {
@@ -72,6 +72,19 @@
     formatRunModifiers,
     ENDLESS_MILESTONES,
     pickWaveEvent,
+    getEquippedCharm,
+    getEquippedCharms,
+    getEquippedCharmIds,
+    listOwnedCharms,
+    findCharmById,
+    unlockCharm,
+    equipCharm,
+    upgradeCharmStar,
+    charmStarOf,
+    charmAsModifier,
+    formatEndlessReplayChart,
+    compareEndlessReplay,
+    toggleEndlessReplayFav,
   } = YD;
   const AudioSfx = window.YDAudio;
   const Battle = YDBattle;
@@ -233,15 +246,22 @@
       mods = endlessModifiers((save.bestEndlessWave || 0) + (save.totalKills || 0), {
         bestWave: save.bestEndlessWave || 0,
       });
-      // v3.8：已裝備符咒落地本局修飾欄
+      // v3.9：已裝備符咒（最多雙欄）落地本局修飾欄，帶星級
       try {
-        const eq =
-          typeof getEquippedCharm === 'function' ? getEquippedCharm(save) : null;
-        const asMod = eq && typeof charmAsModifier === 'function' ? charmAsModifier(eq) : null;
-        if (asMod && !mods.some((m) => m.id === asMod.id || m.charmId === eq.id)) {
-          mods.push(asMod);
-          save._equipCharmToast = asMod.name;
+        const pairs =
+          typeof getEquippedCharms === 'function' ? getEquippedCharms(save) : [];
+        const names = [];
+        for (const p of pairs) {
+          const asMod =
+            p && p.charm && typeof charmAsModifier === 'function'
+              ? charmAsModifier(p.charm, p.star)
+              : null;
+          if (asMod && !mods.some((m) => m.charmId === asMod.charmId)) {
+            mods.push(asMod);
+            names.push(asMod.name);
+          }
         }
+        if (names.length) save._equipCharmToast = names.join(' · ');
       } catch (_) {}
       if ((save.bestEndlessWave || 0) >= 90) {
         if (!save.ach) save.ach = {};
@@ -900,14 +920,17 @@
             m.late220 ||
             m.late300 ||
             m.late350 ||
-            m.late400
+            m.late400 ||
+            m.late450
         );
         state._lateModBadge = lateMods.length
           ? lateMods.map((m) => m.name).join(' · ')
           : '';
-        state._lateModTier = lateMods.some((m) => m.late400)
-          ? 400
-          : lateMods.some((m) => m.late350)
+        state._lateModTier = lateMods.some((m) => m.late450)
+          ? 450
+          : lateMods.some((m) => m.late400)
+            ? 400
+            : lateMods.some((m) => m.late350)
             ? 350
             : lateMods.some((m) => m.late300)
             ? 300
@@ -974,6 +997,12 @@
           writeSave(save);
           notifyAchievements();
         }
+        if ((save.bestEndlessWave || 0) >= 450) {
+          if (!save.ach) save.ach = {};
+          save.ach.late450_run = true;
+          writeSave(save);
+          notifyAchievements();
+        }
         if (save._equipCharmToast) {
           const nm = save._equipCharmToast;
           save._equipCharmToast = '';
@@ -984,9 +1013,11 @@
         if (state._lateModBadge) {
           setTimeout(() => {
             const tag =
-              state._lateModTier >= 400
-                ? '【400+】'
-                : state._lateModTier >= 350
+              state._lateModTier >= 450
+                ? '【450+】'
+                : state._lateModTier >= 400
+                  ? '【400+】'
+                  : state._lateModTier >= 350
                   ? '【350+】'
                   : state._lateModTier >= 300
                   ? '【300+】'
@@ -1771,29 +1802,54 @@
 
   function openSettings() {
     state.paused = true;
-    window.__yinlouEquipCharm = (id) => {
-      const res = typeof equipCharm === 'function' ? equipCharm(save, id) : { ok: false };
+        window.__yinlouEquipCharm = (id, slot) => {
+      const res = typeof equipCharm === 'function' ? equipCharm(save, id, slot) : { ok: false };
       if (!res || !res.ok) {
         UI.toast((res && res.error) || '裝備失敗', 2000);
         return;
       }
       if (!save.ach) save.ach = {};
-      if (id) {
-        save.ach.charm_equip = true;
-      }
+      if (id) save.ach.charm_equip = true;
+      if (res.equipped && res.equipped.length >= 2) save.ach.charm_multi = true;
       writeSave(save);
       notifyAchievements();
       try {
         const A = window.YDAudio;
         if (A && A.play && id) A.play('charm_equip');
       } catch (_) {}
-      UI.toast(id ? '已裝備符咒｜下一局無盡入欄' : '已卸下符咒', 2200);
+      const n = (res.equipped && res.equipped.length) || 0;
+      UI.toast(id ? '已裝備｜欄位 ' + n + '/' + 2 : '已卸下符咒', 2200);
+    };
+    window.__yinlouUpgradeCharm = (id) => {
+      const res = typeof upgradeCharmStar === 'function' ? upgradeCharmStar(save, id) : { ok: false };
+      if (!res || !res.ok) {
+        UI.toast((res && res.error) || '升星失敗', 2000);
+        return;
+      }
+      if (!save.ach) save.ach = {};
+      save.ach.charm_star = true;
+      writeSave(save);
+      notifyAchievements();
+      try {
+        const A = window.YDAudio;
+        if (A && A.play) A.play('charm_star');
+      } catch (_) {}
+      UI.toast('符咒升星 ★' + res.star, 2200);
     };
     UI.showSettings({
       onEndlessReplay: () => {
         if (UI.showEndlessReplay) UI.showEndlessReplay(() => save, () => syncAll());
       },
-      onEquipCharm: (id) => window.__yinlouEquipCharm(id),
+      onEquipCharm: (id, slot) => window.__yinlouEquipCharm(id, slot),
+      onUpgradeCharm: (id) => window.__yinlouUpgradeCharm(id),
+      onToggleReplayFav: (at) => {
+        const on = typeof toggleEndlessReplayFav === 'function' && toggleEndlessReplayFav(save, at);
+        if (!save.ach) save.ach = {};
+        if (on) save.ach.replay_fav = true;
+        writeSave(save);
+        notifyAchievements();
+        return on;
+      },
       getSave: () => save,
       onToggleHints: () => {
         save.showCellHints = save.showCellHints === false;
@@ -2018,6 +2074,57 @@
     }
   };
 
+
+  window.__yinlouToggleReplayFav = function (at) {
+    const on = typeof toggleEndlessReplayFav === 'function' && toggleEndlessReplayFav(save, at);
+    if (!save.ach) save.ach = {};
+    if (on) save.ach.replay_fav = true;
+    writeSave(save);
+    notifyAchievements();
+    try {
+      const A = window.YDAudio;
+      if (A && A.play) A.play('replay_fav');
+    } catch (_) {}
+    return on;
+  };
+  window.__yinlouMarkWallChartPng = function () {
+    if (!save.ach) save.ach = {};
+    if (!save.ach.wall_chart_png) {
+      save.ach.wall_chart_png = true;
+      writeSave(save);
+      notifyAchievements();
+      UI.toast('成就｜牆圖 PNG', 1800);
+    }
+    try {
+      const A = window.YDAudio;
+      if (A && A.play) A.play('wall_png');
+    } catch (_) {}
+  };
+  window.__yinlouMarkReplayChart = function () {
+    if (!save.ach) save.ach = {};
+    if (!save.ach.replay_chart) {
+      save.ach.replay_chart = true;
+      writeSave(save);
+      notifyAchievements();
+    }
+  };
+  window.__yinlouMarkTutMergeArrow = function () {
+    if (!save.ach) save.ach = {};
+    if (!save.ach.tut_merge_arrow) {
+      save.ach.tut_merge_arrow = true;
+      writeSave(save);
+      notifyAchievements();
+    }
+  };
+  window.__yinlouMarkTutWaveArrow = function () {
+    if (!save.ach) save.ach = {};
+    if (!save.ach.tut_wave_arrow) {
+      save.ach.tut_wave_arrow = true;
+      writeSave(save);
+      notifyAchievements();
+    }
+  };
+
   window.__yinlouMarkWallChartHover = function () {
     if (!save.ach) save.ach = {};
     if (!save.ach.wall_chart_hover) {
@@ -2055,6 +2162,28 @@
   window.__yinlouUnlockCharm = function (charmId) {
     if (typeof unlockCharm === 'function') {
       const neu = unlockCharm(save, charmId);
+      if (!neu && typeof upgradeCharmStar === 'function') {
+        const up = upgradeCharmStar(save, charmId);
+        writeSave(save);
+        if (up && up.ok) {
+          if (!save.ach) save.ach = {};
+          save.ach.charm_star = true;
+          writeSave(save);
+          notifyAchievements();
+          UI.toast(
+            '符咒升星｜' +
+              ((typeof findCharmById === 'function' && findCharmById(charmId) || {}).name || charmId) +
+              '★' +
+              up.star,
+            2400
+          );
+          try {
+            const A = window.YDAudio;
+            if (A && A.play) A.play('charm_star');
+          } catch (_) {}
+        }
+        return;
+      }
       writeSave(save);
       if (neu) {
         notifyAchievements();

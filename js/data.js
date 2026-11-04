@@ -1769,6 +1769,8 @@
     { wave: 300, silver: 5000, label: '三百浪不朽城' },
     { wave: 350, silver: 5800, label: '三百五十浪九池城' },
     { wave: 400, silver: 6600, label: '四百浪十池城' },
+    { wave: 450, silver: 7400, label: '四百五十浪十一池' },
+    { wave: 500, silver: 8200, label: '五百浪封池城' },
   ];
 
   function endlessMilestone(waveIndex) {
@@ -2732,26 +2734,86 @@
     },
   ];
 
+  const RUN_MODIFIERS_450 = [
+    {
+      id: 'eleven_vault',
+      name: '十一池銀庫',
+      blurb: '開局銀 +32%；核心 HP +16%',
+      late450: true,
+      apply: (ctx) => {
+        ctx.silverMul = (ctx.silverMul || 1) * 1.32;
+        ctx.coreMul = (ctx.coreMul || 1) * 1.16;
+      },
+    },
+    {
+      id: 'eleven_mirror',
+      name: '十一池鏡陣',
+      blurb: '鏡稅地板 +0.14；抽銀 ×0.14',
+      late450: true,
+      apply: (ctx) => {
+        ctx.mirageTaxFloorBonus = (ctx.mirageTaxFloorBonus || 0) + 0.14;
+        ctx.silverDrainMul = (ctx.silverDrainMul || 1) * 0.14;
+      },
+    },
+    {
+      id: 'eleven_charm_aura',
+      name: '十一池符輝',
+      blurb: '已裝備符咒效果 ×1.15；合星 ×1.1',
+      late450: true,
+      apply: (ctx) => {
+        ctx.charmPowerMul = (ctx.charmPowerMul || 1) * 1.15;
+        ctx.mergeRebateMul = (ctx.mergeRebateMul || 1) * 1.1;
+      },
+    },
+    {
+      id: 'eleven_seal',
+      name: '十一池印陣',
+      blurb: '敵速 −11%；俠客冷卻 −9%',
+      late450: true,
+      apply: (ctx) => {
+        ctx.enemySpeedMul = (ctx.enemySpeedMul || 1) * 0.89;
+        ctx.heroCdMul = (ctx.heroCdMul || 1) * 0.91;
+      },
+    },
+  ];
+
 
   /** 符咒 → 本局修飾欄項目（可裝備） */
-  function charmAsModifier(charm) {
+  const CHARM_MAX_STAR = 3;
+  const CHARM_EQUIP_SLOTS = 2;
+
+  function charmStarOf(save, charmId) {
+    const o = (save && save.ownedCharms) || {};
+    const v = o[charmId];
+    if (v === true) return 1;
+    const n = Number(v) || 0;
+    return Math.max(0, Math.min(CHARM_MAX_STAR, n));
+  }
+
+  function charmAsModifier(charm, star, powerMul) {
     if (!charm) return null;
+    const s = Math.max(1, Math.min(CHARM_MAX_STAR, star || 1));
+    const scale = (0.7 + s * 0.3) * (powerMul || 1); // ★1=1.0 ★2=1.3 ★3=1.6
+    const starMark = '★'.repeat(s);
     return {
-      id: 'equip_' + charm.id,
-      name: '符·' + charm.name,
-      blurb: charm.blurb || '',
+      id: 'equip_' + charm.id + '_s' + s,
+      name: '符·' + charm.name + starMark,
+      blurb: (charm.blurb || '') + '｜' + starMark,
       charmEquip: true,
       charmId: charm.id,
+      charmStar: s,
       charmKind: charm.kind || 'buff',
       apply: function (ctx) {
+        const pm = ctx.charmPowerMul || 1;
+        const sc = scale * pm;
         if (charm.id === 'charm_twin_mirror') {
-          ctx.mirageTaxFloorBonus = (ctx.mirageTaxFloorBonus || 0) - 0.05;
+          ctx.mirageTaxFloorBonus = (ctx.mirageTaxFloorBonus || 0) - 0.05 * sc;
         } else if (charm.id === 'charm_stack_ornament') {
-          ctx.enemySpeedMul = (ctx.enemySpeedMul || 1) * 1.07;
+          ctx.enemySpeedMul = (ctx.enemySpeedMul || 1) * (1 + 0.07 * sc);
         } else if (charm.id === 'charm_silver_ward') {
-          ctx.silverDrainMul = (ctx.silverDrainMul || 1) * 0.72;
+          ctx.silverDrainMul = (ctx.silverDrainMul || 1) * Math.max(0.4, 1 - 0.28 * sc);
         } else if (charm.id === 'charm_merge_seal') {
-          ctx.mergeRebateMul = (ctx.mergeRebateMul || 1) * 1.25;
+          ctx.mergeRebateMul = (ctx.mergeRebateMul || 1) * (1 + 0.25 * sc);
         }
       },
     };
@@ -2761,44 +2823,101 @@
     return DUAL_PENTA_CHARMS.find(function (c) { return c.id === id; }) || null;
   }
 
+  function normalizeOwnedCharms(save) {
+    if (!save) return {};
+    if (!save.ownedCharms || typeof save.ownedCharms !== 'object') save.ownedCharms = {};
+    const out = {};
+    Object.keys(save.ownedCharms).forEach(function (k) {
+      const v = save.ownedCharms[k];
+      out[k] = v === true ? 1 : Math.max(1, Math.min(CHARM_MAX_STAR, Number(v) || 1));
+    });
+    save.ownedCharms = out;
+    if (!Array.isArray(save.equippedCharmIds)) {
+      save.equippedCharmIds = save.equippedCharmId ? [save.equippedCharmId] : [];
+    }
+    save.equippedCharmIds = save.equippedCharmIds.filter(Boolean).slice(0, CHARM_EQUIP_SLOTS);
+    save.equippedCharmId = save.equippedCharmIds[0] || '';
+    return out;
+  }
+
   function unlockCharm(save, charmId) {
     if (!save || !charmId) return false;
-    if (!save.ownedCharms || typeof save.ownedCharms !== 'object') save.ownedCharms = {};
-    const was = !!save.ownedCharms[charmId];
-    save.ownedCharms[charmId] = true;
+    normalizeOwnedCharms(save);
+    const was = charmStarOf(save, charmId) > 0;
+    if (!was) save.ownedCharms[charmId] = 1;
     return !was;
   }
 
-  function equipCharm(save, charmId) {
+  /** 同符再抽／手動升星（最多 ★3） */
+  function upgradeCharmStar(save, charmId) {
+    if (!save || !charmId) return { ok: false, error: '無存檔' };
+    normalizeOwnedCharms(save);
+    const cur = charmStarOf(save, charmId);
+    if (cur <= 0) return { ok: false, error: '尚未解鎖' };
+    if (cur >= CHARM_MAX_STAR) return { ok: false, error: '已滿星', star: cur };
+    save.ownedCharms[charmId] = cur + 1;
+    return { ok: true, star: cur + 1 };
+  }
+
+  function equipCharm(save, charmId, slot) {
     if (!save) return { ok: false, error: '無存檔' };
+    normalizeOwnedCharms(save);
     if (!charmId) {
-      save.equippedCharmId = '';
-      return { ok: true, equipped: '' };
+      // 卸下：slot 指定則只卸該欄，否則全清
+      if (slot != null && slot >= 0) {
+        save.equippedCharmIds[slot] = '';
+        save.equippedCharmIds = save.equippedCharmIds.filter(Boolean);
+      } else {
+        save.equippedCharmIds = [];
+      }
+      save.equippedCharmId = save.equippedCharmIds[0] || '';
+      return { ok: true, equipped: save.equippedCharmIds.slice() };
     }
-    if (!save.ownedCharms || !save.ownedCharms[charmId]) {
-      return { ok: false, error: '尚未解鎖此符咒' };
-    }
+    if (charmStarOf(save, charmId) <= 0) return { ok: false, error: '尚未解鎖此符咒' };
     if (!findCharmById(charmId)) return { ok: false, error: '無此符咒' };
-    save.equippedCharmId = charmId;
-    return { ok: true, equipped: charmId };
+    const ids = save.equippedCharmIds.filter(function (id) { return id && id !== charmId; });
+    const idx = slot != null ? Math.max(0, Math.min(CHARM_EQUIP_SLOTS - 1, slot | 0)) : ids.length;
+    if (idx < ids.length) ids[idx] = charmId;
+    else ids.push(charmId);
+    save.equippedCharmIds = ids.slice(0, CHARM_EQUIP_SLOTS);
+    save.equippedCharmId = save.equippedCharmIds[0] || '';
+    return { ok: true, equipped: save.equippedCharmIds.slice() };
   }
 
   function getEquippedCharm(save) {
-    const id = save && save.equippedCharmId;
-    if (!id) return null;
-    return findCharmById(id);
+    const ids = getEquippedCharmIds(save);
+    if (!ids.length) return null;
+    return findCharmById(ids[0]);
+  }
+
+  function getEquippedCharmIds(save) {
+    normalizeOwnedCharms(save);
+    return (save.equippedCharmIds || []).filter(Boolean);
+  }
+
+  function getEquippedCharms(save) {
+    return getEquippedCharmIds(save).map(function (id) {
+      const c = findCharmById(id);
+      if (!c) return null;
+      return { charm: c, star: charmStarOf(save, id) };
+    }).filter(Boolean);
   }
 
   function listOwnedCharms(save) {
-    const owned = (save && save.ownedCharms) || {};
+    normalizeOwnedCharms(save);
+    const equipped = save.equippedCharmIds || [];
     return DUAL_PENTA_CHARMS.map(function (c) {
+      const star = charmStarOf(save, c.id);
+      const slot = equipped.indexOf(c.id);
       return {
         id: c.id,
         name: c.name,
         blurb: c.blurb,
         kind: c.kind,
-        owned: !!owned[c.id],
-        equipped: !!(save && save.equippedCharmId === c.id),
+        owned: star > 0,
+        star: star,
+        equipped: slot >= 0,
+        slot: slot,
       };
     });
   }
@@ -2838,6 +2957,7 @@
       lockDurMul: 1,
       heroAtkMul: 1,
       dualPentaEnemySpeedMul: 1,
+      charmPowerMul: 1,
       mods: mods || [],
     };
     for (const m of ctx.mods) {
@@ -3136,6 +3256,14 @@
       if (!mods.some((m) => m.id === late10.id)) {
         if (mods.length >= 3) mods[0] = late10;
         else mods.push(late10);
+      }
+    }
+    if (best >= 450 && RUN_MODIFIERS_450.length) {
+      const h12 = (seed ^ 0x450fade) >>> 0;
+      const late11 = RUN_MODIFIERS_450[h12 % RUN_MODIFIERS_450.length];
+      if (!mods.some((m) => m.id === late11.id)) {
+        if (mods.length >= 3) mods[mods.length - 1] = late11;
+        else mods.push(late11);
       }
     }
     return mods;
@@ -3811,6 +3939,16 @@
     { id: 'endless_replay_list', cat: 'meta', name: '回放列表', blurb: '打開無盡回放列表頁', check: (s) => !!s.ach && !!s.ach.endless_replay_list },
     { id: 'endless_replay_cmp', cat: 'meta', name: '回放對盤', blurb: '對照上一局無盡回放', check: (s) => !!s.ach && !!s.ach.endless_replay_cmp },
     { id: 'tut_settle_fail', cat: 'meta', name: '結算聯動', blurb: '教學結算步與失敗面板聯動一次', check: (s) => !!s.ach && !!s.ach.tut_settle_fail },
+    { id: 'endless450', cat: 'combat', name: '四百五十浪十一池', blurb: '無盡最佳 ≥ 450 波', check: (s) => (s.bestEndlessWave || 0) >= 450 },
+    { id: 'endless500', cat: 'combat', name: '五百浪封池城', blurb: '無盡最佳 ≥ 500 波', check: (s) => (s.bestEndlessWave || 0) >= 500 },
+    { id: 'late450_run', cat: 'meta', name: '十一池開盤', blurb: '曾達 450 浪後再開無盡（抽第十一池修飾）', check: (s) => !!s.ach && !!s.ach.late450_run },
+    { id: 'charm_star', cat: 'meta', name: '符咒升星', blurb: '任一符咒升至 ★2 或以上', check: (s) => { const o=s.ownedCharms||{}; return Object.keys(o).some(k => (o[k]===true?1:Number(o[k])||0) >= 2); } },
+    { id: 'charm_multi', cat: 'meta', name: '雙欄符咒', blurb: '同時裝備 2 枚符咒', check: (s) => !!(s.equippedCharmIds && s.equippedCharmIds.filter(Boolean).length >= 2) },
+    { id: 'wall_chart_png', cat: 'meta', name: '牆圖 PNG', blurb: '匯出牆對照圖／分享卡 PNG', check: (s) => !!s.ach && !!s.ach.wall_chart_png },
+    { id: 'replay_fav', cat: 'meta', name: '回放收藏', blurb: '收藏一筆無盡回放', check: (s) => !!s.ach && !!s.ach.replay_fav },
+    { id: 'replay_chart', cat: 'meta', name: '回放對照圖', blurb: '見過回放對照圖表', check: (s) => !!s.ach && !!s.ach.replay_chart },
+    { id: 'tut_merge_arrow', cat: 'meta', name: '合併箭嘴', blurb: '教學時見過合併升星箭嘴', check: (s) => !!s.ach && !!s.ach.tut_merge_arrow },
+    { id: 'tut_wave_arrow', cat: 'meta', name: '開波箭嘴', blurb: '教學時見過開波箭嘴', check: (s) => !!s.ach && !!s.ach.tut_wave_arrow },
   ];
 
   /** 首通銀兩獎勵（入累計帳） */
@@ -3871,7 +4009,9 @@
     const late300 = n >= 300 ? Math.min(0.08, (n - 300) * 0.0018) : 0;
     const late350 = n >= 350 ? Math.min(0.08, (n - 350) * 0.0016) : 0;
     const late400 = n >= 400 ? Math.min(0.08, (n - 400) * 0.0015) : 0;
-    const mul = 1 + (n - 1) * 0.105 + late50 + late75 + late90 + late120 + late130 + late140 + late150 + late160 + late180 + late200 + late220 + late250 + late300 + late350 + late400;
+    const late450 = n >= 450 ? Math.min(0.08, (n - 450) * 0.0014) : 0;
+    const late500 = n >= 500 ? Math.min(0.06, (n - 500) * 0.0012) : 0;
+    const mul = 1 + (n - 1) * 0.105 + late50 + late75 + late90 + late120 + late130 + late140 + late150 + late160 + late180 + late200 + late220 + late250 + late300 + late350 + late400 + late450 + late500;
     const countLate = n >= 50 ? Math.min(n - 50, 25) * 0.01 + (n >= 75 ? (n - 75) * 0.006 : 0) : 0;
     const count = (base) => {
       let raw = Math.max(1, Math.round(base * (1 + (n - 1) * 0.072 + countLate)));
@@ -4330,10 +4470,21 @@
     if (from < 38) {
       s.ach.v38_migrated = true;
     }
+    if (from < 39) {
+      s.ach.v39_migrated = true;
+    }
     if (!Array.isArray(s.endlessReplay)) s.endlessReplay = [];
     if (!s.ownedCharms || typeof s.ownedCharms !== 'object') s.ownedCharms = {};
+    // bool → star
+    Object.keys(s.ownedCharms).forEach(function (k) {
+      if (s.ownedCharms[k] === true) s.ownedCharms[k] = 1;
+    });
     if (s.equippedCharmId == null) s.equippedCharmId = '';
-    s.version = Math.max(38, from, base.version || 38);
+    if (!Array.isArray(s.equippedCharmIds)) {
+      s.equippedCharmIds = s.equippedCharmId ? [s.equippedCharmId] : [];
+    }
+    if (!s.endlessReplayFav || typeof s.endlessReplayFav !== 'object') s.endlessReplayFav = {};
+    s.version = Math.max(39, from, base.version || 39);
     return s;
   }
 
@@ -4349,7 +4500,7 @@
 
   function defaultSave() {
     return {
-      version: 38,
+      version: 39,
       totalSilver: 0,
       totalKills: 0,
       maxStageCleared: 0,
@@ -4383,6 +4534,8 @@
       endlessReplay: [],
       ownedCharms: {},
       equippedCharmId: '',
+      equippedCharmIds: [],
+      endlessReplayFav: {},
       localBest: { endless: 0, weeklyStreak: 0, stageClears: 0 },
       post12EndlessBonus: false,
       quadTideTutorialDone: false,
@@ -4562,6 +4715,39 @@
     return entry;
   }
 
+  function formatEndlessReplayChart(curr, prev) {
+    const a = curr || {};
+    const b = prev || {};
+    const keys = [
+      { k: 'wave', name: '浪次', c: '#C9A227' },
+      { k: 'kills', name: '擊殺', c: '#C45C4A' },
+      { k: 'dualPenta', name: '雙五', c: '#8A9BB0' },
+      { k: 'taxStacks', name: '鏡稅叠', c: '#3A7A6A' },
+    ];
+    const bars = keys.map(function (row) {
+      return {
+        key: row.k,
+        name: row.name,
+        color: row.c,
+        curr: Number(a[row.k]) || 0,
+        prev: Number(b[row.k]) || 0,
+      };
+    });
+    const maxV = Math.max(1, ...bars.map(function (x) { return Math.max(x.curr, x.prev); }));
+    return { bars: bars, max: maxV };
+  }
+
+  function toggleEndlessReplayFav(save, at) {
+    if (!save || !at) return false;
+    if (!save.endlessReplayFav || typeof save.endlessReplayFav !== 'object') save.endlessReplayFav = {};
+    if (save.endlessReplayFav[at]) {
+      delete save.endlessReplayFav[at];
+      return false;
+    }
+    save.endlessReplayFav[at] = true;
+    return true;
+  }
+
   function compareEndlessReplay(curr, prev) {
     if (!curr) return null;
     if (!prev) {
@@ -4596,9 +4782,11 @@
     };
   }
 
-  function formatEndlessReplay(save) {
-    const arr = Array.isArray(save && save.endlessReplay) ? save.endlessReplay.slice() : [];
-    return arr
+  function formatEndlessReplay(save, opts) {
+    opts = opts || {};
+    const fav = (save && save.endlessReplayFav) || {};
+    let arr = Array.isArray(save && save.endlessReplay) ? save.endlessReplay.slice() : [];
+    arr = arr
       .slice()
       .reverse()
       .map(function (e) {
@@ -4611,6 +4799,7 @@
           taxStacks: e.taxStacks || 0,
           mods: e.mods || '',
           bosses: e.bosses || '',
+          fav: !!(e.at && fav[e.at]),
           label:
             '第' +
             (e.wave || 0) +
@@ -4620,6 +4809,9 @@
             (e.dualPenta ? '｜雙五×' + e.dualPenta : ''),
         };
       });
+    if (opts.favOnly) arr = arr.filter(function (r) { return r.fav; });
+    if (opts.minWave) arr = arr.filter(function (r) { return (r.wave || 0) >= opts.minWave; });
+    return arr;
   }
 
   function exportWallCompareHistory(save, opts) {
@@ -4632,7 +4824,7 @@
       });
     }
     const lines = [
-      '銀樓防衛｜牆對照歷史（本機）｜v3.8' + (day ? '｜日=' + day : '｜全日'),
+      '銀樓防衛｜牆對照歷史（本機）｜v3.9' + (day ? '｜日=' + day : '｜全日'),
     ];
     if (!rows.length) lines.push('（尚無留底）');
     for (const r of rows) {
@@ -4690,7 +4882,7 @@
     return JSON.stringify(
       {
         app: 'yinlou-defense',
-        ver: '3.8.0',
+        ver: '3.9.0',
         exportedAt: new Date().toISOString(),
         day: day,
         count: rows.length,
@@ -5247,6 +5439,7 @@
     RUN_MODIFIERS_300,
     RUN_MODIFIERS_350,
     RUN_MODIFIERS_400,
+    RUN_MODIFIERS_450,
     DUAL_PENTA_CHARMS,
     pickDualPentaCharm,
     charmAsModifier,
@@ -5254,7 +5447,14 @@
     unlockCharm,
     equipCharm,
     getEquippedCharm,
+    getEquippedCharms,
+    getEquippedCharmIds,
     listOwnedCharms,
+    upgradeCharmStar,
+    charmStarOf,
+    normalizeOwnedCharms,
+    CHARM_MAX_STAR,
+    CHARM_EQUIP_SLOTS,
     buildEndlessWave,
     buildDailyWaves,
     buildWeeklyWaves,
@@ -5309,6 +5509,8 @@
     recordEndlessReplay,
     formatEndlessReplay,
     compareEndlessReplay,
+    formatEndlessReplayChart,
+    toggleEndlessReplayFav,
     recordWallSnapshot,
     formatWallTimeline,
     formatWallSparkline,
