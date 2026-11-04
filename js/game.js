@@ -1,9 +1,21 @@
 /**
- * 銀樓防衛 — 主循環 v0.2.0
- * 拖放放置／合併、多關卡＋無盡、速度檔、敵人打塔
+ * 銀樓防衛 — 主循環 v0.3.0
+ * 經濟曲線、合併回報、羈絆、暫停／設定、短教學、欄位高亮
  */
 (function () {
-  const { STAGES, ENDLESS, HEROES, SPEED_OPTIONS, loadSave, writeSave, buildEndlessWave } = YD;
+  const {
+    STAGES,
+    ENDLESS,
+    HEROES,
+    SPEED_OPTIONS,
+    loadSave,
+    writeSave,
+    defaultSave,
+    buildEndlessWave,
+    summonCost,
+    mergeRebate,
+    activeBonds,
+  } = YD;
   const Battle = YDBattle;
   const UI = YDUI;
 
@@ -25,7 +37,7 @@
         startSilver: ENDLESS.startSilver,
         coreHp: ENDLESS.coreHp,
         unlockHeroes: ENDLESS.unlockHeroes,
-        waves: [], // 動態
+        waves: [],
       };
     } else {
       stage = STAGES[Math.min(Math.max(0, stageIndex), STAGES.length - 1)];
@@ -54,13 +66,17 @@
       shake: 0,
       coreHitFlash: 0,
       drag: null,
-      tutorialStep: save.maxStageCleared > 0 ? 99 : 0,
+      tutorialStep: save.skipTutorial || save.maxStageCleared > 0 ? 99 : 0,
+      summonCounts: {},
+      showCellHints: save.showCellHints !== false,
+      _bonds: [],
     };
   }
 
   let state = freshState(Math.min(save.maxStageCleared, STAGES.length - 1), false);
 
   function syncAll() {
+    state._bonds = activeBonds(state.heroes);
     if (shopApi) shopApi.refresh();
     if (speedApi) speedApi.refresh();
     if (stageApi) stageApi.refresh(state.endless ? null : state.stage.id, state.endless);
@@ -68,23 +84,51 @@
     updateHint();
   }
 
+  function advanceTutorial(to) {
+    if (state.tutorialStep >= 99) return;
+    if (to != null) state.tutorialStep = Math.max(state.tutorialStep, to);
+    else state.tutorialStep += 1;
+    if (state.tutorialStep >= 3) state.tutorialStep = 99;
+  }
+
   function updateHint() {
     if (state.phase === 'won' || state.phase === 'lost') return;
+    if (state.paused) {
+      UI.setHint('已暫停 — 再按「暫停」或 Esc 繼續｜設定可開關欄位高亮');
+      return;
+    }
+    if (state.tutorialStep === 0) {
+      UI.setHint('① 拖底欄俠客到綠色空格放置（同種愈召愈貴）');
+      return;
+    }
+    if (state.tutorialStep === 1) {
+      UI.setHint('② 拖兩名同種同星疊埋 → 合併升星（有銀兩回報）');
+      return;
+    }
+    if (state.tutorialStep === 2) {
+      UI.setHint('③ 按「開波」守銀樓；齊人觸發羈絆');
+      return;
+    }
     if (state.drag && state.drag.active) {
-      UI.setHint('拖到空格放置；拖到同種同星俠客上面可合併（亦可點選操作）');
+      UI.setHint('拖到空格放置／調位；拖到同種同星可合併');
       return;
     }
     if (state.selectedShopId) {
-      UI.setHint('已選「' + HEROES[state.selectedShopId].name + '」— 點空格放置，或再點底欄取消');
+      const cost = summonCost(state.selectedShopId, state.summonCounts);
+      UI.setHint(
+        '已選「' + HEROES[state.selectedShopId].name + '」（' + cost + ' 兩）— 點／拖到空格'
+      );
       return;
     }
     if (state.mergeFromUid) {
-      UI.setHint('已選場上俠客 — 再點／拖到同種同星合併；點空地取消');
+      UI.setHint('已選場上俠客 — 拖到同種同星合併，或拖到空格調位');
       return;
     }
-    UI.setHint(
-      '拖底欄俠客到空格放置｜拖同種同星合併升星｜開波守銀樓｜速度可調｜敵人會打最近俠客'
-    );
+    const bondTxt =
+      state._bonds && state._bonds.length
+        ? '｜羈絆：' + state._bonds.map((b) => b.name).join('、')
+        : '';
+    UI.setHint('拖放放置／合併｜開波｜暫停／設定' + bondTxt);
   }
 
   shopApi = UI.buildShop(
@@ -94,19 +138,24 @@
       state.selectedHeroUid = null;
       state.mergeFromUid = null;
       syncAll();
-      if (state.selectedShopId) UI.toast('已選 ' + HEROES[id].name + ' — 點空格或拖到場上');
+      if (state.selectedShopId) {
+        UI.toast('已選 ' + HEROES[id].name + ' — 放到空格');
+        if (state.tutorialStep === 0) advanceTutorial(0);
+      }
     },
     () => state.selectedShopId,
     () => state.silver,
     {
+      getSummonCounts: () => state.summonCounts,
       onShopDragStart(id, ev) {
         if (state.phase === 'won' || state.phase === 'lost') {
           ev.preventDefault();
           return;
         }
-        if (state.silver < HEROES[id].cost) {
+        const cost = summonCost(id, state.summonCounts);
+        if (state.silver < cost) {
           ev.preventDefault();
-          UI.toast('銀兩不足');
+          UI.toast('銀兩不足（而家要 ' + cost + '）');
           return;
         }
         state.selectedShopId = id;
@@ -116,7 +165,6 @@
           ev.dataTransfer.setData('text/plain', 'shop:' + id);
           ev.dataTransfer.effectAllowed = 'copy';
         } catch (_) {}
-        // 原生 drag 之外，用 pointer 跟蹤畫 ghost（見 pointer 事件）
       },
     }
   );
@@ -135,8 +183,8 @@
   stageApi = UI.buildStageBar(
     () => save,
     (idx) => {
-      if (state.phase === 'wave') {
-        UI.toast('交戰中唔好換關，先重來或打完');
+      if (state.phase === 'wave' && !state.paused) {
+        UI.toast('交戰中請先暫停或打完再換關');
         return;
       }
       UI.hideOverlay();
@@ -146,8 +194,8 @@
       UI.toast('進入：' + state.stage.name);
     },
     () => {
-      if (state.phase === 'wave') {
-        UI.toast('交戰中唔好換關，先重來或打完');
+      if (state.phase === 'wave' && !state.paused) {
+        UI.toast('交戰中請先暫停或打完再換關');
         return;
       }
       if (save.maxStageCleared < 1) {
@@ -176,6 +224,10 @@
   }
 
   function startWave() {
+    if (state.paused) {
+      UI.toast('暫停中 — 先繼續再開波');
+      return;
+    }
     if (state.phase !== 'prep') return;
     if (!state.endless && state.waveIndex >= state.stage.waves.length) return;
     state.waveIndex += 1;
@@ -186,9 +238,8 @@
       job.started = false;
     }
     state.phase = 'wave';
-    UI.toast(
-      (state.endless ? '無盡第 ' : '第 ') + state.waveIndex + ' 波來襲！可邊打邊合'
-    );
+    advanceTutorial(3);
+    UI.toast((state.endless ? '無盡第 ' : '第 ') + state.waveIndex + ' 波來襲！');
     syncAll();
     const btn = document.getElementById('btn-wave');
     if (btn) btn.disabled = true;
@@ -231,7 +282,9 @@
           '。累計銀兩帳 ' +
           save.totalSilver +
           '。' +
-          (hasNext ? '\n已解鎖下一關。' : '\n三關皆破！可挑戰無盡。'),
+          (hasNext
+            ? '\n已解鎖下一關。'
+            : '\n四關皆破！可挑戰無盡。'),
         hasNext ? '下一關' : '回第 1 關',
         () => {
           UI.hideOverlay();
@@ -249,14 +302,13 @@
       return;
     }
 
-    // 無盡：更新最佳紀錄，繼續整備
     if (state.endless) {
       save.bestEndlessWave = Math.max(save.bestEndlessWave || 0, state.waveIndex);
       writeSave(save);
     }
 
     state.phase = 'prep';
-    const bonus = 18 + state.waveIndex * 6;
+    const bonus = 20 + state.waveIndex * 7;
     state.silver += bonus;
     UI.toast('波次結束，整備中（補銀 +' + bonus + '）');
     const btn = document.getElementById('btn-wave');
@@ -269,6 +321,7 @@
 
   function lose() {
     state.phase = 'lost';
+    state.paused = false;
     if (state.endless) {
       save.bestEndlessWave = Math.max(save.bestEndlessWave || 0, state.waveIndex);
       writeSave(save);
@@ -277,9 +330,11 @@
       '銀樓失守',
       '核心被攻破。擊殺 ' +
         state.kills +
-        (state.endless ? '｜無盡撐到第 ' + state.waveIndex + ' 波（最佳 ' + (save.bestEndlessWave || 0) + '）' : '') +
-        '。調整陣容再試。',
-      '重來',
+        (state.endless
+          ? '｜無盡撐到第 ' + state.waveIndex + ' 波（最佳 ' + (save.bestEndlessWave || 0) + '）'
+          : '') +
+        '。調整陣容／羈絆再試。',
+      '重開本關',
       () => {
         UI.hideOverlay();
         resetRun(state.endless);
@@ -296,17 +351,77 @@
     UI.toast('新一局 — 放置俠客後開波');
   }
 
+  function togglePause() {
+    if (state.phase === 'won' || state.phase === 'lost') return;
+    state.paused = !state.paused;
+    UI.toast(state.paused ? '已暫停' : '繼續');
+    syncAll();
+  }
+
+  function openSettings() {
+    state.paused = true;
+    UI.showSettings({
+      getSave: () => save,
+      onToggleHints: () => {
+        save.showCellHints = save.showCellHints === false;
+        writeSave(save);
+        state.showCellHints = save.showCellHints !== false;
+        syncAll();
+      },
+      onSkipTutorial: () => {
+        save.skipTutorial = !save.skipTutorial;
+        writeSave(save);
+        state.tutorialStep = save.skipTutorial ? 99 : 0;
+        syncAll();
+      },
+      onClearSave: () => {
+        save = defaultSave();
+        writeSave(save);
+        state = freshState(0, false);
+        resetWaveBtn();
+        syncAll();
+        UI.toast('存檔已清除');
+      },
+      onClose: () => {
+        syncAll();
+      },
+      onRestart: () => {
+        resetRun(state.endless);
+      },
+    });
+  }
+
   document.getElementById('btn-wave').addEventListener('click', startWave);
   document.getElementById('btn-reset').addEventListener('click', () => {
     UI.hideOverlay();
     resetRun(state.endless);
+  });
+  document.getElementById('btn-pause').addEventListener('click', togglePause);
+  document.getElementById('btn-settings').addEventListener('click', openSettings);
+
+  window.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape') {
+      const ov = document.getElementById('overlay');
+      if (ov && ov.classList.contains('show') && ov.classList.contains('settings-mode')) {
+        UI.hideOverlay();
+        syncAll();
+        return;
+      }
+      togglePause();
+    }
+    if (ev.key === 'p' || ev.key === 'P') togglePause();
   });
 
   function canvasPos(ev) {
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
-    const src = ev.touches && ev.touches[0] ? ev.touches[0] : ev.changedTouches && ev.changedTouches[0] ? ev.changedTouches[0] : ev;
+    const src =
+      ev.touches && ev.touches[0]
+        ? ev.touches[0]
+        : ev.changedTouches && ev.changedTouches[0]
+          ? ev.changedTouches[0]
+          : ev;
     return {
       x: (src.clientX - rect.left) * scaleX,
       y: (src.clientY - rect.top) * scaleY,
@@ -320,35 +435,55 @@
       UI.toast('此格已有人');
       return false;
     }
+    const cost = summonCost(shopId, state.summonCounts);
     const def = HEROES[shopId];
-    if (state.silver < def.cost) {
-      UI.toast('銀兩不足');
+    if (state.silver < cost) {
+      UI.toast('銀兩不足（要 ' + cost + '）');
       return false;
     }
-    state.silver -= def.cost;
+    state.silver -= cost;
+    state.summonCounts[shopId] = (state.summonCounts[shopId] || 0) + 1;
     state.heroes.push(Battle.makeHero(def.id, cell.lane, cell.slot, 1));
-    UI.toast('上陣：' + def.name);
-    if (state.silver < def.cost) state.selectedShopId = null;
+    UI.toast('上陣：' + def.name + '（−' + cost + '）');
+    advanceTutorial(1);
+    const nextCost = summonCost(shopId, state.summonCounts);
+    if (state.silver < nextCost) state.selectedShopId = null;
+    syncAll();
+    return true;
+  }
+
+  function doMerge(fromHero, occupied) {
+    const now = Battle.mergeHeroes(state.heroes, fromHero, occupied);
+    if (!now) return false;
+    const rebate = mergeRebate(now.id, now.star);
+    if (rebate > 0) {
+      state.silver += rebate;
+      Battle.pushFloat(state.floats, {
+        x: now.x,
+        y: now.y - 36,
+        text: '合併 +' + rebate,
+        color: '#D4AF37',
+        size: 14,
+        vy: -28,
+        life: 0.9,
+      });
+    }
+    Battle.spawnMergeFx(state, now);
+    UI.toast(HEROES[now.id].name + ' → ' + now.star + ' 星' + (rebate ? '（+' + rebate + '兩）' : ''));
+    advanceTutorial(2);
+    state.mergeFromUid = null;
+    state.selectedHeroUid = null;
+    state.selectedShopId = null;
     syncAll();
     return true;
   }
 
   function tryMergeOrSelect(fromHero, cell) {
-    if (!cell) return;
+    if (!cell) return false;
     const occupied = Battle.findHeroAt(state.heroes, cell.lane, cell.slot);
     if (occupied && Battle.canMerge(fromHero, occupied)) {
-      const now = Battle.mergeHeroes(state.heroes, fromHero, occupied);
-      if (now) {
-        UI.toast(HEROES[now.id].name + ' 升至 ' + now.star + ' 星');
-        state.fx.push({ type: 'hit', x: now.x, y: now.y, color: '#C9A227', life: 0.35, r: 22 });
-      }
-      state.mergeFromUid = null;
-      state.selectedHeroUid = null;
-      state.selectedShopId = null;
-      syncAll();
-      return true;
+      return doMerge(fromHero, occupied);
     }
-    // 拖到空格：移動俠客
     if (!occupied && fromHero) {
       fromHero.lane = cell.lane;
       fromHero.slot = cell.slot;
@@ -364,13 +499,16 @@
     return false;
   }
 
-  // —— 點選（後備）——
   canvas.addEventListener('click', (ev) => {
     if (state._suppressClick) {
       state._suppressClick = false;
       return;
     }
     if (state.phase === 'won' || state.phase === 'lost') return;
+    if (state.paused) {
+      togglePause();
+      return;
+    }
     const { x, y } = canvasPos(ev);
     const cell = Battle.hitTestCell(x, y);
     if (!cell) return;
@@ -380,15 +518,7 @@
     if (state.mergeFromUid) {
       const from = state.heroes.find((h) => h.uid === state.mergeFromUid);
       if (occupied && from && Battle.canMerge(from, occupied)) {
-        const now = Battle.mergeHeroes(state.heroes, from, occupied);
-        if (now) {
-          UI.toast(HEROES[now.id].name + ' 升至 ' + now.star + ' 星');
-          state.fx.push({ type: 'hit', x: now.x, y: now.y, color: '#C9A227', life: 0.35, r: 22 });
-        }
-        state.mergeFromUid = null;
-        state.selectedHeroUid = null;
-        state.selectedShopId = null;
-        syncAll();
+        doMerge(from, occupied);
         return;
       }
       if (!occupied) {
@@ -412,12 +542,11 @@
     if (occupied) {
       state.selectedHeroUid = occupied.uid;
       state.mergeFromUid = occupied.uid;
-      UI.toast('已選 ' + HEROES[occupied.id].name + ' — 再點同種同星合併，或拖去合併／調位');
+      UI.toast('已選 ' + HEROES[occupied.id].name + ' — 合併或調位');
       syncAll();
     }
   });
 
-  // —— Pointer 拖放（場上合併／調位＋商店 ghost）——
   let ptr = null;
 
   function clearDrag() {
@@ -428,7 +557,7 @@
   }
 
   canvas.addEventListener('pointerdown', (ev) => {
-    if (state.phase === 'won' || state.phase === 'lost') return;
+    if (state.phase === 'won' || state.phase === 'lost' || state.paused) return;
     if (ev.button != null && ev.button !== 0) return;
     const { x, y } = canvasPos(ev);
     const hero = Battle.hitTestHero(state.heroes, x, y);
@@ -460,7 +589,6 @@
       };
       return;
     }
-    // 若已選商店，pointerdown 空格會喺 click 處理；亦可開始「假拖」提示
     if (state.selectedShopId) {
       ptr = {
         kind: 'shop',
@@ -533,21 +661,18 @@
         const from = state.heroes.find((h) => h.uid === ptr.heroUid);
         if (from && cell) {
           if (!tryMergeOrSelect(from, cell)) {
-            // 無效目標：保持選取方便點選合併
             state.mergeFromUid = from.uid;
             state.selectedHeroUid = from.uid;
           }
         }
       }
     }
-    // 短按唔當拖：交俾 click 處理選取
     clearDrag();
   }
 
   canvas.addEventListener('pointerup', endPointer);
   canvas.addEventListener('pointercancel', () => clearDrag());
 
-  // 底欄 hero-btn：支援拖入 canvas（HTML5 DnD 後備）
   canvas.addEventListener('dragover', (ev) => {
     ev.preventDefault();
     const { x, y } = canvasPos(ev);
@@ -586,11 +711,7 @@
     clearDrag();
     state._suppressClick = true;
   });
-  canvas.addEventListener('dragleave', () => {
-    // 唔即清，等 drop
-  });
 
-  // —— Spawner ——
   function tickSpawnerFixed(dt) {
     const sp = state.spawner;
     if (!sp) return;
@@ -645,22 +766,25 @@
           onWaveCleared();
         }
       }
-    } else {
+    } else if (!state.paused) {
       Battle.tickFloats(state, dt);
+    } else {
+      // 暫停：特效緩慢淡出
+      Battle.tickFloats(state, rawDt * 0.3);
     }
 
+    state._bonds = activeBonds(state.heroes);
     YDRender.render(ctx, state);
     UI.updateHud(state);
     requestAnimationFrame(frame);
   }
 
-  // 開場
   const unlocked = save.maxStageCleared || 0;
   UI.showOverlay(
     '銀樓防衛',
-    '金融江湖合併塔防 v0.2.0\n' +
-      '拖底欄俠客到空格放置；拖同種同星合併；開波守銀樓。\n' +
-      '敵人會攻擊最近俠客，唔止衝核心。\n' +
+    '合併塔防 v0.3.0\n' +
+      '拖放放置 → 同種合併升星 → 開波守銀樓。\n' +
+      '新：羈絆、招股鼓手／逼空客、第 4 關、暫停／設定。\n' +
       '累計銀兩帳：' +
       save.totalSilver +
       '｜最高關：' +
@@ -669,7 +793,7 @@
     '開始',
     () => {
       UI.hideOverlay();
-      UI.toast('準備就緒 — 放置後開波');
+      UI.toast(state.tutorialStep < 99 ? '跟提示三步就識' : '準備就緒');
       syncAll();
     }
   );
