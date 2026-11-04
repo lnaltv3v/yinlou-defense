@@ -5,7 +5,7 @@
 - **戰鬥深度**：場上俠客技能蓄力／冷卻條（可於設定關）；羈絆首次觸發橫幅＋toast；精英波事件（關卡第 3 波／無盡每 4 波／每日中段；第 1 關波 3 自帶精英槓桿妖）
 - **美術**：程式像素再加厚（雲、拒馬、銅錢箱、靴／腰帶、敵人細節）；商店可讀像素頭像（色塊剪影）
 - **存檔／設定**：匯出／匯入 JSON；設定加技能條開關、震屏減弱；存檔 version 5；新成就「精英過招」「跟單上陣」
-- **部署**：`assets/_ref/*.jpg` 移出 git 追蹤（防 Pages 炸）；保留 `.nojekyll`
+- **部署**：`assets/_ref/*.jpg` 移出 git 追蹤；保留 `.nojekyll`；Pages 改由 orphan 分支 `pages-clean` 發佈（`main`／`master` 歷史仍有大圖 blob，legacy build 會 fail；線上 title 已確認 v0.5.0）
 - DESIGN／ART／README 同步；Pages title → v0.5.0
 
 ## v0.4.0 — 2026-11-04

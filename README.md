@@ -8,6 +8,8 @@
 
 https://lnaltv3v.github.io/yinlou-defense/
 
+> GitHub Pages 來源分支：`pages-clean`（orphan 乾淨樹；`main`／`master` 保留完整專案＋文件。發版時需同步更新 `pages-clean` 嘅靜態檔。）
+
 ## 點玩（本地）
 
 ```bash
