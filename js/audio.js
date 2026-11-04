@@ -174,6 +174,23 @@
       buzz(640, 0.035, 'sine', 0.03);
       setTimeout(function () { buzz(860, 0.045, 'triangle', 0.035); }, 40);
     },
+    slot_lock: function () {
+      buzz(420, 0.035, 'square', 0.03);
+      setTimeout(function () { buzz(560, 0.04, 'triangle', 0.032); }, 40);
+    },
+    set_recommend: function () {
+      buzz(680, 0.04, 'sine', 0.035);
+      setTimeout(function () { buzz(900, 0.05, 'triangle', 0.04); }, 50);
+      setTimeout(function () { buzz(1120, 0.055, 'sine', 0.035); }, 110);
+    },
+    dual_short: function () {
+      buzz(520, 0.03, 'triangle', 0.028);
+      setTimeout(function () { buzz(740, 0.04, 'sine', 0.032); }, 35);
+    },
+    dual_card: function () {
+      buzz(500, 0.035, 'triangle', 0.03);
+      setTimeout(function () { buzz(720, 0.05, 'sine', 0.035); }, 40);
+    },
     merge_snap: function () {
       buzz(540, 0.028, 'sine', 0.028);
       setTimeout(function () { buzz(760, 0.035, 'triangle', 0.03); }, 30);

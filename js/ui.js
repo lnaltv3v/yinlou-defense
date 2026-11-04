@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v4.6.0
+ * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v4.7.0
  */
 (function (global) {
   const {
@@ -40,9 +40,15 @@
     listDualRangePresets,
     saveDualRangePreset,
     removeDualRangePreset,
+    encodeDualPresetShort,
+    decodeDualPresetShort,
+    importDualPresetShort,
+    exportDualPresetsShort,
     mergeSnapRadius,
     syncMergeSnapDevice,
     loadMergeSnapDevice,
+    toggleCharmSlotLock,
+    recommendCharmSetEquip,
     formatEndlessReplayTimeline,
     formatFailShareText,
     toggleEndlessReplayFav,
@@ -1321,7 +1327,28 @@ function fillWallCompareHist(save, dayFilter) {
           if (res && res.ok) {
             if (window.__yinlouMarkSetUnequipSwap) window.__yinlouMarkSetUnequipSwap();
             showCharmSetDetail(set, getSave || window.__yinlouGetSave);
-          }
+          } else if (res && res.error) toast(res.error, 1600);
+        }
+      };
+    });
+    document.querySelectorAll('[data-lock-slot]').forEach(function (b) {
+      b.onclick = function (ev) {
+        ev.stopPropagation();
+        const slot = Number(b.getAttribute('data-lock-slot'));
+        const set = b.getAttribute('data-set') || focusSet || '';
+        if (window.__yinlouToggleCharmSlotLock) {
+          window.__yinlouToggleCharmSlotLock(slot);
+          showCharmSetDetail(set, getSave || window.__yinlouGetSave);
+        }
+      };
+    });
+    document.querySelectorAll('[data-set-recommend]').forEach(function (b) {
+      b.onclick = function (ev) {
+        ev.stopPropagation();
+        const set = b.getAttribute('data-set-recommend') || focusSet || '';
+        if (window.__yinlouRecommendCharmSet) {
+          const res = window.__yinlouRecommendCharmSet(set);
+          if (res && res.ok) showCharmSetDetail(set, getSave || window.__yinlouGetSave);
         }
       };
     });
@@ -1644,7 +1671,13 @@ function fillWallCompareHist(save, dayFilter) {
         })() +
         '" class="dual-input"/></label>' +
         '<button type="button" class="wall-mode-btn" id="dual-custom-apply">套用自訂</button>' +
-        '<button type="button" class="wall-mode-btn" id="dual-preset-save">收藏方案</button></div>' +
+        '<button type="button" class="wall-mode-btn" id="dual-preset-save">收藏方案</button>' +
+        '<button type="button" class="wall-mode-btn" id="dual-card-png">對照卡 PNG</button>' +
+        '<button type="button" class="wall-mode-btn" id="dual-short-export">匯出短碼</button>' +
+        '<button type="button" class="wall-mode-btn" id="dual-short-import">匯入短碼</button></div>' +
+        '<div class="dual-short-row"><input type="text" id="dual-short-input" class="dual-short-input" placeholder="YD47...." value="' +
+        (typeof exportDualPresetsShort === 'function' ? exportDualPresetsShort(save) || '' : '') +
+        '"/></div>' +
         (function () {
           const presets =
             typeof listDualRangePresets === 'function' ? listDualRangePresets(save) : [];
@@ -1898,6 +1931,99 @@ function fillWallCompareHist(save, dayFilter) {
           metric: metric,
           scrub: scrub,
           dual: key,
+        });
+      };
+    }
+    const dualShortExp = $('dual-short-export');
+    if (dualShortExp) {
+      dualShortExp.onclick = function () {
+        const code = window.__yinlouExportDualShort
+          ? window.__yinlouExportDualShort()
+          : typeof exportDualPresetsShort === 'function'
+            ? exportDualPresetsShort(save)
+            : '';
+        const inp = $('dual-short-input');
+        if (inp) inp.value = code || '';
+        if (code && navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(code).catch(function () {});
+        }
+        toast(code ? '短碼已複製' : '無方案可匯出', 1800);
+      };
+    }
+    const dualShortImp = $('dual-short-import');
+    if (dualShortImp) {
+      dualShortImp.onclick = function () {
+        const inp = $('dual-short-input');
+        const code = (inp && inp.value) || '';
+        if (window.__yinlouImportDualShort) window.__yinlouImportDualShort(code);
+        else if (typeof importDualPresetShort === 'function') importDualPresetShort(save, code);
+        showEndlessReplay(getSave, onClose, filterOpts);
+      };
+    }
+    const dualCardPng = $('dual-card-png');
+    if (dualCardPng && dual && dual.a && dual.b) {
+      dualCardPng.onclick = function () {
+        const W = 520;
+        const H = 280;
+        const canvas = document.createElement('canvas');
+        canvas.width = W;
+        canvas.height = H;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#1A1510';
+        ctx.fillRect(0, 0, W, H);
+        ctx.strokeStyle = '#C9A227';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(10, 10, W - 20, H - 20);
+        ctx.fillStyle = '#C9A227';
+        ctx.font = 'bold 18px sans-serif';
+        ctx.fillText('銀樓防衛｜雙區間對照卡', 28, 42);
+        ctx.font = '13px sans-serif';
+        ctx.fillStyle = '#E8DCC8';
+        const dlt = dual.delta || {};
+        function col(x, title, block) {
+          ctx.fillStyle = '#C9A227';
+          ctx.font = 'bold 14px sans-serif';
+          ctx.fillText(title, x, 78);
+          ctx.fillStyle = '#E8DCC8';
+          ctx.font = '12px sans-serif';
+          ctx.fillText('n=' + block.count, x, 100);
+          ctx.fillText('浪均 ' + block.wave, x, 120);
+          ctx.fillText('殺 ' + block.kills, x, 140);
+          ctx.fillText('銀 ' + block.silver, x, 160);
+          ctx.fillText('傷 ' + block.damage, x, 180);
+        }
+        col(36, dual.a.label, dual.a);
+        col(280, dual.b.label, dual.b);
+        ctx.fillStyle = '#A89070';
+        ctx.font = '11px sans-serif';
+        ctx.fillText(
+          'Δ浪 ' +
+            (dlt.wave != null ? dlt.wave : '—') +
+            '｜Δ殺 ' +
+            (dlt.kills != null ? dlt.kills : '—') +
+            '｜Δ銀 ' +
+            (dlt.silver != null ? dlt.silver : '—') +
+            '｜本機｜v4.7',
+          28,
+          H - 24
+        );
+        canvas.toBlob(function (blob) {
+          if (!blob) {
+            toast('對照卡失敗', 1800);
+            return;
+          }
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'yinlou-dual-card.png';
+          a.click();
+          setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+          if (window.__yinlouMarkDualCardPng) window.__yinlouMarkDualCardPng();
+          try {
+            const A = window.YDAudio;
+            if (A && A.play) A.play('dual_card');
+          } catch (_) {}
+          toast('已匯出對照卡 PNG', 1800);
         });
       };
     }
@@ -2245,10 +2371,10 @@ function fillWallCompareHist(save, dayFilter) {
       ' · buzz ' +
       (save.mergeSnapBuzz !== false ? '開' : '關') +
       '</strong></div>' +
-      '<div class="paper-row"><span>版本</span><strong>v4.6.0｜存檔 v' +
-      (save.version || 46) +
+      '<div class="paper-row"><span>版本</span><strong>v4.7.0｜存檔 v' +
+      (save.version || 47) +
       '</strong></div>' +
-      '<p class="paper-note">v4.6：十八池1150–1200、超千浪 Boss 輪換、拖曳／長按卸、雙區間收藏、吸附滑桿（裝置記憶）。本地牆本機｜唔做線上排行。</p>' +
+      '<p class="paper-note">v4.7：十九池1250–1300、超千二多 Boss、欄鎖／推薦套、雙區間短碼＋對照卡、吸附環／僅合法合。本地牆本機｜唔做線上排行。</p>' +
       '<div id="charm-equip-bar" class="charm-equip-bar"></div>' +
       '</div>';
     const btn = $('btn-overlay');
@@ -2344,6 +2470,26 @@ function fillWallCompareHist(save, dayFilter) {
       wrap.appendChild(inp);
       extra.appendChild(wrap);
     })();
+    mk(
+      save.mergeSnapRing !== false ? '吸附可視化環：開' : '吸附可視化環：關',
+      () => {
+        if (window.__yinlouToggleMergeSnapRing) window.__yinlouToggleMergeSnapRing();
+        else save.mergeSnapRing = save.mergeSnapRing === false;
+        showSettings(opts);
+      },
+      false,
+      true
+    );
+    mk(
+      save.mergeLegalOnly !== false ? '僅合法合濾鏡：開' : '僅合法合濾鏡：關',
+      () => {
+        if (window.__yinlouToggleMergeLegalOnly) window.__yinlouToggleMergeLegalOnly();
+        else save.mergeLegalOnly = save.mergeLegalOnly === false;
+        showSettings(opts);
+      },
+      false,
+      true
+    );
     if (onToggleSkillCd) {
       mk(
         save.showSkillCd !== false ? '技能條：開' : '技能條：關',

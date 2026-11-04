@@ -1785,6 +1785,8 @@
     { wave: 1100, silver: 17800, label: '千百浪長城' },
     { wave: 1150, silver: 18600, label: '千百五十浪十八池' },
     { wave: 1200, silver: 19400, label: '千二百浪不朽池' },
+    { wave: 1250, silver: 20200, label: '千二百五十浪十九池' },
+    { wave: 1300, silver: 21000, label: '千三百浪穹頂池' },
   ];
 
   function endlessMilestone(waveIndex) {
@@ -3117,6 +3119,49 @@
     },
   ];
 
+  const RUN_MODIFIERS_1250 = [
+    {
+      id: 'nineteen_vault',
+      name: '十九池銀庫',
+      blurb: '開局銀 +50%；核心 HP +32%',
+      late1250: true,
+      apply: (ctx) => {
+        ctx.silverMul = (ctx.silverMul || 1) * 1.5;
+        ctx.coreMul = (ctx.coreMul || 1) * 1.32;
+      },
+    },
+    {
+      id: 'nineteen_mirror',
+      name: '十九池鏡穹',
+      blurb: '鏡稅地板 +0.3；抽銀 ×0.05',
+      late1250: true,
+      apply: (ctx) => {
+        ctx.mirageTaxFloorBonus = (ctx.mirageTaxFloorBonus || 0) + 0.3;
+        ctx.silverDrainMul = (ctx.silverDrainMul || 1) * 0.05;
+      },
+    },
+    {
+      id: 'nineteen_duo',
+      name: '十九池雙帥',
+      blurb: '合星 ×1.22；進階共鳴 ×1.2',
+      late1250: true,
+      apply: (ctx) => {
+        ctx.mergeRebateMul = (ctx.mergeRebateMul || 1) * 1.22;
+        ctx.charmSetAdvMul = (ctx.charmSetAdvMul || 1) * 1.2;
+      },
+    },
+    {
+      id: 'nineteen_seal',
+      name: '十九池印陣',
+      blurb: '敵速 −19%；俠客冷卻 −17%',
+      late1250: true,
+      apply: (ctx) => {
+        ctx.enemySpeedMul = (ctx.enemySpeedMul || 1) * 0.81;
+        ctx.heroCdMul = (ctx.heroCdMul || 1) * 0.83;
+      },
+    },
+  ];
+
   /** 超千浪 Boss 輪換表（每 5 浪單 Boss） */
   const ENDLESS_BOSS_ROT = ['black_swan', 'circuit_swan', 'halt_tide', 'ink_specter', 'ledger_mirage'];
   const ENDLESS_ULTRA_BOSS_ROT = [
@@ -3128,6 +3173,21 @@
     'ledger_mirage',
     'ink_specter',
     'halt_tide',
+  ];
+  /** 超千二多 Boss 同場表（每 10 浪雙帥；每 20 浪三帥） */
+  const ENDLESS_DUO_BOSS_PACKS = [
+    ['ledger_mirage', 'ink_specter'],
+    ['halt_tide', 'circuit_swan'],
+    ['black_swan', 'ledger_mirage'],
+    ['ink_specter', 'halt_tide'],
+    ['circuit_swan', 'black_swan'],
+    ['ledger_mirage', 'halt_tide'],
+  ];
+  const ENDLESS_TRIO_BOSS_PACKS = [
+    ['ledger_mirage', 'ink_specter', 'halt_tide'],
+    ['circuit_swan', 'black_swan', 'ledger_mirage'],
+    ['ink_specter', 'halt_tide', 'circuit_swan'],
+    ['black_swan', 'ledger_mirage', 'ink_specter'],
   ];
 
   /** 符咒 → 本局修飾欄項目（可裝備） */
@@ -3217,16 +3277,40 @@
     return { ok: true, star: cur + 1 };
   }
 
+  function normalizeCharmSlotLocks(save) {
+    if (!save) return [];
+    if (!Array.isArray(save.charmSlotLocks)) save.charmSlotLocks = [false, false, false];
+    while (save.charmSlotLocks.length < CHARM_EQUIP_SLOTS) save.charmSlotLocks.push(false);
+    save.charmSlotLocks = save.charmSlotLocks.slice(0, CHARM_EQUIP_SLOTS).map(function (v) { return !!v; });
+    return save.charmSlotLocks;
+  }
+  function isCharmSlotLocked(save, slot) {
+    const locks = normalizeCharmSlotLocks(save);
+    const i = slot | 0;
+    return i >= 0 && i < locks.length && !!locks[i];
+  }
+  function toggleCharmSlotLock(save, slot) {
+    if (!save) return { ok: false, error: '無存檔' };
+    const locks = normalizeCharmSlotLocks(save);
+    const i = Math.max(0, Math.min(CHARM_EQUIP_SLOTS - 1, slot | 0));
+    locks[i] = !locks[i];
+    save.charmSlotLocks = locks;
+    return { ok: true, locked: locks[i], locks: locks.slice() };
+  }
   function equipCharm(save, charmId, slot) {
     if (!save) return { ok: false, error: '無存檔' };
     normalizeOwnedCharms(save);
+    normalizeCharmSlotLocks(save);
     if (!charmId) {
-      // 卸下：slot 指定則只卸該欄，否則全清
       if (slot != null && slot >= 0) {
-        save.equippedCharmIds[slot] = '';
-        save.equippedCharmIds = save.equippedCharmIds.filter(Boolean);
+        if (isCharmSlotLocked(save, slot)) return { ok: false, error: '欄位已鎖定' };
+        const arr = (save.equippedCharmIds || []).slice();
+        if (slot < arr.length) arr.splice(slot, 1);
+        save.equippedCharmIds = arr.filter(Boolean);
       } else {
-        save.equippedCharmIds = [];
+        const locks = normalizeCharmSlotLocks(save);
+        const cur = save.equippedCharmIds || [];
+        save.equippedCharmIds = cur.filter(function (id, i) { return locks[i] && id; });
       }
       save.equippedCharmId = save.equippedCharmIds[0] || '';
       return { ok: true, equipped: save.equippedCharmIds.slice() };
@@ -3235,22 +3319,23 @@
     if (!findCharmById(charmId)) return { ok: false, error: '無此符咒' };
     const ids = save.equippedCharmIds.filter(function (id) { return id && id !== charmId; });
     const idx = slot != null ? Math.max(0, Math.min(CHARM_EQUIP_SLOTS - 1, slot | 0)) : ids.length;
-    if (idx < ids.length) ids[idx] = charmId;
-    else ids.push(charmId);
+    if (idx < ids.length) {
+      if (isCharmSlotLocked(save, idx) && ids[idx] && ids[idx] !== charmId) return { ok: false, error: '欄位已鎖定' };
+      ids[idx] = charmId;
+    } else ids.push(charmId);
     save.equippedCharmIds = ids.slice(0, CHARM_EQUIP_SLOTS);
     save.equippedCharmId = save.equippedCharmIds[0] || '';
     return { ok: true, equipped: save.equippedCharmIds.slice() };
   }
-
   function swapCharmSlots(save, i, j) {
     if (!save) return { ok: false, error: '無存檔' };
     normalizeOwnedCharms(save);
+    normalizeCharmSlotLocks(save);
     const ids = (save.equippedCharmIds || []).slice();
     const a = i | 0;
     const b = j | 0;
-    if (a < 0 || b < 0 || a >= ids.length || b >= ids.length) {
-      return { ok: false, error: '欄位無效' };
-    }
+    if (a < 0 || b < 0 || a >= ids.length || b >= ids.length) return { ok: false, error: '欄位無效' };
+    if (isCharmSlotLocked(save, a) || isCharmSlotLocked(save, b)) return { ok: false, error: '鎖定欄不可換' };
     if (a === b) return { ok: true, equipped: ids.slice(), swapped: false };
     const tmp = ids[a];
     ids[a] = ids[b];
@@ -3259,6 +3344,36 @@
     save.equippedCharmId = ids[0] || '';
     return { ok: true, equipped: ids.slice(), swapped: true };
   }
+  function recommendCharmSetEquip(save, preferSet) {
+    if (!save) return { ok: false, error: '無存檔' };
+    normalizeOwnedCharms(save);
+    normalizeCharmSlotLocks(save);
+    const rows = charmSetProgress(save);
+    let best = null;
+    rows.forEach(function (r) {
+      if (preferSet && r.set !== preferSet) return;
+      const ownedCount = r.members.filter(function (m) { return m.owned; }).length;
+      const score = (r.advanced ? 100 : r.active ? 50 : 0) + ownedCount * 10 + r.count;
+      if (!best || score > best.score) best = { row: r, score: score };
+    });
+    if (!best || !best.row) return { ok: false, error: '無可用套裝' };
+    const r = best.row;
+    const pick = r.members.filter(function (m) { return m.owned; }).slice(0, CHARM_EQUIP_SLOTS);
+    if (!pick.length) return { ok: false, error: '尚未擁有此套件' };
+    const locks = normalizeCharmSlotLocks(save);
+    const cur = (save.equippedCharmIds || []).slice();
+    const out = [];
+    for (let i = 0; i < CHARM_EQUIP_SLOTS; i++) {
+      if (locks[i] && cur[i]) out.push(cur[i]);
+    }
+    pick.forEach(function (m) {
+      if (out.indexOf(m.id) < 0 && out.length < CHARM_EQUIP_SLOTS) out.push(m.id);
+    });
+    save.equippedCharmIds = out.slice(0, CHARM_EQUIP_SLOTS);
+    save.equippedCharmId = save.equippedCharmIds[0] || '';
+    return { ok: true, set: r.set, name: r.name, equipped: save.equippedCharmIds.slice() };
+  }
+
 
   function getEquippedCharm(save) {
     const ids = getEquippedCharmIds(save);
@@ -3455,22 +3570,33 @@
           const slot = eqIds.indexOf(m.id);
           let actions = '';
           if (m.equipped && slot >= 0) {
+            const locked = isCharmSlotLocked(save, slot);
             actions =
-              ' <button type="button" class="wall-mode-btn set-unequip" data-unequip-slot="' +
+              ' <button type="button" class="wall-mode-btn set-lock-slot" data-lock-slot="' +
               slot +
               '" data-set="' +
               r.set +
-              '">卸</button>';
-            if (eqIds.length >= 2) {
-              const other = (slot + 1) % eqIds.length;
+              '">' +
+              (locked ? '解鎖' : '鎖') +
+              '</button>';
+            if (!locked) {
               actions +=
-                '<button type="button" class="wall-mode-btn set-swap-slot" data-swap-a="' +
+                '<button type="button" class="wall-mode-btn set-unequip" data-unequip-slot="' +
                 slot +
-                '" data-swap-b="' +
-                other +
                 '" data-set="' +
                 r.set +
-                '">換欄</button>';
+                '">卸</button>';
+              if (eqIds.length >= 2) {
+                const other = (slot + 1) % eqIds.length;
+                actions +=
+                  '<button type="button" class="wall-mode-btn set-swap-slot" data-swap-a="' +
+                  slot +
+                  '" data-swap-b="' +
+                  other +
+                  '" data-set="' +
+                  r.set +
+                  '">換欄</button>';
+              }
             }
           }
           const dragAttrs =
@@ -3507,6 +3633,12 @@
           : r.nextId && !r.nextOwned
             ? '<span class="card-meta">下一件未擁有｜等潮掉或商店</span>'
             : '';
+      const recBtn =
+        r.members.some(function (mm) { return mm.owned; })
+          ? '<button type="button" class="wall-mode-btn set-recommend" data-set-recommend="' +
+            r.set +
+            '">一鍵推薦套</button>'
+          : '';
       return (
         '<div class="set-detail-card card-thick' +
         (r.advanced ? ' adv' : r.active ? ' on' : '') +
@@ -3524,14 +3656,14 @@
         '</div><div class="set-detail-next">' +
         (r.nextHint || '') +
         '</div><div class="set-detail-actions">' +
-        equipBtn +
+        equipBtn + recBtn +
         '</div></div>'
       );
     });
     return (
       '<div class="paper-body set-detail-page">' +
       bits.join('') +
-      '<p class="paper-note">點徽記睇明細｜拖曳換欄｜長按卸｜◆◇·｜v4.6</p></div>'
+      '<p class="paper-note">點徽記睇明細｜鎖欄｜一鍵推薦｜拖曳／長按｜v4.7</p></div>'
     );
   }
 
@@ -3953,6 +4085,14 @@
       if (!mods.some((m) => m.id === late18.id)) {
         if (mods.length >= 3) mods[0] = late18;
         else mods.push(late18);
+      }
+    }
+    if (best >= 1250 && RUN_MODIFIERS_1250.length) {
+      const h20 = (seed ^ 0x1250cafe) >>> 0;
+      const late19 = RUN_MODIFIERS_1250[h20 % RUN_MODIFIERS_1250.length];
+      if (!mods.some((m) => m.id === late19.id)) {
+        if (mods.length >= 3) mods[mods.length - 1] = late19;
+        else mods.push(late19);
       }
     }
     return mods;
@@ -4642,6 +4782,12 @@
     { id: 'set_drag_swap', cat: 'meta', name: '拖曳換欄', blurb: '徽記明細拖曳換欄或長按卸下', check: (s) => !!s.ach && !!s.ach.set_drag_swap },
     { id: 'dual_preset_fav', cat: 'meta', name: '區間方案', blurb: '收藏過自訂雙區間預設', check: (s) => !!s.ach && !!s.ach.dual_preset_fav },
     { id: 'merge_snap_slider', cat: 'meta', name: '吸附滑桿', blurb: '用過吸附靈敏度滑桿', check: (s) => !!s.ach && !!s.ach.merge_snap_slider },
+    { id: 'late1250_run', cat: 'meta', name: '十九池開盤', blurb: '曾達 1250 浪後再開無盡（抽第十九池修飾）', check: (s) => !!s.ach && !!s.ach.late1250_run },
+    { id: 'charm_slot_lock', cat: 'meta', name: '欄位鎖定', blurb: '鎖定過徽記裝備欄', check: (s) => !!s.ach && !!s.ach.charm_slot_lock },
+    { id: 'set_recommend_one', cat: 'meta', name: '推薦套裝', blurb: '一鍵裝過推薦套裝', check: (s) => !!s.ach && !!s.ach.set_recommend_one },
+    { id: 'dual_preset_short', cat: 'meta', name: '區間短碼', blurb: '匯出／匯入過雙區間方案短碼', check: (s) => !!s.ach && !!s.ach.dual_preset_short },
+    { id: 'dual_card_png', cat: 'meta', name: '對照卡 PNG', blurb: '匯出過雙區間對照卡 PNG', check: (s) => !!s.ach && !!s.ach.dual_card_png },
+    { id: 'merge_snap_ring', cat: 'meta', name: '吸附環', blurb: '開過吸附可視化環或僅合法合濾鏡', check: (s) => !!s.ach && !!s.ach.merge_snap_ring },
     { id: 'set_badge_hud', cat: 'meta', name: '共鳴徽記', blurb: '見過進階共鳴 HUD 徽記', check: (s) => !!s.ach && !!s.ach.set_badge_hud },
     { id: 'set_badge_detail', cat: 'meta', name: '徽記明細', blurb: '點開共鳴徽記睇過套裝明細／下一件', check: (s) => !!s.ach && !!s.ach.set_badge_detail },
     { id: 'set_equip_next', cat: 'meta', name: '一鍵裝下件', blurb: '由徽記明細一鍵裝上下一件符咒', check: (s) => !!s.ach && !!s.ach.set_equip_next },
@@ -4746,12 +4892,15 @@
     const late1100 = n >= 1100 ? Math.min(0.02, (n - 1100) * 0.00035) : 0;
     const late1150 = n >= 1150 ? Math.min(0.018, (n - 1150) * 0.00032) : 0;
     const late1200 = n >= 1200 ? Math.min(0.016, (n - 1200) * 0.0003) : 0;
-    const mul = 1 + (n - 1) * 0.105 + late50 + late75 + late90 + late120 + late130 + late140 + late150 + late160 + late180 + late200 + late220 + late250 + late300 + late350 + late400 + late450 + late500 + late550 + late600 + late650 + late700 + late750 + late800 + late850 + late900 + late950 + late1000 + late1050 + late1100 + late1150 + late1200;
+    const late1250 = n >= 1250 ? Math.min(0.015, (n - 1250) * 0.00028) : 0;
+    const late1300 = n >= 1300 ? Math.min(0.014, (n - 1300) * 0.00026) : 0;
+    const mul = 1 + (n - 1) * 0.105 + late50 + late75 + late90 + late120 + late130 + late140 + late150 + late160 + late180 + late200 + late220 + late250 + late300 + late350 + late400 + late450 + late500 + late550 + late600 + late650 + late700 + late750 + late800 + late850 + late900 + late950 + late1000 + late1050 + late1100 + late1150 + late1200 + late1250 + late1300;
     const countLate = n >= 50 ? Math.min(n - 50, 25) * 0.01 + (n >= 75 ? (n - 75) * 0.006 : 0) : 0;
     const count = (base) => {
       let raw = Math.max(1, Math.round(base * (1 + (n - 1) * 0.072 + countLate)));
       // v2.4：絕對軟頂——75+ 壓力改由 Boss／精英／間隔承担，避免符紙／暗盤洪峰
-      if (n >= 1150) raw = Math.min(raw, 16 + Math.min(4, Math.floor((n - 1150) / 35)));
+      if (n >= 1250) raw = Math.min(raw, 15 + Math.min(4, Math.floor((n - 1250) / 40)));
+      else if (n >= 1150) raw = Math.min(raw, 16 + Math.min(4, Math.floor((n - 1150) / 35)));
       else if (n >= 1050) raw = Math.min(raw, 18 + Math.min(4, Math.floor((n - 1050) / 30)));
       else if (n >= 950) raw = Math.min(raw, 20 + Math.min(5, Math.floor((n - 950) / 25)));
       else if (n >= 850) raw = Math.min(raw, 22 + Math.min(6, Math.floor((n - 850) / 20)));
@@ -4922,6 +5071,44 @@
         delay: 1.2,
         hpMul: mul * 0.95,
       });
+    } else if (n >= 1200 && n % 20 === 0) {
+      // v4.7：超千二三帥同場
+      const pack = ENDLESS_TRIO_BOSS_PACKS[(Math.floor(n / 20) - 1) % ENDLESS_TRIO_BOSS_PACKS.length];
+      pack.forEach(function (bossId, bi) {
+        const hpBoss =
+          bossId === 'circuit_swan' ? 1.08 : bossId === 'halt_tide' ? 1.1 : bossId === 'ink_specter' ? 1.12 : bossId === 'ledger_mirage' ? 1.14 : 1.05;
+        spawns.push({
+          enemy: bossId,
+          count: 1,
+          lane: (n + bi) % 4,
+          interval: 0,
+          delay: 2.8 + bi * 1.6,
+          hpMul: mul * hpBoss,
+        });
+      });
+      spawns.push({
+        enemy: 'dark_tape',
+        count: count(3 + Math.floor(n / 20)),
+        lane: 'cycle',
+        interval: 0.4,
+        delay: 1.0,
+        hpMul: mul * 0.9,
+      });
+    } else if (n >= 1200 && n % 10 === 0) {
+      // v4.7：超千二雙帥同場
+      const pack = ENDLESS_DUO_BOSS_PACKS[(Math.floor(n / 10) - 1) % ENDLESS_DUO_BOSS_PACKS.length];
+      pack.forEach(function (bossId, bi) {
+        const hpBoss =
+          bossId === 'circuit_swan' ? 1.06 : bossId === 'halt_tide' ? 1.09 : bossId === 'ink_specter' ? 1.11 : bossId === 'ledger_mirage' ? 1.13 : 1.04;
+        spawns.push({
+          enemy: bossId,
+          count: 1,
+          lane: (n + bi * 2) % 4,
+          interval: 0,
+          delay: 3.0 + bi * 1.8,
+          hpMul: mul * hpBoss,
+        });
+      });
     } else if (n >= 5 && n % 5 === 0) {
       const rot = n >= 1000 ? ENDLESS_ULTRA_BOSS_ROT : ENDLESS_BOSS_ROT;
       const bossId = rot[(Math.floor(n / 5) - 1) % rot.length];
@@ -4968,9 +5155,37 @@
         ledger_mirage: 1,
       };
       const bossExtra =
-        n >= 1200 ? 1.65 : n >= 1150 ? 1.55 : n >= 1100 ? 1.45 : n >= 1050 ? 1.25 : n >= 1000 ? 1.1 : 0.75;
+        n >= 1300
+          ? 1.85
+          : n >= 1250
+            ? 1.75
+            : n >= 1200
+              ? 1.65
+              : n >= 1150
+                ? 1.55
+                : n >= 1100
+                  ? 1.45
+                  : n >= 1050
+                    ? 1.25
+                    : n >= 1000
+                      ? 1.1
+                      : 0.75;
       const trashMul =
-        n >= 1200 ? 1.2 : n >= 1150 ? 1.18 : n >= 1100 ? 1.16 : n >= 1050 ? 1.12 : n >= 1000 ? 1.1 : 1.08;
+        n >= 1300
+          ? 1.24
+          : n >= 1250
+            ? 1.22
+            : n >= 1200
+              ? 1.2
+              : n >= 1150
+                ? 1.18
+                : n >= 1100
+                  ? 1.16
+                  : n >= 1050
+                    ? 1.12
+                    : n >= 1000
+                      ? 1.1
+                      : 1.08;
       for (let i = 0; i < spawns.length; i++) {
         const s = spawns[i];
         if (bossIds[s.enemy]) {
@@ -5254,7 +5469,10 @@
       s.mergeSnapPx = map[s.mergeSnapSens] != null ? map[s.mergeSnapSens] : 70;
     }
     if (!Array.isArray(s.dualRangePresets)) s.dualRangePresets = [];
-    s.version = Math.max(46, from, base.version || 46);
+    if (!Array.isArray(s.charmSlotLocks)) s.charmSlotLocks = [false, false, false];
+    if (s.mergeSnapRing == null) s.mergeSnapRing = true;
+    if (s.mergeLegalOnly == null) s.mergeLegalOnly = true;
+    s.version = Math.max(47, from, base.version || 47);
     return s;
   }
 
@@ -5270,7 +5488,7 @@
 
   function defaultSave() {
     return {
-      version: 46,
+      version: 47,
       totalSilver: 0,
       totalKills: 0,
       maxStageCleared: 0,
@@ -5284,6 +5502,9 @@
       mergeSnapBuzz: true,
       mergeSnapPx: 70,
       dualRangePresets: [],
+      charmSlotLocks: [false, false, false],
+      mergeSnapRing: true,
+      mergeLegalOnly: true,
       showSkillCd: true,
       reduceShake: false,
       reduceFlash: false,
@@ -5658,6 +5879,56 @@
     save.dualRangePresets = save.dualRangePresets.filter(function (p) { return p && p.key !== key; });
     return { ok: true, presets: listDualRangePresets(save) };
   }
+
+  function encodeDualPresetShort(presets) {
+    const arr = (presets || []).filter(function (p) { return p && p.key; }).slice(0, 8);
+    if (!arr.length) return '';
+    const body = arr
+      .map(function (p) {
+        return (p.key || '') + '~' + encodeURIComponent((p.label || p.key || '').slice(0, 24));
+      })
+      .join(';');
+    return 'YD47.' + body;
+  }
+
+  function decodeDualPresetShort(code) {
+    if (!code || typeof code !== 'string') return { ok: false, error: '空短碼' };
+    const raw = code.trim();
+    if (raw.indexOf('YD47.') !== 0) return { ok: false, error: '短碼前綴須 YD47.' };
+    const body = raw.slice(5);
+    if (!body) return { ok: false, error: '短碼無內容' };
+    const presets = [];
+    body.split(';').forEach(function (part) {
+      if (!part) return;
+      const til = part.indexOf('~');
+      const key = til >= 0 ? part.slice(0, til) : part;
+      let label = til >= 0 ? part.slice(til + 1) : key;
+      try {
+        label = decodeURIComponent(label);
+      } catch (_) {}
+      if (/^\d+-\d+\|\d+-\d+$/.test(key)) {
+        presets.push({ key: key, label: (label || key).slice(0, 24) });
+      }
+    });
+    if (!presets.length) return { ok: false, error: '短碼無有效方案' };
+    return { ok: true, presets: presets.slice(0, 8) };
+  }
+
+  function importDualPresetShort(save, code) {
+    const decoded = decodeDualPresetShort(code);
+    if (!decoded.ok) return decoded;
+    if (!save) return { ok: false, error: '無存檔' };
+    if (!Array.isArray(save.dualRangePresets)) save.dualRangePresets = [];
+    decoded.presets.reverse().forEach(function (p) {
+      saveDualRangePreset(save, p.key, p.label);
+    });
+    return { ok: true, presets: listDualRangePresets(save) };
+  }
+
+  function exportDualPresetsShort(save) {
+    return encodeDualPresetShort(listDualRangePresets(save));
+  }
+
 
   function mergeSnapRadius(save, isTouch) {
     let px = save && save.mergeSnapPx;
@@ -6433,8 +6704,11 @@
     RUN_MODIFIERS_950,
     RUN_MODIFIERS_1050,
     RUN_MODIFIERS_1150,
+    RUN_MODIFIERS_1250,
     ENDLESS_BOSS_ROT,
     ENDLESS_ULTRA_BOSS_ROT,
+    ENDLESS_DUO_BOSS_PACKS,
+    ENDLESS_TRIO_BOSS_PACKS,
     DUAL_PENTA_CHARMS,
     pickDualPentaCharm,
     charmAsModifier,
@@ -6442,6 +6716,10 @@
     unlockCharm,
     equipCharm,
     swapCharmSlots,
+    recommendCharmSetEquip,
+    normalizeCharmSlotLocks,
+    isCharmSlotLocked,
+    toggleCharmSlotLock,
     getEquippedCharm,
     getEquippedCharms,
     getEquippedCharmIds,
@@ -6516,6 +6794,10 @@
     listDualRangePresets,
     saveDualRangePreset,
     removeDualRangePreset,
+    exportDualPresetsShort,
+    importDualPresetShort,
+    decodeDualPresetShort,
+    encodeDualPresetShort,
     mergeSnapRadius,
     syncMergeSnapDevice,
     loadMergeSnapDevice,
