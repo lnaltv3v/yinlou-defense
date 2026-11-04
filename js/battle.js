@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 戰鬥／生成／合併邏輯 v1.0.1
+ * 銀樓防衛 — 戰鬥／生成／合併邏輯 v1.1.0
  */
 (function (global) {
   const { HEROES, ENEMIES, GRID, CORE, heroStats, activeBonds, bondModsFor, MAX_STAR, UPGRADE_PATHS, upgradeCost } = global.YD;
@@ -548,7 +548,9 @@
       } else if (!pickTarget(h, state.enemies, mods.rangeBonus)) {
         continue;
       }
-      h.cd = h.cooldown * mods.cdMul;
+      let cd = h.cooldown * mods.cdMul;
+      if (state.modCtx && state.modCtx.heroCdMul) cd *= state.modCtx.heroCdMul;
+      h.cd = Math.max(0.16, cd);
       heroAttack(h, state.enemies, state.floats, state);
       // 技能進度：距離下次 every 觸發
       const sk = h.def.skill;

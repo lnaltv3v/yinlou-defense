@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 靜態資料 v1.0.1
+ * 銀樓防衛 — 靜態資料 v1.1.0
  * 角色為原創綽號，影射金融江湖氣氛；唔用真人真名／金庸名／Fortias IP。
  */
 (function (global) {
@@ -25,7 +25,7 @@
       id: 'long_bull',
       name: '多頭刀客',
       blurb: '近戰高傷 · 牛市衝鋒',
-      lore: '江湖傳佢刀下只認升市，唔認人情；銀樓夜戰，總係第一個上前。',
+      lore: '江湖傳佢刀下只認升市，唔認人情；銀樓夜戰，總係第一個上前。櫃檯算盤未響，刀已出鞘——多頭唔等人情。',
       role: 'melee',
       cost: 22,
       color: '#C45C4A',
@@ -48,7 +48,7 @@
       id: 'short_blade',
       name: '空頭劍客',
       blurb: '遠程點殺 · 看淡減速',
-      lore: '看淡唔等於認輸——劍尖專挑過熱嘅浪頭，一刺即退。',
+      lore: '看淡唔等於認輸——劍尖專挑過熱嘅浪頭，一刺即退。茶館裡頭人人喊買，佢只喝一口涼茶再出劍。',
       role: 'ranged',
       cost: 28,
       color: '#2A6A6A',
@@ -99,7 +99,7 @@
       id: 'dividend_hermit',
       name: '股息隱士',
       blurb: '治療／回銀光環',
-      lore: '隱士唔追熱市，只守細水長流；光環所及，銀兩同氣血齊生。',
+      lore: '隱士唔追熱市，只守細水長流；光環所及，銀兩同氣血齊生。有人笑佢慢，佢笑人忙——分紅日一到，誰慢誰知。',
       role: 'support',
       cost: 32,
       color: '#3A7A6A',
@@ -243,7 +243,7 @@
       id: 'night_broker',
       name: '夜盤掮客',
       blurb: '暗盤標記 · 隊友收割',
-      lore: '暗盤未歇，掮客提燈標記——標記所在，隊友跟進收割。',
+      lore: '暗盤未歇，掮客提燈標記——標記所在，隊友跟進收割。燈火唔亮全街，只照你要殺嗰一格。',
       role: 'marker',
       cost: 33,
       color: '#3A4060',
@@ -335,7 +335,7 @@
     retail_tide: {
       id: 'retail_tide',
       name: '散戶潮',
-      lore: '聞風而至嘅散戶潮，人多勢眾，但挨打唔耐。',
+      lore: '聞風而至嘅散戶潮，人多勢眾，但挨打唔耐。巷口一聲「有得升」，人牆就湧到銀樓門前。',
       hp: 30,
       atk: 5,
       speed: 40,
@@ -396,8 +396,8 @@
     black_swan: {
       id: 'black_swan',
       name: '黑天鵝',
-      lore: '黑羽掠過街燈——Boss 級災變，專震核心同陣腳。',
-      hp: 340,
+      lore: '黑羽掠過街燈——Boss 級災變，專震核心同陣腳。帳本寫得再靚，羽一落，盤口照樣裂。',
+      hp: 325,
       atk: 22,
       speed: 20,
       reward: 70,
@@ -514,7 +514,7 @@
       id: 1,
       name: '錢莊初夜',
       story: '夜雨初歇，錢莊門楣掛起「銀樓」燈籠。櫃檯後頭算盤未停，門外已有腳步聲——散戶潮聞風而至。掌櫃話：開市前唔擺好第一盤棋，天亮只剩空倉同空城。',
-      startSilver: 180,
+      startSilver: 190,
       coreHp: 200,
       unlockHeroes: Object.keys(HEROES),
       waves: [
@@ -544,7 +544,7 @@
       id: 2,
       name: '午市殺跌',
       story: '午市鐘響，追保令滿天飛，茶館裡頭嘈到拆天。多頭刀客同空頭劍客隔檯對望——多空對決開倉。掌櫃拍門：誰守得住盤口，誰就係今日莊家；守唔住，銀樓燈籠今晚熄。',
-      startSilver: 170,
+      startSilver: 175,
       coreHp: 195,
       unlockHeroes: Object.keys(HEROES),
       waves: [
@@ -942,6 +942,23 @@
         ctx.waveBonusMul = (ctx.waveBonusMul || 1) * 1.1;
       },
     },
+    {
+      id: 'inner_haste',
+      name: '內息周流',
+      blurb: '俠客冷卻 −7%',
+      apply: (ctx) => {
+        ctx.heroCdMul = (ctx.heroCdMul || 1) * 0.93;
+      },
+    },
+    {
+      id: 'blood_silver',
+      name: '血銀交易',
+      blurb: '敵賞金 +12%；核心 HP −5%',
+      apply: (ctx) => {
+        ctx.rewardMul = (ctx.rewardMul || 1) * 1.12;
+        ctx.coreMul = (ctx.coreMul || 1) * 0.95;
+      },
+    },
   ];
 
   function hashStr(s) {
@@ -972,6 +989,7 @@
       rewardMul: 1,
       mergeRebateMul: 1,
       waveBonusMul: 1,
+      heroCdMul: 1,
       mods: mods || [],
     };
     for (const m of ctx.mods) {
@@ -1029,6 +1047,96 @@
     const seed = (day ^ ((extraSeed || 0) * 2654435761)) >>> 0;
     const count = 1 + (seed % 2); // 1 或 2
     return pickModifiers(seed, count);
+  }
+
+  /** ISO 週鍵（香港時區）例：2026-W45 */
+  function hkWeekKey(dt) {
+    const d = dt ? new Date(dt) : new Date();
+    // 用港曆年月日再算 ISO week
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Hong_Kong',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(d);
+    const get = (t) => Number(parts.find((p) => p.type === t).value);
+    const y = get('year');
+    const m = get('month');
+    const day = get('day');
+    const utc = new Date(Date.UTC(y, m - 1, day));
+    const dayNum = utc.getUTCDay() || 7;
+    utc.setUTCDate(utc.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(utc.getUTCFullYear(), 0, 1));
+    const weekNo = Math.ceil(((utc - yearStart) / 86400000 + 1) / 7);
+    const wy = utc.getUTCFullYear();
+    return wy + '-W' + String(weekNo).padStart(2, '0');
+  }
+
+  /** 週挑戰雛形：每週固定 seed、抽 2 修飾、波次較每日硬 */
+  function weeklyStageMeta(weekKey) {
+    const key = weekKey || hkWeekKey();
+    const h = hashStr(key + '|weekly');
+    const themes = [
+      { name: '結算週殺跌', focus: 'margin_call', blurb: '追保令偏多｜結算盤' },
+      { name: '財報夜襲', focus: 'panic_board', blurb: '恐慌盤偏多｜財報前夕' },
+      { name: '加息風聲', focus: 'leverage_fiend', blurb: '槓桿妖偏多｜息口傳' },
+      { name: 'IPO 過熱', focus: 'rumor_swarm', blurb: '傳聞蚊偏多｜招股熱' },
+      { name: '熔斷演練', focus: 'black_swan', blurb: '黑天鵝更早｜演練盤' },
+      { name: '暗盤加時', focus: 'dark_tape', blurb: '暗盤影偏多｜盤後加時' },
+    ];
+    const theme = themes[h % themes.length];
+    const base = STAGES[2 + (h % 4)]; // 3–6 關難度帶
+    const mods = pickModifiers(h ^ 0x51ed270b, 2);
+    const modLine = modifierLabel(mods);
+    return {
+      id: 'weekly',
+      weekKey: key,
+      name: '週挑戰·' + theme.name,
+      blurb: theme.blurb + (modLine ? '｜' + mods.map((m) => m.name).join('＋') : ''),
+      story:
+        '本週盤口（' +
+        key +
+        '）：' +
+        theme.blurb +
+        '。雙修飾：「' +
+        (mods.map((m) => m.name + '—' + m.blurb).join('；') || '平盤') +
+        '」。週挑戰比每日更密——合星、強化、羈絆齊人再開倉。',
+      focus: theme.focus,
+      startSilver: 175 + (h % 6) * 6,
+      coreHp: 200 + (h % 5) * 8,
+      seed: h,
+      unlockHeroes: Object.keys(HEROES),
+      waveCount: 6 + (h % 3), // 6–8
+      baseStageId: base.id,
+      modifiers: mods,
+      hpScale: 1.08 + (h % 3) * 0.02,
+    };
+  }
+
+  function buildWeeklyWaves(meta) {
+    const waves = buildDailyWaves(meta);
+    const scale = meta.hpScale || 1.1;
+    for (const w of waves) {
+      for (const sp of w.spawns || []) {
+        sp.hpMul = (sp.hpMul || 1) * scale;
+        if (sp.enemy === 'retail_tide') sp.count = Math.max(1, Math.round((sp.count || 1) * 1.15));
+      }
+    }
+    // 末波再加一隻槓桿精英壓迫
+    if (waves.length) {
+      const last = waves[waves.length - 1];
+      last.spawns = last.spawns || [];
+      last.spawns.push({
+        enemy: 'leverage_fiend',
+        count: 1,
+        lane: 'random',
+        interval: 0,
+        delay: 2.8,
+        elite: true,
+        hpMul: 1.15 * scale,
+      });
+    }
+    return waves;
   }
 
   function buildDailyWaves(meta) {
@@ -1136,6 +1244,7 @@
     '點場上俠客可強化：刀利／甲厚／內息（花銀兩，合併會保留較高強化）。',
     '夜盤掮客標記目標後，隊友打標記怪傷害更高；配空頭劍客觸發「暗盤通宵」。',
     '第 6 關「盤後暗盤」暗盤影又快又陰；前排坦克＋標記收割更穩。',
+    '週挑戰雙修飾＋血量加厚——優先合到 2–3 星再硬頂；齊人羈絆先開波。',
   ];
 
 
@@ -1186,6 +1295,8 @@
     { id: 'stage3', cat: 'stage', name: '夜盤留燈', blurb: '通關第 3 關', check: (s) => (s.maxStageCleared || 0) >= 3 },
     { id: 'endless5', cat: 'combat', name: '五浪初嚐', blurb: '無盡最佳 ≥ 5 波', check: (s) => (s.bestEndlessWave || 0) >= 5 },
     { id: 'silver500', cat: 'meta', name: '銀樓小財', blurb: '累計銀兩帳 ≥ 500', check: (s) => (s.totalSilver || 0) >= 500 },
+    { id: 'weekly', cat: 'meta', name: '週結過關', blurb: '完成一次週挑戰', check: (s) => !!s.ach && s.ach.weekly },
+    { id: 'bonds3', cat: 'combat', name: '三絆齊鳴', blurb: '單局同時激活 3 個羈絆', check: (s) => !!s.ach && s.ach.bonds3 },
   ];
 
   /** 首通銀兩獎勵（入累計帳） */
@@ -1389,14 +1500,14 @@
     const def = HEROES[heroId];
     if (!def) return 999;
     const n = (summonCounts && summonCounts[heroId]) || 0;
-    return def.cost + Math.min(48, n * 8);
+    return def.cost + Math.min(48, n * 7);
   }
 
   /** 合併回報銀兩（按目標新星級） */
   function mergeRebate(heroId, newStar) {
     const def = HEROES[heroId];
     if (!def) return 0;
-    return Math.round(def.cost * 0.12 * newStar);
+    return Math.round(def.cost * 0.13 * newStar);
   }
 
   function activeBonds(heroes) {
@@ -1433,7 +1544,7 @@
 
   function defaultSave() {
     return {
-      version: 10,
+      version: 11,
       totalSilver: 0,
       totalKills: 0,
       maxStageCleared: 0,
@@ -1455,6 +1566,8 @@
       unlockedAch: {},
       dailyDate: '',
       dailyCleared: false,
+      weeklyKey: '',
+      weeklyCleared: false,
       firstBootDone: false,
       tutorialDone: false,
     };
@@ -1462,7 +1575,7 @@
 
   function exportSaveJson(save) {
     const payload = {
-      meta: { game: 'yinlou-defense', exportedAt: new Date().toISOString(), version: save.version || 10 },
+      meta: { game: 'yinlou-defense', exportedAt: new Date().toISOString(), version: save.version || 11 },
       save: { ...defaultSave(), ...save },
     };
     return JSON.stringify(payload, null, 2);
@@ -1473,7 +1586,7 @@
     const body = data && data.save ? data.save : data;
     if (!body || typeof body !== 'object') throw new Error('無效存檔');
     const merged = { ...defaultSave(), ...body };
-    merged.version = Math.max(10, merged.version || 10);
+    merged.version = Math.max(11, merged.version || 11);
     if (!merged.firstClears) merged.firstClears = {};
     if (!merged.seenHeroes) merged.seenHeroes = {};
     if (!merged.seenEnemies) merged.seenEnemies = {};
@@ -1495,7 +1608,7 @@
 
 
   /** 根據關卡敵組成動態推薦陣容（簡版） */
-  function recommendForStage(stage, endless, daily) {
+  function recommendForStage(stage, endless, daily, weekly) {
     const counts = {};
     const waves = (stage && stage.waves) || [];
     for (const w of waves) {
@@ -1517,15 +1630,17 @@
       pick('dark_night', 4);
       return { lineup: best, reason: '無盡浪種雜——跨 lane／標記收割較穩' };
     }
-    if (daily && stage && stage.dailyMeta) {
-      const f = stage.dailyMeta.focus;
+    const focusMeta = (weekly && stage && stage.weeklyMeta) || (daily && stage && stage.dailyMeta);
+    if (focusMeta) {
+      const f = focusMeta.focus;
       if (f === 'dark_tape') pick('dark_night', 8);
       else if (f === 'panic_board') pick('arb_hedge', 7);
       else if (f === 'black_swan' || f === 'leverage_fiend') pick('squeeze', 8);
       else if (f === 'margin_call') pick('iron_wall', 7);
       else if (f === 'rumor_swarm') pick('leverage', 6);
       else pick('bull_bear', 5);
-      return { lineup: best, reason: '每日焦點「' + (stage.dailyMeta.blurb || f) + '」' };
+      const kind = weekly ? '週挑戰' : '每日';
+      return { lineup: best, reason: kind + '焦點「' + (focusMeta.blurb || f) + '」' };
     }
     // 第 1 關固定偏新手鐵壁
     if (stage && stage.id === 1) {
@@ -1611,7 +1726,10 @@
     ENDLESS_MILESTONES,
     buildEndlessWave,
     buildDailyWaves,
+    buildWeeklyWaves,
     dailyStageMeta,
+    weeklyStageMeta,
+    hkWeekKey,
     endlessModifiers,
     pickModifiers,
     buildModContext,

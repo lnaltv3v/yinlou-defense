@@ -1,6 +1,6 @@
 /**
- * 銀樓防衛 — 主循環 v1.0.1
- * v1.0.1：觸控命中／商店拖誤點／效能小優化
+ * 銀樓防衛 — 主循環 v1.1.0
+ * v1.1.0：週挑戰雛形／修飾加厚／平衡／三絆成就
  */
 (function () {
   const {
@@ -22,7 +22,10 @@
     firstRunBonus,
     buildEndlessWave,
     buildDailyWaves,
+    buildWeeklyWaves,
     dailyStageMeta,
+    weeklyStageMeta,
+    hkWeekKey,
     hkDateString,
     waveClearBonus,
     endlessMilestone,
@@ -65,10 +68,25 @@
   if (save.stuckTips == null) save.stuckTips = true;
   if (save.tutorialDone == null) save.tutorialDone = !!(save.maxStageCleared > 0 || save.skipTutorial);
   if (!save.firstClears) save.firstClears = {};
-  if (save.version < 10) {
-    save.version = 10;
+  if (save.version < 11) {
+    save.version = 11;
+    if (save.weeklyKey == null) save.weeklyKey = '';
+    if (save.weeklyCleared == null) save.weeklyCleared = false;
     writeSave(save);
   }
+  // 週鍵滾動：唔再本週則清 cleared 旗（保留 key 直至新清）
+  try {
+    const wkNow = hkWeekKey();
+    if (save.weeklyKey && save.weeklyKey !== wkNow && save.weeklyCleared) {
+      save.weeklyCleared = false;
+      writeSave(save);
+    }
+    const dayNow = hkDateString();
+    if (save.dailyDate && save.dailyDate !== dayNow && save.dailyCleared) {
+      save.dailyCleared = false;
+      writeSave(save);
+    }
+  } catch (_) {}
   if (AudioSfx) AudioSfx.setEnabled(save.sfxEnabled !== false);
 
   let shopApi = null;
@@ -84,10 +102,23 @@
     }
   }
 
-  function freshState(stageIndex, endless, daily) {
+  function freshState(stageIndex, endless, daily, weekly) {
     let stage;
     let mods = [];
-    if (daily) {
+    if (weekly) {
+      const meta = weeklyStageMeta();
+      mods = meta.modifiers || [];
+      stage = {
+        id: 'weekly',
+        name: meta.name,
+        story: meta.story,
+        startSilver: meta.startSilver,
+        coreHp: meta.coreHp,
+        unlockHeroes: meta.unlockHeroes,
+        waves: buildWeeklyWaves(meta),
+        weeklyMeta: meta,
+      };
+    } else if (daily) {
       const meta = dailyStageMeta();
       mods = meta.modifiers || [];
       stage = {
@@ -123,9 +154,10 @@
     const coreHp = Math.round(stage.coreHp * (modCtx.coreMul || 1));
     return {
       stage,
-      stageIndex: endless || daily ? -1 : stageIndex,
-      endless: !!endless && !daily,
-      daily: !!daily,
+      stageIndex: endless || daily || weekly ? -1 : stageIndex,
+      endless: !!endless && !daily && !weekly,
+      daily: !!daily && !weekly,
+      weekly: !!weekly,
       phase: 'prep',
       silver,
       coreHp,
@@ -187,7 +219,7 @@
     state.prepIdle = 0;
   }
 
-  let state = freshState(Math.min(save.maxStageCleared, STAGES.length - 1), false, false);
+  let state = freshState(Math.min(save.maxStageCleared, STAGES.length - 1), false, false, false);
 
   function syncAll() {
     const bonds = activeBonds(state.heroes);
@@ -206,9 +238,20 @@
       writeSave(save);
       notifyAchievements();
     }
+    if (state._bonds.length >= 3 && !save.ach.bonds3) {
+      save.ach.bonds3 = true;
+      writeSave(save);
+      notifyAchievements();
+    }
     if (shopApi) shopApi.refresh();
     if (speedApi) speedApi.refresh();
-    if (stageApi) stageApi.refresh(state.endless || state.daily ? null : state.stage.id, state.endless, state.daily);
+    if (stageApi)
+      stageApi.refresh(
+        state.endless || state.daily || state.weekly ? null : state.stage.id,
+        state.endless,
+        state.daily,
+        state.weekly
+      );
     if (upgradeApi) upgradeApi.refresh();
     UI.updateHud(state);
     updateHint();
@@ -438,9 +481,11 @@
     }
     const title = state.endless
       ? '無盡殺跌'
-      : state.daily
-        ? st.name || '每日'
-        : '第 ' + st.id + ' 關・' + st.name;
+      : state.weekly
+        ? st.name || '週挑戰'
+        : state.daily
+          ? st.name || '每日'
+          : '第 ' + st.id + ' 關・' + st.name;
     UI.showStory(title, story, () => {
       if (thenToast) UI.toast(thenToast);
       syncAll();
@@ -449,19 +494,19 @@
 
   function stageRecommendToast() {
     if (!recommendForStage) return;
-    const rec = recommendForStage(state.stage, state.endless, state.daily);
+    const rec = recommendForStage(state.stage, state.endless, state.daily, state.weekly);
     if (!rec || !rec.lineup) return;
     state._stageRec = rec;
     UI.toast('本關推薦｜' + rec.lineup.name + ' — ' + rec.reason, 2800);
   }
 
-  function enterStage(idx, endless, daily) {
+  function enterStage(idx, endless, daily, weekly) {
     if (state.phase === 'wave' && !state.paused) {
       UI.toast('交戰中請先暫停或打完再換關');
       return false;
     }
     UI.hideOverlay();
-    state = freshState(idx, endless, daily);
+    state = freshState(idx, endless, daily, weekly);
     resetWaveBtn();
     syncAll();
     showStageStory(null);
@@ -472,14 +517,14 @@
   stageApi = UI.buildStageBar(
     () => save,
     (idx) => {
-      if (enterStage(idx, false, false)) UI.toast('進入：' + state.stage.name);
+      if (enterStage(idx, false, false, false)) UI.toast('進入：' + state.stage.name);
     },
     () => {
       if (save.maxStageCleared < 1) {
         UI.toast('先通關第 1 關解鎖無盡');
         return;
       }
-      if (enterStage(0, true, false)) {
+      if (enterStage(0, true, false, false)) {
         const lab = modifierLabel(state.modifiers || []);
         UI.toast('無盡殺跌' + (lab ? '｜' + lab : ' — 愈打愈密'), 2200);
       }
@@ -489,9 +534,19 @@
         UI.toast('先通關第 1 關解鎖每日');
         return;
       }
-      if (enterStage(0, false, true)) {
+      if (enterStage(0, false, true, false)) {
         const meta = state.stage.dailyMeta;
         UI.toast('每日：' + meta.name + '（' + meta.blurb + '）', 2200);
+      }
+    },
+    () => {
+      if (save.maxStageCleared < 2) {
+        UI.toast('先通關第 2 關解鎖週挑戰');
+        return;
+      }
+      if (enterStage(0, false, false, true)) {
+        const meta = state.stage.weeklyMeta;
+        UI.toast('週挑戰：' + meta.name + '（' + meta.blurb + '）', 2400);
       }
     }
   );
@@ -530,9 +585,10 @@
     state._eliteAnnounced = false;
     // 簡單精英波事件：關卡第 3 波／無盡每 4 波，若波內未標 elite 則加一隻
     const needEliteEvent =
-      (!state.endless && !state.daily && state.waveIndex === 3 && state.stageIndex >= 0) ||
+      (!state.endless && !state.daily && !state.weekly && state.waveIndex === 3 && state.stageIndex >= 0) ||
       (state.endless && state.waveIndex > 0 && state.waveIndex % 4 === 0) ||
-      (state.daily && state.waveIndex === Math.max(2, (state.stage.waves.length / 2) | 0));
+      (state.daily && state.waveIndex === Math.max(2, (state.stage.waves.length / 2) | 0)) ||
+      (state.weekly && state.waveIndex === Math.max(3, (state.stage.waves.length / 2) | 0));
     if (needEliteEvent && state.spawner.jobs.every((j) => !j.elite)) {
       state.spawner.jobs.push({
         enemy: state.endless || state.stageIndex >= 2 ? 'leverage_fiend' : 'chase_zombie',
@@ -555,7 +611,11 @@
     noteAction();
     advanceTutorial(3);
     if (AudioSfx) AudioSfx.play('wave');
-    UI.toast((state.endless ? '無盡第 ' : state.daily ? '每日第 ' : '第 ') + state.waveIndex + ' 波來襲！');
+    UI.toast(
+      (state.endless ? '無盡第 ' : state.weekly ? '週挑戰第 ' : state.daily ? '每日第 ' : '第 ') +
+        state.waveIndex +
+        ' 波來襲！'
+    );
     syncAll();
     const btn = document.getElementById('btn-wave');
     if (btn) btn.disabled = true;
@@ -568,6 +628,52 @@
       if (AudioSfx) AudioSfx.play('win');
       save.totalSilver += Math.floor(state.silver);
       save.totalKills = (save.totalKills || 0) + state.kills;
+
+      if (state.weekly) {
+        const wk = hkWeekKey();
+        let weeklyBonus = 0;
+        if (save.weeklyKey !== wk || !save.weeklyCleared) {
+          weeklyBonus = 160;
+          save.weeklyKey = wk;
+          save.weeklyCleared = true;
+          save.ach.weekly = true;
+          save.totalSilver += weeklyBonus;
+        }
+        writeSave(save);
+        notifyAchievements();
+        UI.showOverlay(
+          '週挑戰過關',
+          '打退 ' +
+            state.waveIndex +
+            ' 波！擊殺 ' +
+            state.kills +
+            '。' +
+            (weeklyBonus ? '\n本週首清獎金 +' + weeklyBonus + ' 兩入帳。' : '\n本週已領過首清獎。') +
+            runModBlock() +
+            '\n累計銀兩帳 ' +
+            save.totalSilver +
+            '。',
+          '再打週挑戰',
+          () => {
+            UI.hideOverlay();
+            resetRun(false, false, true);
+          },
+          [
+            {
+              label: '回第 1 關',
+              secondary: true,
+              onClick: () => {
+                UI.hideOverlay();
+                state = freshState(0, false, false, false);
+                resetWaveBtn();
+                syncAll();
+              },
+            },
+          ]
+        );
+        syncAll();
+        return;
+      }
 
       if (state.daily) {
         const today = hkDateString();
@@ -596,7 +702,7 @@
           '再打每日',
           () => {
             UI.hideOverlay();
-            resetRun(false, true);
+            resetRun(false, true, false);
           },
           [
             {
@@ -604,7 +710,7 @@
               secondary: true,
               onClick: () => {
                 UI.hideOverlay();
-                state = freshState(0, false, false);
+                state = freshState(0, false, false, false);
                 resetWaveBtn();
                 syncAll();
               },
@@ -648,7 +754,7 @@
           label: '下一關：' + STAGES[nextIdx].name,
           onClick: () => {
             UI.hideOverlay();
-            state = freshState(nextIdx, false, false);
+            state = freshState(nextIdx, false, false, false);
             resetWaveBtn();
             syncAll();
           },
@@ -658,7 +764,7 @@
           label: '挑戰無盡',
           onClick: () => {
             UI.hideOverlay();
-            state = freshState(0, true, false);
+            state = freshState(0, true, false, false);
             resetWaveBtn();
             syncAll();
           },
@@ -668,7 +774,7 @@
         label: '再打本關',
         onClick: () => {
           UI.hideOverlay();
-          resetRun(false, false);
+          resetRun(false, false, false);
         },
       });
       const title =
@@ -691,12 +797,12 @@
           runModBlock() +
           (hasNext
             ? '\n已解鎖下一關' + (wasNew ? '「' + STAGES[nextIdx].name + '」' : '') + '。'
-            : '\n主線全破！可挑戰無盡／每日，或重溫暗盤。'),
+            : '\n主線全破！可挑戰無盡／每日／週挑戰，或重溫暗盤。'),
         hasNext ? '下一關' : '回第 1 關',
         () => {
           UI.hideOverlay();
-          if (hasNext) state = freshState(nextIdx, false, false);
-          else state = freshState(0, false, false);
+          if (hasNext) state = freshState(nextIdx, false, false, false);
+          else state = freshState(0, false, false, false);
           resetWaveBtn();
           syncAll();
         },
@@ -769,7 +875,7 @@
     notifyAchievements();
     const tip = pickFailTip(state.kills * 17 + state.waveIndex * 3);
     const rec = recommendForStage
-      ? recommendForStage(state.stage, state.endless, state.daily)
+      ? recommendForStage(state.stage, state.endless, state.daily, state.weekly)
       : null;
     const recLu = (rec && rec.lineup) || LINEUPS[0];
     const recLine =
@@ -783,9 +889,11 @@
         state.kills +
         (state.endless
           ? '｜無盡撐到第 ' + state.waveIndex + ' 波（最佳 ' + (save.bestEndlessWave || 0) + '）'
-          : state.daily
-            ? '｜每日未過'
-            : '') +
+          : state.weekly
+            ? '｜週挑戰未過'
+            : state.daily
+              ? '｜每日未過'
+              : '') +
         '。' +
         runModBlock() +
         '\n\n提示：' +
@@ -794,7 +902,7 @@
       '重開本關',
       () => {
         UI.hideOverlay();
-        resetRun(state.endless, state.daily);
+        resetRun(state.endless, state.daily, state.weekly);
       },
       [
         {
@@ -802,7 +910,7 @@
           secondary: true,
           onClick: () => {
             UI.hideOverlay();
-            resetRun(state.endless, state.daily);
+            resetRun(state.endless, state.daily, state.weekly);
             applyLineup(recLu);
           },
         },
@@ -817,7 +925,7 @@
       extra.appendChild(holder);
       UI.renderLineupChips(holder, (lu) => {
         UI.hideOverlay();
-        resetRun(state.endless, state.daily);
+        resetRun(state.endless, state.daily, state.weekly);
         applyLineup(lu);
       });
       const lab = holder.querySelector('.lineup-label');
@@ -837,13 +945,14 @@
     syncAll();
   }
 
-  function resetRun(keepEndless, keepDaily) {
-    const daily = keepDaily && state.daily;
-    const endless = !daily && keepEndless && state.endless;
-    const idx = endless || daily ? 0 : state.stageIndex >= 0 ? state.stageIndex : 0;
-    state = freshState(idx, endless, daily);
+  function resetRun(keepEndless, keepDaily, keepWeekly) {
+    const weekly = keepWeekly && state.weekly;
+    const daily = !weekly && keepDaily && state.daily;
+    const endless = !weekly && !daily && keepEndless && state.endless;
+    const idx = endless || daily || weekly ? 0 : state.stageIndex >= 0 ? state.stageIndex : 0;
+    state = freshState(idx, endless, daily, weekly);
     const b = firstRunBonus(save);
-    if (b > 0 && !endless && !daily && idx === 0) state.silver += b;
+    if (b > 0 && !endless && !daily && !weekly && idx === 0) state.silver += b;
     resetWaveBtn();
     syncAll();
     UI.toast('新一局 — 放置俠客後開波');
@@ -945,7 +1054,7 @@
             try {
               save = importSaveJson(String(reader.result || ''));
               writeSave(save);
-              state = freshState(0, false, false);
+              state = freshState(0, false, false, false);
               resetWaveBtn();
               syncAll();
               notifyAchievements();
@@ -962,13 +1071,13 @@
       onClearSave: () => {
         save = defaultSave();
         writeSave(save);
-        state = freshState(0, false, false);
+        state = freshState(0, false, false, false);
         resetWaveBtn();
         syncAll();
         UI.toast('存檔已清除');
       },
       onClose: () => syncAll(),
-      onRestart: () => resetRun(state.endless, state.daily),
+      onRestart: () => resetRun(state.endless, state.daily, state.weekly),
       onOpenCodex: () => openCodex(),
       onOpenAch: () => openAchievements(),
     });
@@ -977,7 +1086,7 @@
   document.getElementById('btn-wave').addEventListener('click', startWave);
   document.getElementById('btn-reset').addEventListener('click', () => {
     UI.hideOverlay();
-    resetRun(state.endless, state.daily);
+    resetRun(state.endless, state.daily, state.weekly);
   });
   document.getElementById('btn-pause').addEventListener('click', togglePause);
   document.getElementById('btn-settings').addEventListener('click', openSettings);
@@ -1537,17 +1646,19 @@
 
   const unlocked = save.maxStageCleared || 0;
   const dailyMeta = dailyStageMeta();
+  const weekMeta = weeklyStageMeta();
   const bonus = firstRunBonus(save);
-  if (bonus > 0 && state.stageIndex === 0 && !state.endless && !state.daily) {
+  if (bonus > 0 && state.stageIndex === 0 && !state.endless && !state.daily && !state.weekly) {
     state.silver += bonus;
   }
   const bootRec = recommendForStage
-    ? recommendForStage(state.stage, false, false)
+    ? recommendForStage(state.stage, false, false, false)
     : null;
   UI.showOverlay(
     '銀樓防衛',
-    '合併塔防 v1.0.1\n' +
+    '合併塔防 v1.1.0\n' +
       '三步上手：① 拖俠客落場 ② 同種合併升星 ③ 開波守銀樓。\n' +
+      '新：週挑戰（通關第 2 關解鎖）｜雙修飾高壓週結。\n' +
       '失敗必出推薦陣容；卡關提示／閃光／震屏可喺設定關。\n' +
       (bonus > 0 ? '新手首局加銀 +' + bonus + ' 兩\n' : '') +
       (bootRec
@@ -1555,6 +1666,8 @@
         : '') +
       '今日：' +
       dailyMeta.name +
+      '\n本週：' +
+      weekMeta.name +
       '\n累計銀兩帳：' +
       save.totalSilver +
       '｜最高關：' +

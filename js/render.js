@@ -1,6 +1,6 @@
 /**
- * 銀樓防衛 — Canvas 繪製 v1.0.1
- * v1.0.1：少重複計算／跟主循環 dt
+ * 銀樓防衛 — Canvas 繪製 v1.1.0
+ * v1.1.0：少重複計算／跟主循環 dt
  */
 (function (global) {
   const { COLORS, GRID, CORE, HEROES, ENEMIES, MAX_STAR, upgradeLabel } = global.YD;

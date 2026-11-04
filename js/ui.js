@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v1.0.1
+ * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v1.1.0
  */
 (function (global) {
   const {
@@ -15,6 +15,8 @@
     summonCost,
     hkDateString,
     dailyStageMeta,
+    weeklyStageMeta,
+    hkWeekKey,
     pickFailTip,
     UPGRADE_PATHS,
     upgradeCost,
@@ -258,7 +260,7 @@
     });
   }
 
-  function buildStageBar(getSave, onPickStage, onEndless, onDaily) {
+  function buildStageBar(getSave, onPickStage, onEndless, onDaily, onWeekly) {
     const bar = $('stage-bar');
     if (!bar) return;
     bar.innerHTML = '';
@@ -291,18 +293,27 @@
     dailyBtn.addEventListener('click', onDaily);
     bar.appendChild(dailyBtn);
 
+    const weeklyBtn = document.createElement('button');
+    weeklyBtn.type = 'button';
+    weeklyBtn.className = 'stage-btn weekly';
+    weeklyBtn.id = 'btn-weekly';
+    weeklyBtn.textContent = '週挑戰';
+    weeklyBtn.addEventListener('click', onWeekly);
+    bar.appendChild(weeklyBtn);
+
     return {
-      refresh(activeStageId, endless, daily) {
+      refresh(activeStageId, endless, daily, weekly) {
         const save = getSave();
         const today = hkDateString();
+        const weekKey = typeof hkWeekKey === 'function' ? hkWeekKey() : '';
         bar.querySelectorAll('.stage-btn').forEach((b) => {
           if (b.classList.contains('endless')) {
-            b.classList.toggle('selected', !!endless && !daily);
+            b.classList.toggle('selected', !!endless && !daily && !weekly);
             b.disabled = save.maxStageCleared < 1;
             return;
           }
           if (b.classList.contains('daily')) {
-            b.classList.toggle('selected', !!daily);
+            b.classList.toggle('selected', !!daily && !weekly);
             b.disabled = save.maxStageCleared < 1;
             const done = save.dailyDate === today && save.dailyCleared;
             b.textContent = done ? '每日✓' : '每日';
@@ -313,10 +324,23 @@
               (meta.blurb ? '｜' + meta.blurb : '');
             return;
           }
+          if (b.classList.contains('weekly')) {
+            b.classList.toggle('selected', !!weekly);
+            b.disabled = save.maxStageCleared < 2;
+            const done = save.weeklyKey === weekKey && save.weeklyCleared;
+            b.textContent = done ? '週挑戰✓' : '週挑戰';
+            const meta = typeof weeklyStageMeta === 'function' ? weeklyStageMeta(weekKey) : { name: '週挑戰', blurb: '' };
+            b.title =
+              (save.maxStageCleared < 2 ? '通關第 2 關解鎖｜' : '') +
+              (done ? '本週已清（可重打無額外獎）｜' : '') +
+              meta.name +
+              (meta.blurb ? '｜' + meta.blurb : '');
+            return;
+          }
           const id = Number(b.dataset.stage);
           const unlocked = id === 1 || save.maxStageCleared >= id - 1;
           b.disabled = !unlocked;
-          b.classList.toggle('selected', !endless && !daily && activeStageId === id);
+          b.classList.toggle('selected', !endless && !daily && !weekly && activeStageId === id);
           if (!unlocked) b.title = '先通關上一關';
           else b.title = '';
         });
@@ -338,9 +362,11 @@
         : '';
     $('stat-stage').textContent = state.endless
       ? '無盡' + modShort
-      : state.daily
-        ? '每日' + modShort
-        : String(state.stage.id);
+      : state.weekly
+        ? '週挑戰' + modShort
+        : state.daily
+          ? '每日' + modShort
+          : String(state.stage.id);
     const kills = $('stat-kills');
     if (kills) kills.textContent = String(state.kills || 0);
     const bondEl = $('stat-bonds');
