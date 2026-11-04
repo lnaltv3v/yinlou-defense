@@ -137,6 +137,23 @@
       tone(110, 0.12, 'square', 0.035, 0.08);
       tone(165, 0.1, 'triangle', 0.03, 0.18);
     },
+    // v3.8：符咒裝備／十池／回放 buzz
+    charm_equip: function () {
+      tone(196, 0.07, 'triangle', 0.035);
+      tone(247, 0.08, 'sine', 0.03, 0.05);
+      tone(330, 0.09, 'triangle', 0.028, 0.12);
+    },
+    late400: function () {
+      tone(65, 0.15, 'sawtooth', 0.042);
+      tone(98, 0.12, 'square', 0.036, 0.07);
+      tone(147, 0.1, 'triangle', 0.03, 0.16);
+      tone(220, 0.08, 'sine', 0.024, 0.26);
+    },
+    replay: function () {
+      tone(180, 0.05, 'triangle', 0.03);
+      tone(240, 0.06, 'sine', 0.028, 0.05);
+      tone(300, 0.07, 'triangle', 0.025, 0.1);
+    },
   };
 
   let enabled = true;

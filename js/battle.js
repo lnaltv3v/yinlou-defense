@@ -1673,6 +1673,14 @@
             state._dualPentaCharm = charm;
             state._dualPentaCharmSeen = (state._dualPentaCharmSeen || 0) + 1;
             if (charm.apply) charm.apply(state);
+            // v3.8：符咒入庫（可裝備進修飾欄）
+            try {
+              if (global.YD && global.YD.unlockCharm && state._saveRef) {
+                global.YD.unlockCharm(state._saveRef, charm.id);
+              } else if (window.__yinlouUnlockCharm) {
+                window.__yinlouUnlockCharm(charm.id);
+              }
+            } catch (_) {}
             if (state.modCtx && state.modCtx.dualPentaEnemySpeedMul && state.modCtx.dualPentaEnemySpeedMul !== 1) {
               state._dualCharmEnemySpeed =
                 (state._dualCharmEnemySpeed || 1) * state.modCtx.dualPentaEnemySpeedMul;

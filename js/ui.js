@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v3.7.0
+ * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v3.8.0
  */
 (function (global) {
   const {
@@ -33,6 +33,10 @@
     importWallCompareHistory,
     formatWallCompareChart,
     formatEndlessReplay,
+    compareEndlessReplay,
+    listOwnedCharms,
+    equipCharm,
+    getEquippedCharm,
     recordWallSnapshot,
     formatWallTimeline,
     formatWallSparkline,
@@ -105,7 +109,7 @@
       ink +
       '"></i>' +
       gear;
-    const src = (window.YDSprites && window.YDSprites.urlFor) ? window.YDSprites.urlFor(def.id) : ('assets/sprites/' + def.id + '.png?v=3.7.0');
+    const src = (window.YDSprites && window.YDSprites.urlFor) ? window.YDSprites.urlFor(def.id) : ('assets/sprites/' + def.id + '.png?v=3.8.0');
     return (
       '<span class="hero-avatar" aria-hidden="true" data-hero="' +
       def.id +
@@ -640,7 +644,7 @@
   }
 
 
-  function renderWallCompareChartHtml(save, dayFilter) {
+    function renderWallCompareChartHtml(save, dayFilter) {
     const chart =
       typeof formatWallCompareChart === 'function'
         ? formatWallCompareChart(save, { day: dayFilter || null })
@@ -654,34 +658,43 @@
     const gap = 6;
     const n = chart.bars.length;
     const w = Math.max(160, n * (barW * 3 + gap) + 20);
-    let svg =
-      '<svg class="wall-chart-svg" viewBox="0 0 ' +
-      w +
-      ' ' +
-      (h + 18) +
-      '" width="100%" height="' +
-      (h + 18) +
-      '" role="img" aria-label="牆對照圖表">';
-    svg +=
+    let svgInner = '';
+    svgInner +=
       '<line x1="0" y1="' +
-      (h / 2) +
+      h / 2 +
       '" x2="' +
       w +
       '" y2="' +
-      (h / 2) +
+      h / 2 +
       '" stroke="#5A4A38" stroke-width="1"/>';
     chart.bars.forEach(function (b, i) {
       const x0 = 8 + i * (barW * 3 + gap);
       const cols = [
-        { v: b.endless, c: '#C9A227' },
-        { v: b.week, c: '#3A7A6A' },
-        { v: b.stages, c: '#C45C4A' },
+        { v: b.endless, c: '#C9A227', k: '無盡' },
+        { v: b.week, c: '#3A7A6A', k: '連週' },
+        { v: b.stages, c: '#C45C4A', k: '主線' },
       ];
+      const tip =
+        (b.label || '') +
+        '｜無盡' +
+        (b.endless >= 0 ? '+' : '') +
+        b.endless +
+        ' 連週' +
+        (b.week >= 0 ? '+' : '') +
+        b.week +
+        ' 主線' +
+        (b.stages >= 0 ? '+' : '') +
+        b.stages +
+        (b.summary ? '｜' + b.summary : '');
       cols.forEach(function (col, j) {
         const bh = Math.round((Math.abs(col.v) / maxAbs) * (h / 2 - 2));
         const y = col.v >= 0 ? h / 2 - bh : h / 2;
-        svg +=
-          '<rect x="' +
+        svgInner +=
+          '<rect class="wall-bar" data-tip="' +
+          tip.replace(/"/g, '&quot;') +
+          '" data-idx="' +
+          i +
+          '" x="' +
           (x0 + j * barW) +
           '" y="' +
           y +
@@ -692,19 +705,30 @@
           '" fill="' +
           col.c +
           '" opacity="0.85"><title>' +
-          (b.label || '') +
-          '｜' +
-          col.v +
+          tip.replace(/</g, '') +
           '</title></rect>';
       });
     });
-    svg += '</svg>';
-    svg +=
-      '<div class="wall-chart-legend"><span class="c-e">無盡Δ</span><span class="c-w">連週Δ</span><span class="c-m">主線Δ</span></div>';
-    return '<div class="wall-chart">' + svg + '</div>';
+    const svg =
+      '<svg class="wall-chart-svg" viewBox="0 0 ' +
+      w +
+      ' ' +
+      (h + 18) +
+      '" width="100%" height="' +
+      (h + 18) +
+      '" role="img" aria-label="牆對照圖表">' +
+      svgInner +
+      '</svg>';
+    return (
+      '<div class="wall-chart" id="wall-chart-root">' +
+      svg +
+      '<div class="wall-chart-legend"><span class="c-e">無盡Δ</span><span class="c-w">連週Δ</span><span class="c-m">主線Δ</span>' +
+      '<button type="button" class="wall-mode-btn" id="wall-chart-export-svg">匯出 SVG</button></div>' +
+      '<div class="wall-chart-detail" id="wall-chart-detail">悬停／點柱睇詳情</div></div>'
+    );
   }
 
-  function fillWallCompareHist(save, dayFilter) {
+function fillWallCompareHist(save, dayFilter) {
     const histEl = $('wall-compare-hist');
     if (!histEl) return;
     if (dayFilter === undefined) {
@@ -872,6 +896,42 @@
         toast('已清除牆對照歷史', 1800);
       };
     }
+    // v3.8：牆圖 hover／匯出
+    const chartRoot = $('wall-chart-root');
+    if (chartRoot) {
+      const detail = $('wall-chart-detail');
+      chartRoot.querySelectorAll('.wall-bar').forEach(function (bar) {
+        const show = function () {
+          if (detail) detail.textContent = bar.getAttribute('data-tip') || '';
+          if (window.__yinlouMarkWallChartHover) window.__yinlouMarkWallChartHover();
+        };
+        bar.addEventListener('mouseenter', show);
+        bar.addEventListener('click', show);
+        bar.addEventListener('focus', show);
+      });
+      const exp = $('wall-chart-export-svg');
+      if (exp) {
+        exp.onclick = function () {
+          const svgEl = chartRoot.querySelector('svg.wall-chart-svg');
+          if (!svgEl) return;
+          const clone = svgEl.cloneNode(true);
+          clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+          const blob = new Blob(
+            ['<?xml version="1.0" encoding="UTF-8"?>\\n', clone.outerHTML],
+            { type: 'image/svg+xml;charset=utf-8' }
+          );
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'yinlou-wall-chart.svg';
+          a.click();
+          setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+          if (window.__yinlouMarkWallChartExport) window.__yinlouMarkWallChartExport();
+          toast('已匯出牆圖 SVG', 1800);
+        };
+      }
+    }
+
   }
 
   function updateTutorialHud(step) {
@@ -978,6 +1038,66 @@
     if (cur === 5 && window.__yinlouMarkTutSettleArrow) window.__yinlouMarkTutSettleArrow();
   }
 
+
+  function showEndlessReplay(getSave, onClose) {
+    const save = getSave();
+    const ov = $('overlay');
+    ov.classList.remove('settings-mode');
+    ov.classList.add('codex-mode', 'paper-panel');
+    $('overlay-title').textContent = '無盡回放列表';
+    const rows = typeof formatEndlessReplay === 'function' ? formatEndlessReplay(save) : [];
+    let html = '<div class="paper-body endless-replay-page">';
+    if (!rows.length) {
+      html += '<p class="card-meta">尚無回放 — 無盡失守後會自動留底（最多 8 局）</p>';
+    } else {
+      const curr = rows[0];
+      const prev = rows[1] || null;
+      const cmp =
+        typeof compareEndlessReplay === 'function' ? compareEndlessReplay(curr, prev) : null;
+      if (cmp) {
+        html +=
+          '<div class="endless-replay-cmp card-thick">' +
+          '<strong style="color:#C9A227">對照上一局</strong>' +
+          '<div class="replay-grid">' +
+          '<span class="full">本局 <b>' +
+          (cmp.currLabel || curr.label) +
+          '</b></span>' +
+          (cmp.prevLabel
+            ? '<span class="full dim">上局 ' + cmp.prevLabel + '</span>'
+            : '<span class="full dim">（首局）</span>') +
+          '<span class="full">' +
+          (cmp.summary || '') +
+          '</span></div></div>';
+        if (window.__yinlouMarkEndlessReplayCmp) window.__yinlouMarkEndlessReplayCmp();
+      }
+      html += '<ul class="endless-replay-list">';
+      rows.forEach(function (r, i) {
+        html +=
+          '<li class="paper-entry' +
+          (i === 0 ? ' done' : '') +
+          '"><strong>' +
+          (i === 0 ? '最新｜' : '#' + (i + 1) + '｜') +
+          (r.label || '') +
+          '</strong><span class="card-meta">' +
+          (r.bosses || '') +
+          (r.mods ? ' · ' + r.mods : '') +
+          '</span></li>';
+      });
+      html += '</ul>';
+    }
+    html += '<p class="paper-note">本機回放｜唔做線上排行</p></div>';
+    $('overlay-msg').innerHTML = html;
+    const btn = $('btn-overlay');
+    btn.textContent = '關閉';
+    btn.onclick = function () {
+      hideOverlay();
+      if (onClose) onClose();
+    };
+    $('overlay-extra').innerHTML = '';
+    ov.classList.add('show');
+    if (window.__yinlouMarkEndlessReplayList) window.__yinlouMarkEndlessReplayList();
+  }
+
   function showFailPanel(opts) {
     opts = opts || {};
     const ov = $('overlay');
@@ -1024,6 +1144,12 @@
         (r.mods ? '<span class="full dim">' + r.mods + '</span>' : '') +
         '</div></div>';
     }
+    if (opts.tutorialSettle) {
+      html +=
+        '<div class="tut-settle-fail card-thick">' +
+        '<strong style="color:#3A7A6A">教學·結算步</strong>' +
+        '<span class="card-meta">失守即結算：睇擊殺／浪次／推薦陣容，再撳重開或跟芯片。箭嘴指向嘅就係呢一步。</span></div>';
+    }
     html += '<p class="paper-note">重開保留關卡進度帳；跟推薦芯片可快速重整旗鼓。</p></div>';
     $('overlay-msg').innerHTML = html;
     const btn = $('btn-overlay');
@@ -1054,6 +1180,11 @@
         opts.onMenu();
       }, true);
     }
+    if (opts.onOpenReplay) {
+      mk('無盡回放列表', () => {
+        opts.onOpenReplay();
+      }, true);
+    }
     ov.classList.add('show');
   }
 
@@ -1081,6 +1212,8 @@
       onSnapWall,
       onWallTimeline,
       onQuadLesson,
+      onEndlessReplay,
+      onEquipCharm,
     } = opts;
     const save = getSave();
     const ov = $('overlay');
@@ -1139,10 +1272,25 @@
           })()
         : '—') +
       '</strong></div>' +
-      '<div class="paper-row"><span>版本</span><strong>v3.7.0｜存檔 v' +
-      (save.version || 36) +
+      '<div class="paper-row"><span>符咒</span><strong>' +
+      (function () {
+        const list = typeof listOwnedCharms === 'function' ? listOwnedCharms(save) : [];
+        const owned = list.filter(function (c) { return c.owned; });
+        const eq = owned.find(function (c) { return c.equipped; });
+        return (
+          (eq ? '裝·' + eq.name : '未裝備') +
+          '｜庫 ' +
+          owned.length +
+          '/' +
+          (list.length || 4)
+        );
+      })() +
       '</strong></div>' +
-      '<p class="paper-note">v3.6：無盡300＋第八池、雙五潮橫幅、鏡稅叠層 HUD、牆史匯入對照、教學箭嘴。點場上俠客可強化；本地牆本機｜唔做線上排行。</p>' +
+      '<div class="paper-row"><span>版本</span><strong>v3.8.0｜存檔 v' +
+      (save.version || 38) +
+      '</strong></div>' +
+      '<p class="paper-note">v3.8：十池400、符咒入欄、牆圖互動、無盡回放列表、教學結算聯動。本地牆本機｜唔做線上排行。</p>' +
+      '<div id="charm-equip-bar" class="charm-equip-bar"></div>' +
       '</div>';
     const btn = $('btn-overlay');
     btn.textContent = '關閉';
@@ -1285,6 +1433,41 @@
     if (onCompareWallShare) mk('對照牆短碼', () => onCompareWallShare(), false, true);
     if (onSnapWall) mk('留下牆快照', () => onSnapWall(), false, true);
     if (onWallTimeline) mk('牆快照時間軸', () => onWallTimeline(), false, true);
+    if (onEndlessReplay) mk('無盡回放列表', () => onEndlessReplay(), false, true);
+    // v3.8 符咒裝備欄
+    (function wireCharmBar() {
+      const bar = $('charm-equip-bar');
+      if (!bar || typeof listOwnedCharms !== 'function') return;
+      const list = listOwnedCharms(save);
+      let html = '<div class="charm-equip-label">雙五符咒／飾品（裝備→下一局無盡修飾欄）</div><div class="charm-chips">';
+      html +=
+        '<button type="button" class="wall-mode-btn' +
+        (!save.equippedCharmId ? ' selected' : '') +
+        '" data-charm="">卸下</button>';
+      list.forEach(function (c) {
+        html +=
+          '<button type="button" class="wall-mode-btn' +
+          (c.equipped ? ' selected' : '') +
+          (c.owned ? '' : ' dim') +
+          '" data-charm="' +
+          c.id +
+          '"' +
+          (c.owned ? '' : ' disabled title="尚未解鎖"') +
+          '>' +
+          (c.kind === 'debuff' ? '⚠' : '✦') +
+          c.name +
+          '</button>';
+      });
+      html += '</div>';
+      bar.innerHTML = html;
+      bar.querySelectorAll('[data-charm]').forEach(function (b) {
+        b.onclick = function () {
+          const id = b.getAttribute('data-charm') || '';
+          if (onEquipCharm) onEquipCharm(id);
+          showSettings(opts);
+        };
+      });
+    })();
     if (onQuadLesson) mk('四潮教學', () => onQuadLesson(), false, true);
     section('本關');
     mk(
@@ -1338,7 +1521,7 @@
     const src = id && window.YDSprites && window.YDSprites.urlFor
       ? window.YDSprites.urlFor(id)
       : id
-        ? 'assets/sprites/' + id + '.png?v=3.7.0'
+        ? 'assets/sprites/' + id + '.png?v=3.8.0'
         : '';
     const fallback =
       '<span class="codex-thumb-fallback" style="background:' + c + '"></span>';
@@ -2231,6 +2414,7 @@
     hideOverlay,
     showSettings,
     showFailPanel,
+    showEndlessReplay,
     updateTutorialHud,
     showStory,
     showCodex,

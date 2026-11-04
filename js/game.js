@@ -233,6 +233,16 @@
       mods = endlessModifiers((save.bestEndlessWave || 0) + (save.totalKills || 0), {
         bestWave: save.bestEndlessWave || 0,
       });
+      // v3.8：已裝備符咒落地本局修飾欄
+      try {
+        const eq =
+          typeof getEquippedCharm === 'function' ? getEquippedCharm(save) : null;
+        const asMod = eq && typeof charmAsModifier === 'function' ? charmAsModifier(eq) : null;
+        if (asMod && !mods.some((m) => m.id === asMod.id || m.charmId === eq.id)) {
+          mods.push(asMod);
+          save._equipCharmToast = asMod.name;
+        }
+      } catch (_) {}
       if ((save.bestEndlessWave || 0) >= 90) {
         if (!save.ach) save.ach = {};
         save.ach.late90_run = true;
@@ -327,6 +337,8 @@
       _touchPad: 0,
       modifiers: mods,
       modCtx,
+      _saveRef: save,
+      _equippedCharmId: (save && save.equippedCharmId) || '',
       prepIdle: 0,
       _stuckTipAt: 0,
       _lastActionAt: 0,
@@ -887,14 +899,17 @@
             m.late180 ||
             m.late220 ||
             m.late300 ||
-            m.late350
+            m.late350 ||
+            m.late400
         );
         state._lateModBadge = lateMods.length
           ? lateMods.map((m) => m.name).join(' · ')
           : '';
-        state._lateModTier = lateMods.some((m) => m.late350)
-          ? 350
-          : lateMods.some((m) => m.late300)
+        state._lateModTier = lateMods.some((m) => m.late400)
+          ? 400
+          : lateMods.some((m) => m.late350)
+            ? 350
+            : lateMods.some((m) => m.late300)
             ? 300
             : lateMods.some((m) => m.late220)
             ? 220
@@ -953,12 +968,27 @@
           writeSave(save);
           notifyAchievements();
         }
+        if ((save.bestEndlessWave || 0) >= 400) {
+          if (!save.ach) save.ach = {};
+          save.ach.late400_run = true;
+          writeSave(save);
+          notifyAchievements();
+        }
+        if (save._equipCharmToast) {
+          const nm = save._equipCharmToast;
+          save._equipCharmToast = '';
+          setTimeout(function () {
+            UI.toast('符咒入欄｜' + nm, 2600);
+          }, 400);
+        }
         if (state._lateModBadge) {
           setTimeout(() => {
             const tag =
-              state._lateModTier >= 350
-                ? '【350+】'
-                : state._lateModTier >= 300
+              state._lateModTier >= 400
+                ? '【400+】'
+                : state._lateModTier >= 350
+                  ? '【350+】'
+                  : state._lateModTier >= 300
                   ? '【300+】'
                   : state._lateModTier >= 220
                   ? '【220+】'
@@ -1602,6 +1632,18 @@
         notifyAchievements();
       }
     }
+    const tutSettle =
+      !save.skipTutorial &&
+      !save.tutorialDone &&
+      (state.tutorialStep === 4 || state.tutorialStep === 5 || state.tutorialStep === 3);
+    if (tutSettle) {
+      if (!save.ach) save.ach = {};
+      if (!save.ach.tut_settle_fail) {
+        save.ach.tut_settle_fail = true;
+        writeSave(save);
+        notifyAchievements();
+      }
+    }
     if (UI.showFailPanel) {
       UI.showFailPanel({
         title: '銀樓失守',
@@ -1609,6 +1651,12 @@
         rec: rec,
         replay: replay,
         endless: !!state.endless,
+        tutorialSettle: !!tutSettle,
+        onOpenReplay: state.endless
+          ? () => {
+              if (UI.showEndlessReplay) UI.showEndlessReplay(() => save, () => syncAll());
+            }
+          : null,
         onRetry: () => {
           UI.hideOverlay();
           resetRun(state.endless, state.daily, state.weekly);
@@ -1723,7 +1771,29 @@
 
   function openSettings() {
     state.paused = true;
+    window.__yinlouEquipCharm = (id) => {
+      const res = typeof equipCharm === 'function' ? equipCharm(save, id) : { ok: false };
+      if (!res || !res.ok) {
+        UI.toast((res && res.error) || '裝備失敗', 2000);
+        return;
+      }
+      if (!save.ach) save.ach = {};
+      if (id) {
+        save.ach.charm_equip = true;
+      }
+      writeSave(save);
+      notifyAchievements();
+      try {
+        const A = window.YDAudio;
+        if (A && A.play && id) A.play('charm_equip');
+      } catch (_) {}
+      UI.toast(id ? '已裝備符咒｜下一局無盡入欄' : '已卸下符咒', 2200);
+    };
     UI.showSettings({
+      onEndlessReplay: () => {
+        if (UI.showEndlessReplay) UI.showEndlessReplay(() => save, () => syncAll());
+      },
+      onEquipCharm: (id) => window.__yinlouEquipCharm(id),
       getSave: () => save,
       onToggleHints: () => {
         save.showCellHints = save.showCellHints === false;
@@ -1945,6 +2015,51 @@
       save.ach.tut_upgrade_arrow = true;
       writeSave(save);
       notifyAchievements();
+    }
+  };
+
+  window.__yinlouMarkWallChartHover = function () {
+    if (!save.ach) save.ach = {};
+    if (!save.ach.wall_chart_hover) {
+      save.ach.wall_chart_hover = true;
+      writeSave(save);
+      notifyAchievements();
+    }
+  };
+  window.__yinlouMarkWallChartExport = function () {
+    if (!save.ach) save.ach = {};
+    if (!save.ach.wall_chart_export) {
+      save.ach.wall_chart_export = true;
+      writeSave(save);
+      notifyAchievements();
+      UI.toast('成就｜牆圖匯出', 1800);
+    }
+  };
+  window.__yinlouMarkEndlessReplayList = function () {
+    if (!save.ach) save.ach = {};
+    if (!save.ach.endless_replay_list) {
+      save.ach.endless_replay_list = true;
+      writeSave(save);
+      notifyAchievements();
+    }
+  };
+  window.__yinlouMarkEndlessReplayCmp = function () {
+    if (!save.ach) save.ach = {};
+    if (!save.ach.endless_replay_cmp) {
+      save.ach.endless_replay_cmp = true;
+      writeSave(save);
+      notifyAchievements();
+    }
+  };
+
+  window.__yinlouUnlockCharm = function (charmId) {
+    if (typeof unlockCharm === 'function') {
+      const neu = unlockCharm(save, charmId);
+      writeSave(save);
+      if (neu) {
+        notifyAchievements();
+        UI.toast('符咒入庫｜' + ((typeof findCharmById === 'function' && findCharmById(charmId) || {}).name || charmId), 2200);
+      }
     }
   };
   window.__yinlouMarkTutSettleArrow = function () {
