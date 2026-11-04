@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v4.8.0
+ * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v4.9.0
  */
 (function (global) {
   const {
@@ -48,6 +48,9 @@
     decodeCharmLockShort,
     importCharmLockShort,
     exportCharmLockShort,
+    formatCharmLockSummary,
+    formatDualShareText,
+    mergeSnapStarLegendHtml,
     mergeSnapRadius,
     syncMergeSnapDevice,
     loadMergeSnapDevice,
@@ -1310,7 +1313,12 @@ function fillWallCompareHist(save, dayFilter) {
       '"/>' +
       '<button type="button" class="wall-mode-btn" id="charm-lock-export">匯出鎖欄短碼</button>' +
       '<button type="button" class="wall-mode-btn" id="charm-lock-import">匯入鎖欄短碼</button>' +
-      '</div>';
+      '</div>' +
+      '<p class="card-meta lock-summary-line">' +
+      (typeof formatCharmLockSummary === 'function'
+        ? formatCharmLockSummary(save)
+        : '') +
+      '</p>';
     ov.classList.add('show');
     if (window.__yinlouMarkSetBadgeDetail) window.__yinlouMarkSetBadgeDetail();
     const lockExp = $('charm-lock-export');
@@ -1712,6 +1720,7 @@ function fillWallCompareHist(save, dayFilter) {
         '<button type="button" class="wall-mode-btn" id="dual-preset-save">收藏方案</button>' +
         '<button type="button" class="wall-mode-btn" id="dual-card-png">對照卡 PNG</button>' +
         '<button type="button" class="wall-mode-btn" id="dual-share-card">分享卡 PNG</button>' +
+        '<button type="button" class="wall-mode-btn" id="dual-share-copy">複製分享文案</button>' +
         '<button type="button" class="wall-mode-btn" id="dual-short-export">匯出短碼</button>' +
         '<button type="button" class="wall-mode-btn" id="dual-short-import">匯入短碼</button></div>' +
         '<div class="dual-short-row"><input type="text" id="dual-short-input" class="dual-short-input" placeholder="YD47...." value="' +
@@ -2073,7 +2082,7 @@ function fillWallCompareHist(save, dayFilter) {
         (dlt.kills != null ? dlt.kills : '—') +
         '｜Δ銀 ' +
         (dlt.silver != null ? dlt.silver : '—') +
-        '｜本機｜v4.8';
+        '｜本機｜v4.9';
       if (share) {
         const dualCode =
           typeof exportDualPresetsShort === 'function' ? exportDualPresetsShort(save) : '';
@@ -2143,6 +2152,47 @@ function fillWallCompareHist(save, dayFilter) {
           } catch (_) {}
           toast('已匯出分享卡 PNG', 1800);
         });
+      };
+    }
+    const dualShareCopy = $('dual-share-copy');
+    if (dualShareCopy && dual && dual.a && dual.b) {
+      dualShareCopy.onclick = function () {
+        const text = window.__yinlouCopyDualShareText
+          ? window.__yinlouCopyDualShareText(dual)
+          : typeof formatDualShareText === 'function'
+            ? formatDualShareText(save, dual)
+            : '';
+        if (!text) {
+          toast('無文案可複製', 1600);
+          return;
+        }
+        const done = function () {
+          toast('分享文案已複製', 1800);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(done).catch(function () {
+            // fallback
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            document.body.appendChild(ta);
+            ta.select();
+            try {
+              document.execCommand('copy');
+            } catch (_) {}
+            document.body.removeChild(ta);
+            done();
+          });
+        } else {
+          const ta = document.createElement('textarea');
+          ta.value = text;
+          document.body.appendChild(ta);
+          ta.select();
+          try {
+            document.execCommand('copy');
+          } catch (_) {}
+          document.body.removeChild(ta);
+          done();
+        }
       };
     }
     document.querySelectorAll('[data-dual-preset]').forEach(function (b) {
@@ -2489,10 +2539,11 @@ function fillWallCompareHist(save, dayFilter) {
       ' · buzz ' +
       (save.mergeSnapBuzz !== false ? '開' : '關') +
       '</strong></div>' +
-      '<div class="paper-row"><span>版本</span><strong>v4.8.0｜存檔 v' +
-      (save.version || 48) +
+      '<div class="paper-row"><span>版本</span><strong>v4.9.0｜存檔 v' +
+      (save.version || 49) +
       '</strong></div>' +
-      '<p class="paper-note">v4.8：二十池1350–1400、超千三節奏、鎖欄短碼、對照折線／分享卡、吸附星級色＋合失敗 buzz。本地牆本機｜唔做線上排行。</p>' +
+      '<p class="paper-note">v4.9：二十一池1450–1500、超千四複合節奏、鎖欄套裝／星級摘要、分享文案、合失敗紅環＋星級圖例。本地牆本機｜唔做線上排行。</p>' +
+      (typeof mergeSnapStarLegendHtml === 'function' ? mergeSnapStarLegendHtml() : '') +
       '<div id="charm-equip-bar" class="charm-equip-bar"></div>' +
       '</div>';
     const btn = $('btn-overlay');
