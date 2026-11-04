@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v3.5.0
+ * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v3.6.0
  */
 (function (global) {
   const {
@@ -30,6 +30,7 @@
     exportWallCompareHistoryJson,
     listWallCompareDays,
     clearWallCompareHistory,
+    importWallCompareHistory,
     recordWallSnapshot,
     formatWallTimeline,
     formatWallSparkline,
@@ -102,7 +103,7 @@
       ink +
       '"></i>' +
       gear;
-    const src = (window.YDSprites && window.YDSprites.urlFor) ? window.YDSprites.urlFor(def.id) : ('assets/sprites/' + def.id + '.png?v=3.5.0');
+    const src = (window.YDSprites && window.YDSprites.urlFor) ? window.YDSprites.urlFor(def.id) : ('assets/sprites/' + def.id + '.png?v=3.6.0');
     return (
       '<span class="hero-avatar" aria-hidden="true" data-hero="' +
       def.id +
@@ -553,25 +554,42 @@
     const taxT = state && state._mirageTaxT ? state._mirageTaxT : 0;
     if (taxT > 0.05) {
       const secs = Math.ceil(taxT);
-      const mul = state._mirageTaxMul || 0.55;
+      const mul = state._mirageTaxMul || 0.58;
       const pct = Math.round(mul * 100);
       const maxT = state._mirageTaxMax || 4.2;
       const frac = Math.max(0, Math.min(1, taxT / maxT));
+      const stacks = state._mirageTaxStacks || 1;
+      const r = state._mirageTaxR || 150;
       taxEl.innerHTML =
-        '<span class="mirage-tax-label">鏡稅 ' +
+        '<span class="mirage-tax-label">鏡稅圈 ' +
         secs +
         's｜銀×' +
         pct +
-        '%</span>' +
+        '%' +
+        (stacks > 1 ? '｜叠×' + stacks : '') +
+        '｜r' +
+        r +
+        '</span>' +
         '<span class="mirage-tax-bar" aria-hidden="true"><i style="width:' +
         Math.round(frac * 100) +
-        '%"></i></span>';
-      taxEl.title = '帳鏡蜃鏡稅圈剩餘 ' + secs + ' 秒；場上橢圓為影響範圍';
+        '%"></i></span>' +
+        (stacks > 1
+          ? '<span class="mirage-tax-stacks">叠層見底中</span>'
+          : '');
+      taxEl.title =
+        '鏡稅圈剩餘 ' +
+        secs +
+        ' 秒；叠層 ×' +
+        stacks +
+        '；場上橢圓 r≈' +
+        r +
+        ' 為影響範圍';
+      taxEl.classList.toggle('stacked', stacks > 1);
       taxEl.classList.add('show');
       taxEl.setAttribute('aria-hidden', 'false');
     } else {
       taxEl.innerHTML = '';
-      taxEl.classList.remove('show');
+      taxEl.classList.remove('show', 'stacked');
       taxEl.setAttribute('aria-hidden', 'true');
     }
     const pauseBtn = $('btn-pause');
@@ -662,6 +680,7 @@
       '<div class="wall-hist-actions">' +
       '<button type="button" class="wall-mode-btn" id="wall-hist-export">匯出文字</button>' +
       '<button type="button" class="wall-mode-btn" id="wall-hist-json">匯出 JSON</button>' +
+      '<button type="button" class="wall-mode-btn" id="wall-hist-import">匯入對照</button>' +
       '<button type="button" class="wall-mode-btn" id="wall-hist-clear"' +
       (rows.length || (save.wallCompareHistory && save.wallCompareHistory.length) ? '' : ' disabled') +
       '>清除歷史</button></div>';
@@ -732,6 +751,30 @@
         copyOut(text, '__yinlouMarkWallHistJson');
       };
     }
+    const impBtn = $('wall-hist-import');
+    if (impBtn) {
+      impBtn.onclick = function () {
+        const raw = prompt('貼上牆史 JSON 或含 YL-E… 短碼嘅文字', '');
+        if (raw == null || !String(raw).trim()) return;
+        const res =
+          typeof importWallCompareHistory === 'function'
+            ? importWallCompareHistory(save, raw)
+            : { ok: false, error: '無匯入函式' };
+        if (!res || !res.ok) {
+          toast((res && res.error) || '匯入失敗', 2200);
+          return;
+        }
+        if (window.__yinlouMarkWallHistImport) window.__yinlouMarkWallHistImport();
+        fillWallCompareHist(save, dayFilter || '');
+        if (res.lastCode) {
+          const cmpIn = $('wall-compare-input');
+          if (cmpIn) cmpIn.value = res.lastCode;
+          toast('已匯入 ' + res.added + ' 筆｜已填入對照短碼', 2600);
+        } else {
+          toast('已匯入 ' + res.added + ' 筆', 2200);
+        }
+      };
+    }
     const clrBtn = $('wall-hist-clear');
     if (clrBtn) {
       clrBtn.onclick = function () {
@@ -761,6 +804,8 @@
       el.classList.remove('show');
       el.setAttribute('aria-hidden', 'true');
       el.innerHTML = '';
+      const arrowHide = $('tut-shop-arrow');
+      if (arrowHide) arrowHide.classList.remove('show');
       return;
     }
     const cur = Math.min(5, Math.max(1, (n | 0) + 1));
@@ -819,6 +864,23 @@
         if (window.__yinlouSetTutorialStep) window.__yinlouSetTutorialStep(step1 - 1);
       };
     });
+    // v3.6：教學步①② 指向底欄（#shop）箭嘴
+    let arrow = $('tut-shop-arrow');
+    if (cur <= 2) {
+      if (!arrow) {
+        arrow = document.createElement('div');
+        arrow.id = 'tut-shop-arrow';
+        arrow.className = 'tut-shop-arrow';
+        arrow.setAttribute('aria-hidden', 'true');
+        arrow.innerHTML = '<span class="tut-arrow-stem"></span><span class="tut-arrow-label">底欄召俠</span>';
+        const host = $('wrap') || document.body;
+        host.appendChild(arrow);
+      }
+      arrow.classList.add('show');
+      if (window.__yinlouMarkTutShopArrow) window.__yinlouMarkTutShopArrow();
+    } else if (arrow) {
+      arrow.classList.remove('show');
+    }
   }
 
   function showFailPanel(opts) {
@@ -959,10 +1021,10 @@
           })()
         : '—') +
       '</strong></div>' +
-      '<div class="paper-row"><span>版本</span><strong>v3.5.0｜存檔 v' +
-      (save.version || 35) +
+      '<div class="paper-row"><span>版本</span><strong>v3.6.0｜存檔 v' +
+      (save.version || 36) +
       '</strong></div>' +
-      '<p class="paper-note">v3.5：無盡220／250＋第七池、雙五潮／鏡稅叠層、牆史按日／JSON、教學空格高亮。點場上俠客可強化；本地牆本機｜唔做線上排行。</p>' +
+      '<p class="paper-note">v3.6：無盡300＋第八池、雙五潮橫幅、鏡稅叠層 HUD、牆史匯入對照、教學箭嘴。點場上俠客可強化；本地牆本機｜唔做線上排行。</p>' +
       '</div>';
     const btn = $('btn-overlay');
     btn.textContent = '關閉';
@@ -1158,7 +1220,7 @@
     const src = id && window.YDSprites && window.YDSprites.urlFor
       ? window.YDSprites.urlFor(id)
       : id
-        ? 'assets/sprites/' + id + '.png?v=3.5.0'
+        ? 'assets/sprites/' + id + '.png?v=3.6.0'
         : '';
     const fallback =
       '<span class="codex-thumb-fallback" style="background:' + c + '"></span>';

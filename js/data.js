@@ -1717,7 +1717,7 @@
   const ENDLESS = {
     id: 'endless',
     name: '無盡殺跌',
-    story: '殺跌無盡，浪高過浪。里程碑銀兩係你唯一嘅喘息；修飾詞會改寫盤口——守得愈久，江湖傳聞愈響，亦愈難轉身離場。\n\nv3.5：220／250＋第七池；雙五潮／鏡稅叠層平衡；牆史按日／JSON；教學空格高亮。',
+    story: '殺跌無盡，浪高過浪。里程碑銀兩係你唯一嘅喘息；修飾詞會改寫盤口——守得愈久，江湖傳聞愈響，亦愈難轉身離場。\n\nv3.6：300＋第八池；雙五潮橫幅；鏡稅叠層 HUD；牆史匯入；教學箭嘴。',
     startSilver: 215,
     coreHp: 235,
     unlockHeroes: Object.keys(HEROES),
@@ -1737,6 +1737,7 @@
       if (waveIndex >= 200) b += 16;
       if (waveIndex >= 220) b += 18;
       if (waveIndex >= 250) b += 20;
+      if (waveIndex >= 300) b += 24;
       return Math.round(b);
     }
     return 26 + waveIndex * 8;
@@ -1765,6 +1766,7 @@
     { wave: 200, silver: 3200, label: '二百浪封城' },
     { wave: 220, silver: 3600, label: '二百二十浪潮城' },
     { wave: 250, silver: 4200, label: '二百五十浪封神' },
+    { wave: 300, silver: 5000, label: '三百浪不朽城' },
   ];
 
   function endlessMilestone(waveIndex) {
@@ -2547,6 +2549,50 @@
     },
   ];
 
+  /** v3.6：曾達 300 再開無盡必帶其一（第八池／不朽城） */
+  const RUN_MODIFIERS_300 = [
+    {
+      id: 'immortal_vault',
+      name: '不朽銀庫',
+      blurb: '開局銀 +26%；核心 HP +12%',
+      late300: true,
+      apply: (ctx) => {
+        ctx.silverMul = (ctx.silverMul || 1) * 1.26;
+        ctx.coreMul = (ctx.coreMul || 1) * 1.12;
+      },
+    },
+    {
+      id: 'immortal_mirror',
+      name: '不朽鏡衛',
+      blurb: '鏡稅地板 +0.08；抽銀 ×0.2',
+      late300: true,
+      apply: (ctx) => {
+        ctx.mirageTaxFloorBonus = (ctx.mirageTaxFloorBonus || 0) + 0.08;
+        ctx.silverDrainMul = (ctx.silverDrainMul || 1) * 0.2;
+      },
+    },
+    {
+      id: 'star_immortal',
+      name: '合星不朽',
+      blurb: '合併回報 ×1.42；波次補銀 +12%',
+      late300: true,
+      apply: (ctx) => {
+        ctx.mergeRebateMul = (ctx.mergeRebateMul || 1) * 1.42;
+        ctx.waveBonusMul = (ctx.waveBonusMul || 1) * 1.12;
+      },
+    },
+    {
+      id: 'seal_immortal',
+      name: '不朽印陣',
+      blurb: '敵速 −8%；俠客冷卻 −6%',
+      late300: true,
+      apply: (ctx) => {
+        ctx.enemySpeedMul = (ctx.enemySpeedMul || 1) * 0.92;
+        ctx.heroCdMul = (ctx.heroCdMul || 1) * 0.94;
+      },
+    },
+  ];
+
   function hashStr(s) {
     let h = 0;
     for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
@@ -2853,6 +2899,14 @@
       if (!mods.some((m) => m.id === late7.id)) {
         if (mods.length >= 3) mods[mods.length - 1] = late7;
         else mods.push(late7);
+      }
+    }
+    if (best >= 300 && RUN_MODIFIERS_300.length) {
+      const h9 = (seed ^ 0x300dead) >>> 0;
+      const late8 = RUN_MODIFIERS_300[h9 % RUN_MODIFIERS_300.length];
+      if (!mods.some((m) => m.id === late8.id)) {
+        if (mods.length >= 3) mods[0] = late8;
+        else mods.push(late8);
       }
     }
     return mods;
@@ -3505,6 +3559,11 @@
     { id: 'mirage_tax_stack', cat: 'combat', name: '鏡稅叠層', blurb: '鏡稅叠層觸發一次', check: (s) => !!s.ach && !!s.ach.mirage_tax_stack },
     { id: 'wall_compare_json', cat: 'meta', name: '牆史 JSON', blurb: '匯出一次牆對照歷史 JSON', check: (s) => !!s.ach && !!s.ach.wall_compare_json },
     { id: 'tut_cell_highlight', cat: 'meta', name: '教學空格亮', blurb: '教學時見過空格高亮', check: (s) => !!s.ach && !!s.ach.tut_cell_highlight },
+    { id: 'endless300', cat: 'combat', name: '三百浪不朽城', blurb: '無盡最佳 ≥ 300 波', check: (s) => (s.bestEndlessWave || 0) >= 300 },
+    { id: 'late300_run', cat: 'meta', name: '不朽開盤', blurb: '曾達 300 浪後再開無盡（抽第八池修飾）', check: (s) => !!s.ach && !!s.ach.late300_run },
+    { id: 'dual_penta_banner', cat: 'combat', name: '雙五潮揭幕', blurb: '見過雙五潮專屬橫幅', check: (s) => !!s.ach && !!s.ach.dual_penta_banner },
+    { id: 'wall_compare_import', cat: 'meta', name: '牆史匯入', blurb: '匯入一次牆對照歷史', check: (s) => !!s.ach && !!s.ach.wall_compare_import },
+    { id: 'tut_shop_arrow', cat: 'meta', name: '教學箭嘴', blurb: '教學時見過指向底欄箭嘴', check: (s) => !!s.ach && !!s.ach.tut_shop_arrow },
   ];
 
   /** 首通銀兩獎勵（入累計帳） */
@@ -3562,7 +3621,8 @@
     const late200 = n >= 200 ? Math.min(0.08, (n - 200) * 0.0024) : 0;
     const late220 = n >= 220 ? Math.min(0.08, (n - 220) * 0.0022) : 0;
     const late250 = n >= 250 ? Math.min(0.08, (n - 250) * 0.002) : 0;
-    const mul = 1 + (n - 1) * 0.105 + late50 + late75 + late90 + late120 + late130 + late140 + late150 + late160 + late180 + late200 + late220 + late250;
+    const late300 = n >= 300 ? Math.min(0.08, (n - 300) * 0.0018) : 0;
+    const mul = 1 + (n - 1) * 0.105 + late50 + late75 + late90 + late120 + late130 + late140 + late150 + late160 + late180 + late200 + late220 + late250 + late300;
     const countLate = n >= 50 ? Math.min(n - 50, 25) * 0.01 + (n >= 75 ? (n - 75) * 0.006 : 0) : 0;
     const count = (base) => {
       let raw = Math.max(1, Math.round(base * (1 + (n - 1) * 0.072 + countLate)));
@@ -3795,7 +3855,7 @@
         hpMul: mul * 0.94,
       });
     }
-    if (n === 120 || n === 130 || n === 140 || n === 150 || n === 160 || n === 180 || n === 200 || n === 220 || n === 250) {
+    if (n === 120 || n === 130 || n === 140 || n === 150 || n === 160 || n === 180 || n === 200 || n === 220 || n === 250 || n === 300) {
       let haveInk = spawns.filter((s) => s.enemy === 'ink_specter').reduce((a, s) => a + (s.count || 1), 0);
       if (haveInk < 1) {
         spawns.push({
@@ -4012,7 +4072,10 @@
     if (from < 35) {
       s.ach.v35_migrated = true;
     }
-    s.version = Math.max(35, from, base.version || 35);
+    if (from < 36) {
+      s.ach.v36_migrated = true;
+    }
+    s.version = Math.max(36, from, base.version || 36);
     return s;
   }
 
@@ -4028,7 +4091,7 @@
 
   function defaultSave() {
     return {
-      version: 35,
+      version: 36,
       totalSilver: 0,
       totalKills: 0,
       maxStageCleared: 0,
@@ -4255,6 +4318,68 @@
     if (!save) return false;
     save.wallCompareHistory = [];
     return true;
+  }
+
+  /**
+   * 匯入牆對照歷史 JSON（v3.5+ export 或 {rows:[...]}／陣列）。
+   * 合併進本機留底；可抽出 short／otherCode 供對照。
+   */
+  function importWallCompareHistory(save, raw) {
+    if (!save) return { ok: false, error: '無存檔' };
+    let data = raw;
+    if (typeof raw === 'string') {
+      const s = raw.trim();
+      if (!s) return { ok: false, error: '空白內容' };
+      try {
+        data = JSON.parse(s);
+      } catch (_) {
+        // 純文字：每行含 YL-E… 短碼則當 otherCode 列
+        const lines = s.split(/\r?\n/).map(function (l) {
+          return l.trim();
+        }).filter(Boolean);
+        const rows = [];
+        for (const line of lines) {
+          const m = /YL-E\d+-S\d+-M\d+-H[0-9a-fA-F]+/.exec(line);
+          if (m) {
+            rows.push({
+              at: new Date().toISOString(),
+              summary: '匯入短碼',
+              otherCode: m[0],
+              mineCode: '',
+              imported: true,
+            });
+          }
+        }
+        if (!rows.length) return { ok: false, error: '認唔到 JSON 或短碼' };
+        data = { rows: rows };
+      }
+    }
+    let rows = [];
+    if (Array.isArray(data)) rows = data;
+    else if (data && Array.isArray(data.rows)) rows = data.rows;
+    else if (data && data.otherCode) rows = [data];
+    else return { ok: false, error: '格式唔啱（要 rows 或短碼）' };
+
+    if (!Array.isArray(save.wallCompareHistory)) save.wallCompareHistory = [];
+    let added = 0;
+    const codes = [];
+    for (const r of rows) {
+      if (!r || typeof r !== 'object') continue;
+      const entry = {
+        at: r.at || new Date().toISOString(),
+        summary: r.summary || '匯入對照',
+        otherCode: r.otherCode || r.code || '',
+        mineCode: r.mineCode || '',
+        delta: r.delta || null,
+        imported: true,
+      };
+      if (!entry.otherCode && r.theirs && r.theirs.code) entry.otherCode = r.theirs.code;
+      save.wallCompareHistory.push(entry);
+      added += 1;
+      if (entry.otherCode) codes.push(entry.otherCode);
+    }
+    while (save.wallCompareHistory.length > 24) save.wallCompareHistory.shift();
+    return { ok: true, added: added, codes: codes, lastCode: codes.length ? codes[codes.length - 1] : '' };
   }
 
   function listBossPreviews() {
@@ -4717,6 +4842,7 @@
     RUN_MODIFIERS_160,
     RUN_MODIFIERS_180,
     RUN_MODIFIERS_220,
+    RUN_MODIFIERS_300,
     buildEndlessWave,
     buildDailyWaves,
     buildWeeklyWaves,
@@ -4766,6 +4892,7 @@
     listWallCompareDays,
     wallCompareDayKey,
     clearWallCompareHistory,
+    importWallCompareHistory,
     recordWallSnapshot,
     formatWallTimeline,
     formatWallSparkline,

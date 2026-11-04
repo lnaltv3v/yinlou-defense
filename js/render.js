@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — Canvas 繪製 v3.5.0
+ * 銀樓防衛 — Canvas 繪製 v3.6.0
  * v1.5：場景四層 ground→mid→wall→props；halt_seal PNG；擊破／暴擊
  */
 (function (global) {
@@ -1403,7 +1403,13 @@
     ctx.font = 'bold 12px sans-serif';
     ctx.textAlign = 'center';
     ctx.globalAlpha = Math.min(0.95, 0.55 + Math.min(0.35, taxT * 0.1));
-    ctx.fillText('鏡稅圈 ' + Math.ceil(taxT) + 's｜銀×' + Math.round(mul * 100) + '%', x, y - rr * 0.55 * pulse - 10);
+    const stacks = state._mirageTaxStacks || 1;
+    const stackTxt = stacks > 1 ? '｜叠×' + stacks : '';
+    ctx.fillText(
+      '鏡稅圈 ' + Math.ceil(taxT) + 's｜銀×' + Math.round(mul * 100) + '%' + stackTxt,
+      x,
+      y - rr * 0.55 * pulse - 10
+    );
     ctx.restore();
   }
 
@@ -1417,21 +1423,24 @@
     const circuit = b.kind === 'circuit' || b.kind === 'dual';
     const dualInk = b.kind === 'dual_ink';
     const ink = b.kind === 'ink' || dualInk;
-    const penta = b.kind === 'penta';
+    const dualPenta = b.kind === 'dual_penta';
+    const penta = b.kind === 'penta' || dualPenta;
     const mirage = b.kind === 'mirage';
     const quad = b.kind === 'quad';
     const tripleB = b.kind === 'triple';
     const dual = b.kind === 'dual';
     const tide = b.kind === 'halt_tide';
-    const h = penta ? (b.blurb ? 88 : 70) : b.blurb ? 72 : 56;
-    const y0 = penta ? 178 : 188;
+    const h = dualPenta ? (b.blurb ? 96 : 78) : penta ? (b.blurb ? 88 : 70) : b.blurb ? 72 : 56;
+    const y0 = dualPenta || penta ? 172 : 188;
     drawPixelRect(ctx, 120, y0, 720, h, '#1A1510');
     const accent = elite
       ? '#C45C4A'
-      : penta
-        ? '#C45C4A'
-        : mirage
-          ? '#A8C0D8'
+      : dualPenta
+        ? '#C9A227'
+        : penta
+          ? '#C45C4A'
+          : mirage
+            ? '#A8C0D8'
           : dualInk
             ? '#B07AD4'
             : quad || tripleB
@@ -1444,24 +1453,30 @@
                     ? '#C4A070'
                     : '#C9A227';
     ctx.strokeStyle = accent;
-    ctx.lineWidth = penta ? 5 : circuit || dual || tide || ink || quad || tripleB || dualInk || mirage ? 4 : 3;
+    ctx.lineWidth = dualPenta ? 6 : penta ? 5 : circuit || dual || tide || ink || quad || tripleB || dualInk || mirage ? 4 : 3;
     ctx.strokeRect(122, y0 + 2, 716, h - 4);
     if (penta) {
-      ctx.strokeStyle = '#A8C0D8';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = dualPenta ? '#C45C4A' : '#A8C0D8';
+      ctx.lineWidth = dualPenta ? 3 : 2;
       ctx.strokeRect(130, y0 + 8, 700, h - 16);
       ctx.strokeStyle = '#C9A227';
       ctx.lineWidth = 1;
       ctx.strokeRect(138, y0 + 14, 684, h - 28);
+      if (dualPenta) {
+        ctx.strokeStyle = '#A8C0D8';
+        ctx.strokeRect(146, y0 + 20, 668, h - 40);
+      }
     }
     ctx.fillStyle = accent;
-    ctx.font = penta ? 'bold 24px sans-serif' : 'bold 22px sans-serif';
+    ctx.font = dualPenta ? 'bold 25px sans-serif' : penta ? 'bold 24px sans-serif' : 'bold 22px sans-serif';
     ctx.textAlign = 'center';
     const prefix = elite
       ? '⚔ 精英來襲 — '
-      : penta
-        ? '🪞 五潮同場 — '
-        : mirage
+      : dualPenta
+        ? '🪞🪞 雙五潮 — '
+        : penta
+          ? '🪞 五潮同場 — '
+          : mirage
           ? '鏡 帳鏡蜃 — '
           : dualInk
             ? '墨墨 雙墨同場 — '
@@ -1479,7 +1494,14 @@
       ctx.fillStyle = '#E8DCC8';
       ctx.font = penta ? '13px sans-serif' : '12px sans-serif';
       ctx.fillText(b.blurb, 480, y0 + 58);
-      if (penta) {
+      if (dualPenta) {
+        ctx.fillStyle = '#C9A227';
+        ctx.font = '12px sans-serif';
+        ctx.fillText('雙帳鏡叠壓 — 叠層見底先護銀，再分收羽墨', 480, y0 + 76);
+        ctx.fillStyle = '#A8C0D8';
+        ctx.font = '11px sans-serif';
+        ctx.fillText('第二帳鏡稍遲入場｜鏡稅叠層有見底', 480, y0 + 92);
+      } else if (penta) {
         ctx.fillStyle = '#C9A227';
         ctx.font = '11px sans-serif';
         ctx.fillText('先鎖倉清符 — 再收羽墨鏡', 480, y0 + 76);

@@ -28,6 +28,7 @@
     exportWallCompareHistoryJson,
     listWallCompareDays,
     clearWallCompareHistory,
+    importWallCompareHistory,
     recordWallSnapshot,
     formatWallTimeline,
     formatWallSparkline,
@@ -475,6 +476,12 @@
       notifyAchievements();
       UI.toast('成就｜雙五潮過招', 2200);
     }
+    if (state._dualPentaBanner && !save.ach.dual_penta_banner) {
+      save.ach.dual_penta_banner = true;
+      writeSave(save);
+      notifyAchievements();
+      UI.toast('成就｜雙五潮揭幕', 2000);
+    }
     if (state._mirageTaxStacked && !save.ach.mirage_tax_stack) {
       save.ach.mirage_tax_stack = true;
       writeSave(save);
@@ -863,26 +870,29 @@
             m.late150 ||
             m.late160 ||
             m.late180 ||
-            m.late220
+            m.late220 ||
+            m.late300
         );
         state._lateModBadge = lateMods.length
           ? lateMods.map((m) => m.name).join(' · ')
           : '';
-        state._lateModTier = lateMods.some((m) => m.late220)
-          ? 220
-          : lateMods.some((m) => m.late180)
-            ? 180
-            : lateMods.some((m) => m.late160)
-              ? 160
-              : lateMods.some((m) => m.late150)
-                ? 150
-                : lateMods.some((m) => m.late140)
-                  ? 140
-                  : lateMods.some((m) => m.late100)
-                    ? 100
-                    : lateMods.some((m) => m.late90)
-                      ? 90
-                      : 0;
+        state._lateModTier = lateMods.some((m) => m.late300)
+          ? 300
+          : lateMods.some((m) => m.late220)
+            ? 220
+            : lateMods.some((m) => m.late180)
+              ? 180
+              : lateMods.some((m) => m.late160)
+                ? 160
+                : lateMods.some((m) => m.late150)
+                  ? 150
+                  : lateMods.some((m) => m.late140)
+                    ? 140
+                    : lateMods.some((m) => m.late100)
+                      ? 100
+                      : lateMods.some((m) => m.late90)
+                        ? 90
+                        : 0;
         if ((save.bestEndlessWave || 0) >= 140) {
           if (!save.ach) save.ach = {};
           save.ach.late140_run = true;
@@ -913,22 +923,30 @@
           writeSave(save);
           notifyAchievements();
         }
+        if ((save.bestEndlessWave || 0) >= 300) {
+          if (!save.ach) save.ach = {};
+          save.ach.late300_run = true;
+          writeSave(save);
+          notifyAchievements();
+        }
         if (state._lateModBadge) {
           setTimeout(() => {
             const tag =
-              state._lateModTier >= 220
-                ? '【220+】'
-                : state._lateModTier >= 180
-                  ? '【180+】'
-                  : state._lateModTier >= 160
-                    ? '【160+】'
-                    : state._lateModTier >= 150
-                      ? '【150+】'
-                      : state._lateModTier >= 140
-                        ? '【140+】'
-                        : state._lateModTier >= 100
-                          ? '【100+】'
-                          : '【90+】';
+              state._lateModTier >= 300
+                ? '【300+】'
+                : state._lateModTier >= 220
+                  ? '【220+】'
+                  : state._lateModTier >= 180
+                    ? '【180+】'
+                    : state._lateModTier >= 160
+                      ? '【160+】'
+                      : state._lateModTier >= 150
+                        ? '【150+】'
+                        : state._lateModTier >= 140
+                          ? '【140+】'
+                          : state._lateModTier >= 100
+                            ? '【100+】'
+                            : '【90+】';
             UI.toast(tag + state._lateModBadge, 3000);
           }, 200);
         }
@@ -1821,6 +1839,21 @@
           writeSave(save);
           notifyAchievements();
           UI.toast('成就｜牆史 JSON', 1800);
+        };
+        window.__yinlouMarkWallHistImport = () => {
+          if (!save.ach) save.ach = {};
+          save.ach.wall_compare_import = true;
+          writeSave(save);
+          notifyAchievements();
+          UI.toast('成就｜牆史匯入', 1800);
+        };
+        window.__yinlouMarkTutShopArrow = () => {
+          if (!save.ach) save.ach = {};
+          if (!save.ach.tut_shop_arrow) {
+            save.ach.tut_shop_arrow = true;
+            writeSave(save);
+            notifyAchievements();
+          }
         };
         window.__yinlouMarkWallHistClear = () => {
           if (!save.ach) save.ach = {};

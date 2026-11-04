@@ -1497,25 +1497,31 @@
           (aliveBossIds.has('black_swan') ||
             aliveBossIds.has('circuit_swan') ||
             aliveBossIds.has('halt_tide'))));
-    const life = penta ? 4.2 : quad ? 3.8 : triple ? 3.6 : isCircuit || isTide || isInk || isMirage ? 3.2 : 2.9;
-    const kind = penta
-      ? 'penta'
-      : quad
-        ? 'quad'
-        : triple
-          ? 'triple'
-          : isMirage
-            ? 'mirage'
-            : isInk
-              ? 'ink'
-              : isTide
-                ? 'halt_tide'
-                : isCircuit
-                  ? 'circuit'
-                  : 'boss';
-    const blurb = penta
-      ? '五潮同場 — 黑羽＋金邊＋臨停＋墨影＋帳鏡'
-      : quad
+    const dualPentaWave =
+      !!(state.endless && state.waveIndex && state.waveIndex % 160 === 0 && penta);
+    const life = dualPentaWave ? 4.6 : penta ? 4.2 : quad ? 3.8 : triple ? 3.6 : isCircuit || isTide || isInk || isMirage ? 3.2 : 2.9;
+    const kind = dualPentaWave
+      ? 'dual_penta'
+      : penta
+        ? 'penta'
+        : quad
+          ? 'quad'
+          : triple
+            ? 'triple'
+            : isMirage
+              ? 'mirage'
+              : isInk
+                ? 'ink'
+                : isTide
+                  ? 'halt_tide'
+                  : isCircuit
+                    ? 'circuit'
+                    : 'boss';
+    const blurb = dualPentaWave
+      ? '雙五潮 — 雙帳鏡叠壓｜先鎖倉清符，再分收羽墨雙鏡'
+      : penta
+        ? '五潮同場 — 黑羽＋金邊＋臨停＋墨影＋帳鏡'
+        : quad
         ? '四潮同場 — 黑羽＋金邊＋臨停＋墨影'
         : triple
           ? '三潮同場 — 黑羽＋金邊＋臨停'
@@ -1615,24 +1621,38 @@
         else if (quad || triple) A.play('boss');
       }
     } catch (_) {}
-    const title = penta
-      ? '五潮同場'
-      : quad
-        ? '四潮同場'
-        : triple
-          ? '三潮同場'
-          : enemy.def.name + ' 入場';
+    const title = dualPentaWave
+      ? '雙五潮'
+      : penta
+        ? '五潮同場'
+        : quad
+          ? '四潮同場'
+          : triple
+            ? '三潮同場'
+            : enemy.def.name + ' 入場';
     pushFloat(state.floats, {
       x: 480,
       y: 190,
-      text: (penta ? '🪞 ' : quad ? '📜 ' : triple ? '🌊 ' : isMirage ? '鏡 ' : isInk ? '墨 ' : isTide ? '⛔ ' : isCircuit ? '🔔 ' : '⚠ ') + title,
+      text: (dualPentaWave ? '🪞🪞 ' : penta ? '🪞 ' : quad ? '📜 ' : triple ? '🌊 ' : isMirage ? '鏡 ' : isInk ? '墨 ' : isTide ? '⛔ ' : isCircuit ? '🔔 ' : '⚠ ') + title,
       color: penta || quad || triple ? '#C45C4A' : isMirage ? '#C9A227' : isInk ? '#8A9BB0' : isTide ? '#C4A070' : isCircuit ? '#E8C96A' : '#C9A227',
       size: penta || quad || triple ? 26 : isCircuit || isTide || isInk || isMirage ? 24 : 22,
       vy: -10,
       life: penta || quad || triple ? 2.9 : isCircuit || isTide || isInk || isMirage ? 2.6 : 2.3,
       bounce: 0.45,
     });
-    if (penta) {
+    if (dualPentaWave) {
+      pushFloat(state.floats, {
+        x: 480,
+        y: 230,
+        text: '雙帳鏡來襲 — 叠層見底先護銀',
+        color: '#C9A227',
+        size: 15,
+        vy: -8,
+        life: 2.8,
+        bounce: 0,
+      });
+      state._dualPentaBanner = true;
+    } else if (penta) {
       pushFloat(state.floats, {
         x: 480,
         y: 230,
