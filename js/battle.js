@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 戰鬥／生成／合併邏輯 v0.3.0
+ * 銀樓防衛 — 戰鬥／生成／合併邏輯 v0.4.0
  */
 (function (global) {
   const { HEROES, ENEMIES, GRID, CORE, heroStats, activeBonds, bondModsFor } = global.YD;
@@ -33,9 +33,14 @@
       cooldown: st.cooldown,
       cd: Math.random() * 0.3,
       auraT: 0,
+      auraTicks: 0,
       hitFlash: 0,
       atkBuff: 0,
       atkBuffT: 0,
+      atkCount: 0,
+      swingT: 0,
+      idlePhase: Math.random() * Math.PI * 2,
+      guardProcT: 0,
       def,
     };
   }
@@ -159,6 +164,34 @@
     const mods = bondModsFor(hero.id, bonds);
     let dmg = amount;
     if (hero.def.role === 'tank') dmg = Math.round(dmg * mods.tankDmgMul);
+    const sk = hero.def.skill;
+    if (sk && sk.id === 'guard_wall') {
+      if (hero.guardProcT > 0) {
+        dmg = Math.round(dmg * (sk.dmgMul || 0.45));
+        pushFloat(floats, {
+          x: hero.x,
+          y: hero.y - 36,
+          text: '護盤',
+          color: '#C9A227',
+          size: 12,
+          vy: -22,
+          life: 0.55,
+        });
+      } else if (Math.random() < (sk.proc || 0.18)) {
+        hero.guardProcT = 0.85;
+        dmg = Math.round(dmg * (sk.dmgMul || 0.45));
+        pushFloat(floats, {
+          x: hero.x,
+          y: hero.y - 36,
+          text: '護盤！',
+          color: '#C9A227',
+          size: 13,
+          vy: -24,
+          life: 0.7,
+        });
+        state.fx.push({ type: 'hit', x: hero.x, y: hero.y, color: '#C9A227', life: 0.28, r: 22 });
+      }
+    }
     hero.hp -= dmg;
     hero.hitFlash = 0.15;
     pushFloat(floats, {
@@ -175,6 +208,11 @@
   function heroAttack(hero, enemies, floats, state) {
     const bonds = state._bonds || activeBonds(state.heroes);
     const mods = bondModsFor(hero.id, bonds);
+    const sk = hero.def.skill;
+    hero.atkCount = (hero.atkCount || 0) + 1;
+    hero.swingT = 0.22;
+    let skillProc = false;
+    if (sk && sk.every && hero.atkCount % sk.every === 0) skillProc = true;
 
     // buffer：優先 buff 鄰格俠客
     if (hero.def.role === 'buffer') {
@@ -192,13 +230,21 @@
         pushFloat(floats, {
           x: hero.x,
           y: hero.y - 22,
-          text: '開市！',
+          text: skillProc ? '開市鑼！' : '開市！',
           color: '#C9A227',
-          size: 12,
+          size: skillProc ? 13 : 12,
           vy: -22,
           life: 0.7,
         });
         state.fx.push({ type: 'hit', x: hero.x, y: hero.y, color: '#C9A227', life: 0.25, r: 18 });
+      }
+      if (skillProc && sk && sk.laneBuff) {
+        for (const h of state.heroes) {
+          if (h.hp <= 0 || h.lane !== hero.lane) continue;
+          h.atkBuff = Math.max(h.atkBuff || 0, (h.atkBuff || 0) + sk.laneBuff);
+          h.atkBuffT = Math.max(h.atkBuffT || 0, sk.laneBuffDur || 1.8);
+        }
+        state.fx.push({ type: 'skill', x: hero.x, y: hero.y, color: '#C9A227', life: 0.45, text: sk.name });
       }
     }
 
@@ -209,9 +255,10 @@
     if (hero.atkBuffT > 0 && hero.atkBuff) dmg *= 1 + hero.atkBuff;
     dmg = Math.round(dmg);
     let kind = 'hit';
+    let splashMul = 1;
 
     if (hero.def.role === 'assassin' && target.x > 700) {
-      dmg = Math.round(dmg * 1.35);
+      dmg = Math.round(dmg * 1.4);
       kind = 'crit';
     }
     if (hero.def.role === 'hunter' || hero.def.highHpBonus) {
@@ -223,18 +270,63 @@
       }
     }
 
+    if (skillProc && sk) {
+      if (sk.dmgMul) {
+        const ok =
+          sk.id !== 'short_squeeze' ||
+          target.boss ||
+          target.hp / target.maxHp >= (sk.hpGate || 0.7);
+        if (ok) {
+          dmg = Math.round(dmg * sk.dmgMul);
+          kind = 'crit';
+          pushFloat(floats, {
+            x: hero.x,
+            y: hero.y - 40,
+            text: sk.name + '！',
+            color: hero.def.color,
+            size: 13,
+            vy: -26,
+            life: 0.75,
+          });
+          state.fx.push({
+            type: 'skill',
+            x: hero.x,
+            y: hero.y,
+            color: hero.def.color,
+            life: 0.4,
+            text: sk.name,
+          });
+        }
+      }
+      if (sk.splashMul) splashMul = sk.splashMul;
+      if (sk.deepSlow) {
+        target.slowT = Math.max(target.slowT, sk.deepSlowDur || 2);
+        target.speed = target.baseSpeed * (1 - sk.deepSlow);
+        pushFloat(floats, {
+          x: target.x,
+          y: target.y - 22,
+          text: '看淡！',
+          color: '#2A6A6A',
+          size: 12,
+          vy: -20,
+          life: 0.7,
+        });
+      }
+    }
+
     applyDamage(target, dmg, floats, kind);
 
-    if (hero.def.slow && target.hp > 0) {
+    if (hero.def.slow && target.hp > 0 && !(skillProc && sk && sk.deepSlow)) {
       target.slowT = Math.max(target.slowT, hero.def.slowDur);
       target.speed = target.baseSpeed * (1 - hero.def.slow);
     }
 
     if (hero.def.splash) {
+      const rad = hero.def.splash * splashMul;
       for (const e of enemies) {
         if (e.uid === target.uid || e.hp <= 0) continue;
-        if (Math.hypot(e.x - target.x, e.y - target.y) <= hero.def.splash) {
-          applyDamage(e, Math.round(dmg * 0.55), floats, 'splash');
+        if (Math.hypot(e.x - target.x, e.y - target.y) <= rad) {
+          applyDamage(e, Math.round(dmg * 0.55 * (splashMul > 1 ? 1.1 : 1)), floats, 'splash');
         }
       }
       if (hero.def.selfRisk && Math.random() < hero.def.selfRisk) {
@@ -278,8 +370,26 @@
     hero.auraT += dt;
     if (hero.auraT < 1) return;
     hero.auraT = 0;
-    const heal = (hero.def.auraHeal || 0) * hero.star * mods.auraMul;
-    const sil = (hero.def.auraSilver || 0) * hero.star * mods.auraMul;
+    hero.auraTicks = (hero.auraTicks || 0) + 1;
+    const sk = hero.def.skill;
+    let healMul = 1;
+    let silExtra = 0;
+    if (sk && sk.every && hero.auraTicks % sk.every === 0) {
+      healMul = sk.healMul || 1.35;
+      silExtra = sk.silverBurst || 3;
+      pushFloat(state.floats, {
+        x: hero.x,
+        y: hero.y - 38,
+        text: (sk.name || '分紅') + '！',
+        color: '#3A7A6A',
+        size: 12,
+        vy: -22,
+        life: 0.7,
+      });
+      state.fx.push({ type: 'skill', x: hero.x, y: hero.y, color: '#3A7A6A', life: 0.4, text: sk.name });
+    }
+    const heal = (hero.def.auraHeal || 0) * hero.star * mods.auraMul * healMul;
+    const sil = (hero.def.auraSilver || 0) * hero.star * mods.auraMul + silExtra;
     for (const h of heroes) {
       if (Math.abs(h.lane - hero.lane) <= 1) {
         h.hp = Math.min(h.maxHp, h.hp + heal);
@@ -302,6 +412,8 @@
     for (const h of state.heroes) {
       if (h.hp <= 0) continue;
       if (h.hitFlash > 0) h.hitFlash -= dt;
+      if (h.swingT > 0) h.swingT = Math.max(0, h.swingT - dt);
+      if (h.guardProcT > 0) h.guardProcT = Math.max(0, h.guardProcT - dt);
       if (h.atkBuffT > 0) {
         h.atkBuffT -= dt;
         if (h.atkBuffT <= 0) {
@@ -448,6 +560,30 @@
     state.fx = state.fx.filter((fx) => fx.life > 0);
     if (state.shake > 0) state.shake = Math.max(0, state.shake - dt);
     if (state.coreHitFlash > 0) state.coreHitFlash = Math.max(0, state.coreHitFlash - dt);
+    if (state.bossBanner && state.bossBanner.life > 0) {
+      state.bossBanner.life -= dt;
+      if (state.bossBanner.life <= 0) state.bossBanner = null;
+    }
+  }
+
+  function announceBoss(state, enemy) {
+    state.bossBanner = {
+      name: enemy.def.name,
+      life: 2.6,
+      maxLife: 2.6,
+    };
+    state.shake = Math.max(state.shake || 0, 0.28);
+    state.fx.push({ type: 'bossWarn', life: 2.4 });
+    pushFloat(state.floats, {
+      x: 480,
+      y: 200,
+      text: '⚠ ' + enemy.def.name + ' 入場',
+      color: '#C9A227',
+      size: 22,
+      vy: -12,
+      life: 2.2,
+      bounce: 0,
+    });
   }
 
   function createSpawner(waveDef) {
@@ -517,6 +653,7 @@
     hitTestHero,
     spawnMergeFx,
     pushFloat,
+    announceBoss,
     activeBonds,
   };
 })(window);

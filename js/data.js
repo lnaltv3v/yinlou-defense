@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 靜態資料 v0.3.0
+ * 銀樓防衛 — 靜態資料 v0.4.0
  * 角色為原創綽號，影射金融江湖氣氛；唔用真人真名／金庸名／Fortias IP。
  */
 (function (global) {
@@ -34,6 +34,14 @@
       range: 78,
       cooldown: 0.55,
       speed: 0,
+      skill: {
+        id: 'bull_charge',
+        name: '牛市衝鋒',
+        type: 'active',
+        blurb: '每第 4 刀爆發 1.85× 傷',
+        every: 4,
+        dmgMul: 1.85,
+      },
     },
     short_blade: {
       id: 'short_blade',
@@ -48,8 +56,17 @@
       range: 210,
       cooldown: 0.7,
       speed: 0,
-      slow: 0.35,
-      slowDur: 1.2,
+      slow: 0.4,
+      slowDur: 1.35,
+      skill: {
+        id: 'bear_mark',
+        name: '看淡印',
+        type: 'active',
+        blurb: '每第 5 劍加深減速至 60%',
+        every: 5,
+        deepSlow: 0.6,
+        deepSlowDur: 2.0,
+      },
     },
     leverage_monk: {
       id: 'leverage_monk',
@@ -64,7 +81,16 @@
       range: 120,
       cooldown: 1.45,
       splash: 55,
-      selfRisk: 0.08,
+      selfRisk: 0.07,
+      skill: {
+        id: 'margin_blast',
+        name: '爆倉',
+        type: 'active',
+        blurb: '每第 3 擊濺射 ×1.55、傷 ×1.3',
+        every: 3,
+        splashMul: 1.55,
+        dmgMul: 1.3,
+      },
     },
     dividend_hermit: {
       id: 'dividend_hermit',
@@ -78,8 +104,17 @@
       hp: 60,
       range: 100,
       cooldown: 0.9,
-      auraHeal: 6,
-      auraSilver: 0.4,
+      auraHeal: 7,
+      auraSilver: 0.45,
+      skill: {
+        id: 'div_payout',
+        name: '分紅日',
+        type: 'passive',
+        blurb: '光環每 4 跳額外 +3 兩並強化治療',
+        every: 4,
+        silverBurst: 3,
+        healMul: 1.35,
+      },
     },
     market_guard: {
       id: 'market_guard',
@@ -90,9 +125,17 @@
       color: '#6A6055',
       silhouette: 'shield',
       atk: 7,
-      hp: 160,
+      hp: 165,
       range: 70,
       cooldown: 0.8,
+      skill: {
+        id: 'guard_wall',
+        name: '護盤',
+        type: 'passive',
+        blurb: '受擊 18% 觸發護盤，該下減傷 55%',
+        proc: 0.18,
+        dmgMul: 0.45,
+      },
     },
     penny_assassin: {
       id: 'penny_assassin',
@@ -103,10 +146,18 @@
       color: '#A04040',
       silhouette: 'dagger',
       atk: 16,
-      hp: 40,
+      hp: 42,
       range: 160,
       cooldown: 0.4,
       preferBack: true,
+      skill: {
+        id: 'penny_strike',
+        name: '偷襲',
+        type: 'active',
+        blurb: '每第 5 刀後排額外 1.7×',
+        every: 5,
+        dmgMul: 1.7,
+      },
     },
     ipo_herald: {
       id: 'ipo_herald',
@@ -120,8 +171,17 @@
       hp: 65,
       range: 90,
       cooldown: 1.1,
-      buffAtk: 0.18,
-      buffDur: 2.2,
+      buffAtk: 0.2,
+      buffDur: 2.4,
+      skill: {
+        id: 'ipo_call',
+        name: '開市鑼',
+        type: 'active',
+        blurb: '每第 3 次喊單，同 lane 全員短暫 +12% 攻',
+        every: 3,
+        laneBuff: 0.12,
+        laneBuffDur: 1.8,
+      },
     },
     squeeze_blade: {
       id: 'squeeze_blade',
@@ -135,7 +195,16 @@
       hp: 75,
       range: 100,
       cooldown: 0.65,
-      highHpBonus: 0.4,
+      highHpBonus: 0.45,
+      skill: {
+        id: 'short_squeeze',
+        name: '軋空',
+        type: 'active',
+        blurb: '打 Boss／血量>70% 時每第 4 擊 2.1×',
+        every: 4,
+        dmgMul: 2.1,
+        hpGate: 0.7,
+      },
     },
   };
 
@@ -267,14 +336,14 @@
     {
       id: 1,
       name: '錢莊初夜',
-      startSilver: 130,
-      coreHp: 160,
+      startSilver: 145,
+      coreHp: 170,
       unlockHeroes: Object.keys(HEROES),
       waves: [
-        wavePack([{ enemy: 'retail_tide', count: 5, lane: 'cycle', interval: 0.95 }]),
+        wavePack([{ enemy: 'retail_tide', count: 4, lane: 'cycle', interval: 1.05 }]),
         wavePack([
-          { enemy: 'retail_tide', count: 7, lane: 'cycle', interval: 0.75 },
-          { enemy: 'chase_zombie', count: 1, lane: 'random', interval: 1.5, delay: 2.2 },
+          { enemy: 'retail_tide', count: 6, lane: 'cycle', interval: 0.8 },
+          { enemy: 'chase_zombie', count: 1, lane: 'random', interval: 1.6, delay: 2.5 },
         ]),
         wavePack([
           { enemy: 'retail_tide', count: 6, lane: 'cycle', interval: 0.7 },
@@ -296,8 +365,8 @@
     {
       id: 2,
       name: '午市殺跌',
-      startSilver: 145,
-      coreHp: 175,
+      startSilver: 155,
+      coreHp: 180,
       unlockHeroes: Object.keys(HEROES),
       waves: [
         wavePack([
@@ -335,8 +404,8 @@
     {
       id: 3,
       name: '夜盤黑潮',
-      startSilver: 165,
-      coreHp: 200,
+      startSilver: 175,
+      coreHp: 205,
       unlockHeroes: Object.keys(HEROES),
       waves: [
         wavePack([
@@ -384,8 +453,8 @@
     {
       id: 4,
       name: '清算之夜',
-      startSilver: 180,
-      coreHp: 220,
+      startSilver: 195,
+      coreHp: 230,
       unlockHeroes: Object.keys(HEROES),
       waves: [
         wavePack([
@@ -441,10 +510,115 @@
   const ENDLESS = {
     id: 'endless',
     name: '無盡殺跌',
-    startSilver: 155,
-    coreHp: 185,
+    startSilver: 170,
+    coreHp: 190,
     unlockHeroes: Object.keys(HEROES),
   };
+
+  /** 波次結束補銀（關卡／無盡分開） */
+  function waveClearBonus(waveIndex, endless) {
+    if (endless) {
+      // 無盡：前期略甜、後期仍升但唔失控
+      return Math.round(18 + waveIndex * 6.5 + Math.min(40, waveIndex * 1.2));
+    }
+    return 22 + waveIndex * 8;
+  }
+
+  /** 香港日曆日字串 YYYY-MM-DD */
+  function hkDateString(d) {
+    const dt = d || new Date();
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Hong_Kong',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(dt);
+    const get = (t) => parts.find((p) => p.type === t).value;
+    return get('year') + '-' + get('month') + '-' + get('day');
+  }
+
+  /** 每日關：用日期 seed 選挑戰組合（輕量） */
+  function dailyStageMeta(dateStr) {
+    const s = dateStr || hkDateString();
+    let h = 0;
+    for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+    const themes = [
+      { name: '早市抽水', focus: 'margin_call', blurb: '追保令偏多' },
+      { name: '午后軋空', focus: 'leverage_fiend', blurb: '槓桿妖偏多' },
+      { name: '夜傳風聲', focus: 'rumor_swarm', blurb: '傳聞蚊偏多' },
+      { name: '黑羽預警', focus: 'black_swan', blurb: '黑天鵝更早' },
+    ];
+    const theme = themes[h % themes.length];
+    const base = STAGES[1 + (h % 3)]; // 2–4 關難度帶
+    return {
+      id: 'daily',
+      date: s,
+      name: '每日·' + theme.name,
+      blurb: theme.blurb,
+      focus: theme.focus,
+      startSilver: 160 + (h % 5) * 8,
+      coreHp: 185 + (h % 4) * 10,
+      seed: h,
+      unlockHeroes: Object.keys(HEROES),
+      waveCount: 5 + (h % 3),
+      baseStageId: base.id,
+    };
+  }
+
+  function buildDailyWaves(meta) {
+    const n = meta.waveCount;
+    const focus = meta.focus;
+    const waves = [];
+    for (let i = 1; i <= n; i++) {
+      const spawns = [
+        { enemy: 'retail_tide', count: 6 + i, lane: 'cycle', interval: Math.max(0.32, 0.7 - i * 0.04) },
+      ];
+      if (i >= 2) {
+        spawns.push({
+          enemy: focus === 'rumor_swarm' ? 'rumor_swarm' : 'chase_zombie',
+          count: 3 + Math.floor(i / 2),
+          lane: 'random',
+          interval: 0.75,
+          delay: 0.8,
+        });
+      }
+      if (i >= 2) {
+        spawns.push({
+          enemy: focus,
+          count: focus === 'black_swan' ? (i >= n - 1 ? 1 : 0) : 2 + Math.floor(i / 2),
+          lane: focus === 'black_swan' ? (i % 4) : 'cycle',
+          interval: focus === 'black_swan' ? 0 : 1.0,
+          delay: focus === 'black_swan' ? 3.5 : 1.2,
+        });
+      }
+      if (i === n || (focus === 'black_swan' && i >= n - 1)) {
+        spawns.push({
+          enemy: 'black_swan',
+          count: 1,
+          lane: 2,
+          interval: 0,
+          delay: 4,
+          hpMul: 1 + i * 0.04,
+        });
+      }
+      // filter zero counts
+      waves.push({ spawns: spawns.filter((s) => s.count > 0) });
+    }
+    return waves;
+  }
+
+  const ACHIEVEMENTS = [
+    { id: 'first_clear', name: '開張大吉', blurb: '通關第 1 關', check: (s) => (s.maxStageCleared || 0) >= 1 },
+    { id: 'stage4', name: '清算達人', blurb: '通關第 4 關', check: (s) => (s.maxStageCleared || 0) >= 4 },
+    { id: 'maxstar', name: '滿星開盤', blurb: '首次合成 3 星', check: (s) => !!s.ach && s.ach.maxstar },
+    { id: 'bond', name: '齊人有行情', blurb: '首次觸發羈絆', check: (s) => !!s.ach && s.ach.bond },
+    { id: 'kills100', name: '百人斬', blurb: '累計擊殺 100', check: (s) => (s.totalKills || 0) >= 100 },
+    { id: 'kills500', name: '殺跌機器', blurb: '累計擊殺 500', check: (s) => (s.totalKills || 0) >= 500 },
+    { id: 'endless10', name: '撐過十浪', blurb: '無盡最佳 ≥ 10 波', check: (s) => (s.bestEndlessWave || 0) >= 10 },
+    { id: 'codex_heroes', name: '門派圖齊', blurb: '圖鑑見齊全部俠客', check: (s) => Object.keys(HEROES).every((id) => (s.seenHeroes || {})[id]) },
+    { id: 'codex_enemies', name: '敵情盡知', blurb: '圖鑑見齊全部敵人', check: (s) => Object.keys(ENEMIES).every((id) => (s.seenEnemies || {})[id]) },
+    { id: 'daily', name: '日日開盤', blurb: '完成一次每日關', check: (s) => !!s.ach && s.ach.daily },
+  ];
 
   function buildEndlessWave(n) {
     const mul = 1 + (n - 1) * 0.11;
@@ -581,15 +755,48 @@
 
   function defaultSave() {
     return {
-      version: 3,
+      version: 4,
       totalSilver: 0,
+      totalKills: 0,
       maxStageCleared: 0,
       bestEndlessWave: 0,
       unlocked: Object.keys(HEROES),
       lastSpeed: 1,
       skipTutorial: false,
       showCellHints: true,
+      seenHeroes: {},
+      seenEnemies: {},
+      ach: {},
+      unlockedAch: {},
+      dailyDate: '',
+      dailyCleared: false,
     };
+  }
+
+  function markSeenHero(save, id) {
+    if (!save.seenHeroes) save.seenHeroes = {};
+    save.seenHeroes[id] = true;
+  }
+
+  function markSeenEnemy(save, id) {
+    if (!save.seenEnemies) save.seenEnemies = {};
+    save.seenEnemies[id] = true;
+  }
+
+  function refreshAchievements(save) {
+    if (!save.ach) save.ach = {};
+    if (!save.unlockedAch) save.unlockedAch = {};
+    const newly = [];
+    for (const a of ACHIEVEMENTS) {
+      if (save.unlockedAch[a.id]) continue;
+      try {
+        if (a.check(save)) {
+          save.unlockedAch[a.id] = true;
+          newly.push(a);
+        }
+      } catch (_) {}
+    }
+    return newly;
   }
 
   function writeSave(data) {
@@ -603,7 +810,12 @@
     ENEMIES,
     STAGES,
     ENDLESS,
+    ACHIEVEMENTS,
     buildEndlessWave,
+    buildDailyWaves,
+    dailyStageMeta,
+    hkDateString,
+    waveClearBonus,
     GRID,
     CORE,
     SPEED_OPTIONS,
@@ -617,5 +829,8 @@
     loadSave,
     writeSave,
     defaultSave,
+    markSeenHero,
+    markSeenEnemy,
+    refreshAchievements,
   };
 })(window);

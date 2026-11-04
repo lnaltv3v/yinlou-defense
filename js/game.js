@@ -1,6 +1,6 @@
 /**
- * 銀樓防衛 — 主循環 v0.3.0
- * 經濟曲線、合併回報、羈絆、暫停／設定、短教學、欄位高亮
+ * 銀樓防衛 — 主循環 v0.4.0
+ * 技能／Boss 入場、圖鑑／成就／每日關、視覺＋平衡
  */
 (function () {
   const {
@@ -12,9 +12,16 @@
     writeSave,
     defaultSave,
     buildEndlessWave,
+    buildDailyWaves,
+    dailyStageMeta,
+    hkDateString,
+    waveClearBonus,
     summonCost,
     mergeRebate,
     activeBonds,
+    markSeenHero,
+    markSeenEnemy,
+    refreshAchievements,
   } = YD;
   const Battle = YDBattle;
   const UI = YDUI;
@@ -24,13 +31,43 @@
   ctx.imageSmoothingEnabled = false;
 
   let save = loadSave();
+  // migrate soft fields
+  if (!save.seenHeroes) save.seenHeroes = {};
+  if (!save.seenEnemies) save.seenEnemies = {};
+  if (!save.ach) save.ach = {};
+  if (!save.unlockedAch) save.unlockedAch = {};
+  if (save.totalKills == null) save.totalKills = 0;
+  if (save.version < 4) {
+    save.version = 4;
+    writeSave(save);
+  }
+
   let shopApi = null;
   let speedApi = null;
   let stageApi = null;
 
-  function freshState(stageIndex, endless) {
+  function notifyAchievements() {
+    const newly = refreshAchievements(save);
+    if (newly && newly.length) {
+      writeSave(save);
+      for (const a of newly) UI.toast('成就：' + a.name, 2200);
+    }
+  }
+
+  function freshState(stageIndex, endless, daily) {
     let stage;
-    if (endless) {
+    if (daily) {
+      const meta = dailyStageMeta();
+      stage = {
+        id: 'daily',
+        name: meta.name,
+        startSilver: meta.startSilver,
+        coreHp: meta.coreHp,
+        unlockHeroes: meta.unlockHeroes,
+        waves: buildDailyWaves(meta),
+        dailyMeta: meta,
+      };
+    } else if (endless) {
       stage = {
         id: ENDLESS.id,
         name: ENDLESS.name,
@@ -45,8 +82,9 @@
     }
     return {
       stage,
-      stageIndex: endless ? -1 : stageIndex,
-      endless: !!endless,
+      stageIndex: endless || daily ? -1 : stageIndex,
+      endless: !!endless && !daily,
+      daily: !!daily,
       phase: 'prep',
       silver: stage.startSilver,
       coreHp: stage.coreHp,
@@ -70,16 +108,22 @@
       summonCounts: {},
       showCellHints: save.showCellHints !== false,
       _bonds: [],
+      bossBanner: null,
     };
   }
 
-  let state = freshState(Math.min(save.maxStageCleared, STAGES.length - 1), false);
+  let state = freshState(Math.min(save.maxStageCleared, STAGES.length - 1), false, false);
 
   function syncAll() {
     state._bonds = activeBonds(state.heroes);
+    if (state._bonds.length && !save.ach.bond) {
+      save.ach.bond = true;
+      writeSave(save);
+      notifyAchievements();
+    }
     if (shopApi) shopApi.refresh();
     if (speedApi) speedApi.refresh();
-    if (stageApi) stageApi.refresh(state.endless ? null : state.stage.id, state.endless);
+    if (stageApi) stageApi.refresh(state.endless || state.daily ? null : state.stage.id, state.endless, state.daily);
     UI.updateHud(state);
     updateHint();
   }
@@ -94,7 +138,7 @@
   function updateHint() {
     if (state.phase === 'won' || state.phase === 'lost') return;
     if (state.paused) {
-      UI.setHint('已暫停 — 再按「暫停」或 Esc 繼續｜設定可開關欄位高亮');
+      UI.setHint('已暫停 — 再按「暫停」或 Esc 繼續｜圖鑑／設定可查技能');
       return;
     }
     if (state.tutorialStep === 0) {
@@ -106,7 +150,7 @@
       return;
     }
     if (state.tutorialStep === 2) {
-      UI.setHint('③ 按「開波」守銀樓；齊人觸發羈絆');
+      UI.setHint('③ 按「開波」守銀樓；齊人觸發羈絆；每人有簡版技能');
       return;
     }
     if (state.drag && state.drag.active) {
@@ -115,8 +159,9 @@
     }
     if (state.selectedShopId) {
       const cost = summonCost(state.selectedShopId, state.summonCounts);
+      const def = HEROES[state.selectedShopId];
       UI.setHint(
-        '已選「' + HEROES[state.selectedShopId].name + '」（' + cost + ' 兩）— 點／拖到空格'
+        '已選「' + def.name + '」（' + cost + ' 兩）' + (def.skill ? '｜' + def.skill.name : '')
       );
       return;
     }
@@ -128,7 +173,7 @@
       state._bonds && state._bonds.length
         ? '｜羈絆：' + state._bonds.map((b) => b.name).join('、')
         : '';
-    UI.setHint('拖放放置／合併｜開波｜暫停／設定' + bondTxt);
+    UI.setHint('拖放放置／合併｜開波｜圖鑑／每日' + bondTxt);
   }
 
   shopApi = UI.buildShop(
@@ -139,7 +184,10 @@
       state.mergeFromUid = null;
       syncAll();
       if (state.selectedShopId) {
-        UI.toast('已選 ' + HEROES[id].name + ' — 放到空格');
+        const def = HEROES[id];
+        UI.toast(
+          '已選 ' + def.name + (def.skill ? '（' + def.skill.name + '）' : '') + ' — 放到空格'
+        );
         if (state.tutorialStep === 0) advanceTutorial(0);
       }
     },
@@ -180,33 +228,39 @@
     }
   );
 
+  function enterStage(idx, endless, daily) {
+    if (state.phase === 'wave' && !state.paused) {
+      UI.toast('交戰中請先暫停或打完再換關');
+      return false;
+    }
+    UI.hideOverlay();
+    state = freshState(idx, endless, daily);
+    resetWaveBtn();
+    syncAll();
+    return true;
+  }
+
   stageApi = UI.buildStageBar(
     () => save,
     (idx) => {
-      if (state.phase === 'wave' && !state.paused) {
-        UI.toast('交戰中請先暫停或打完再換關');
-        return;
-      }
-      UI.hideOverlay();
-      state = freshState(idx, false);
-      resetWaveBtn();
-      syncAll();
-      UI.toast('進入：' + state.stage.name);
+      if (enterStage(idx, false, false)) UI.toast('進入：' + state.stage.name);
     },
     () => {
-      if (state.phase === 'wave' && !state.paused) {
-        UI.toast('交戰中請先暫停或打完再換關');
-        return;
-      }
       if (save.maxStageCleared < 1) {
         UI.toast('先通關第 1 關解鎖無盡');
         return;
       }
-      UI.hideOverlay();
-      state = freshState(0, true);
-      resetWaveBtn();
-      syncAll();
-      UI.toast('無盡殺跌 — 愈打愈密');
+      if (enterStage(0, true, false)) UI.toast('無盡殺跌 — 愈打愈密');
+    },
+    () => {
+      if (save.maxStageCleared < 1) {
+        UI.toast('先通關第 1 關解鎖每日');
+        return;
+      }
+      if (enterStage(0, false, true)) {
+        const meta = state.stage.dailyMeta;
+        UI.toast('每日：' + meta.name + '（' + meta.blurb + '）');
+      }
     }
   );
 
@@ -239,7 +293,7 @@
     }
     state.phase = 'wave';
     advanceTutorial(3);
-    UI.toast((state.endless ? '無盡第 ' : '第 ') + state.waveIndex + ' 波來襲！');
+    UI.toast((state.endless ? '無盡第 ' : state.daily ? '每日第 ' : '第 ') + state.waveIndex + ' 波來襲！');
     syncAll();
     const btn = document.getElementById('btn-wave');
     if (btn) btn.disabled = true;
@@ -250,8 +304,56 @@
     if (!state.endless && state.waveIndex >= state.stage.waves.length) {
       state.phase = 'won';
       save.totalSilver += Math.floor(state.silver);
+      save.totalKills = (save.totalKills || 0) + state.kills;
+
+      if (state.daily) {
+        const today = hkDateString();
+        let dailyBonus = 0;
+        if (save.dailyDate !== today || !save.dailyCleared) {
+          dailyBonus = 80;
+          save.dailyDate = today;
+          save.dailyCleared = true;
+          save.ach.daily = true;
+          save.totalSilver += dailyBonus;
+        }
+        writeSave(save);
+        notifyAchievements();
+        UI.showOverlay(
+          '每日過關',
+          '打退 ' +
+            state.waveIndex +
+            ' 波！擊殺 ' +
+            state.kills +
+            '。' +
+            (dailyBonus ? '\n今日首清獎金 +' + dailyBonus + ' 兩入帳。' : '\n今日已領過首清獎。') +
+            '\n累計銀兩帳 ' +
+            save.totalSilver +
+            '。',
+          '再打每日',
+          () => {
+            UI.hideOverlay();
+            resetRun(false, true);
+          },
+          [
+            {
+              label: '回第 1 關',
+              secondary: true,
+              onClick: () => {
+                UI.hideOverlay();
+                state = freshState(0, false, false);
+                resetWaveBtn();
+                syncAll();
+              },
+            },
+          ]
+        );
+        syncAll();
+        return;
+      }
+
       save.maxStageCleared = Math.max(save.maxStageCleared, state.stage.id);
       writeSave(save);
+      notifyAchievements();
       const nextIdx = state.stageIndex + 1;
       const hasNext = nextIdx < STAGES.length;
       const extras = [];
@@ -260,7 +362,7 @@
           label: '下一關：' + STAGES[nextIdx].name,
           onClick: () => {
             UI.hideOverlay();
-            state = freshState(nextIdx, false);
+            state = freshState(nextIdx, false, false);
             resetWaveBtn();
             syncAll();
           },
@@ -270,7 +372,7 @@
         label: '再打本關',
         onClick: () => {
           UI.hideOverlay();
-          resetRun(false);
+          resetRun(false, false);
         },
       });
       UI.showOverlay(
@@ -282,17 +384,12 @@
           '。累計銀兩帳 ' +
           save.totalSilver +
           '。' +
-          (hasNext
-            ? '\n已解鎖下一關。'
-            : '\n四關皆破！可挑戰無盡。'),
+          (hasNext ? '\n已解鎖下一關。' : '\n四關皆破！可挑戰無盡／每日。'),
         hasNext ? '下一關' : '回第 1 關',
         () => {
           UI.hideOverlay();
-          if (hasNext) {
-            state = freshState(nextIdx, false);
-          } else {
-            state = freshState(0, false);
-          }
+          if (hasNext) state = freshState(nextIdx, false, false);
+          else state = freshState(0, false, false);
           resetWaveBtn();
           syncAll();
         },
@@ -305,10 +402,11 @@
     if (state.endless) {
       save.bestEndlessWave = Math.max(save.bestEndlessWave || 0, state.waveIndex);
       writeSave(save);
+      notifyAchievements();
     }
 
     state.phase = 'prep';
-    const bonus = 20 + state.waveIndex * 7;
+    const bonus = waveClearBonus(state.waveIndex, state.endless);
     state.silver += bonus;
     UI.toast('波次結束，整備中（補銀 +' + bonus + '）');
     const btn = document.getElementById('btn-wave');
@@ -322,30 +420,35 @@
   function lose() {
     state.phase = 'lost';
     state.paused = false;
+    save.totalKills = (save.totalKills || 0) + state.kills;
     if (state.endless) {
       save.bestEndlessWave = Math.max(save.bestEndlessWave || 0, state.waveIndex);
-      writeSave(save);
     }
+    writeSave(save);
+    notifyAchievements();
     UI.showOverlay(
       '銀樓失守',
       '核心被攻破。擊殺 ' +
         state.kills +
         (state.endless
           ? '｜無盡撐到第 ' + state.waveIndex + ' 波（最佳 ' + (save.bestEndlessWave || 0) + '）'
-          : '') +
-        '。調整陣容／羈絆再試。',
+          : state.daily
+            ? '｜每日未過'
+            : '') +
+        '。調整陣容／技能／羈絆再試。',
       '重開本關',
       () => {
         UI.hideOverlay();
-        resetRun(state.endless);
+        resetRun(state.endless, state.daily);
       }
     );
   }
 
-  function resetRun(keepEndless) {
-    const endless = keepEndless && state.endless;
-    const idx = endless ? 0 : state.stageIndex >= 0 ? state.stageIndex : 0;
-    state = freshState(idx, endless);
+  function resetRun(keepEndless, keepDaily) {
+    const daily = keepDaily && state.daily;
+    const endless = !daily && keepEndless && state.endless;
+    const idx = endless || daily ? 0 : state.stageIndex >= 0 ? state.stageIndex : 0;
+    state = freshState(idx, endless, daily);
     resetWaveBtn();
     syncAll();
     UI.toast('新一局 — 放置俠客後開波');
@@ -356,6 +459,16 @@
     state.paused = !state.paused;
     UI.toast(state.paused ? '已暫停' : '繼續');
     syncAll();
+  }
+
+  function openCodex() {
+    state.paused = true;
+    UI.showCodex(() => save, () => syncAll());
+  }
+
+  function openAchievements() {
+    state.paused = true;
+    UI.showAchievements(() => save, () => syncAll());
   }
 
   function openSettings() {
@@ -377,32 +490,31 @@
       onClearSave: () => {
         save = defaultSave();
         writeSave(save);
-        state = freshState(0, false);
+        state = freshState(0, false, false);
         resetWaveBtn();
         syncAll();
         UI.toast('存檔已清除');
       },
-      onClose: () => {
-        syncAll();
-      },
-      onRestart: () => {
-        resetRun(state.endless);
-      },
+      onClose: () => syncAll(),
+      onRestart: () => resetRun(state.endless, state.daily),
+      onOpenCodex: () => openCodex(),
+      onOpenAch: () => openAchievements(),
     });
   }
 
   document.getElementById('btn-wave').addEventListener('click', startWave);
   document.getElementById('btn-reset').addEventListener('click', () => {
     UI.hideOverlay();
-    resetRun(state.endless);
+    resetRun(state.endless, state.daily);
   });
   document.getElementById('btn-pause').addEventListener('click', togglePause);
   document.getElementById('btn-settings').addEventListener('click', openSettings);
+  document.getElementById('btn-codex').addEventListener('click', openCodex);
 
   window.addEventListener('keydown', (ev) => {
     if (ev.key === 'Escape') {
       const ov = document.getElementById('overlay');
-      if (ov && ov.classList.contains('show') && ov.classList.contains('settings-mode')) {
+      if (ov && ov.classList.contains('show') && (ov.classList.contains('settings-mode') || ov.classList.contains('codex-mode'))) {
         UI.hideOverlay();
         syncAll();
         return;
@@ -410,6 +522,7 @@
       togglePause();
     }
     if (ev.key === 'p' || ev.key === 'P') togglePause();
+    if (ev.key === 'c' || ev.key === 'C') openCodex();
   });
 
   function canvasPos(ev) {
@@ -444,6 +557,9 @@
     state.silver -= cost;
     state.summonCounts[shopId] = (state.summonCounts[shopId] || 0) + 1;
     state.heroes.push(Battle.makeHero(def.id, cell.lane, cell.slot, 1));
+    markSeenHero(save, shopId);
+    writeSave(save);
+    notifyAchievements();
     UI.toast('上陣：' + def.name + '（−' + cost + '）');
     advanceTutorial(1);
     const nextCost = summonCost(shopId, state.summonCounts);
@@ -469,6 +585,11 @@
       });
     }
     Battle.spawnMergeFx(state, now);
+    if (now.star >= 3 && !save.ach.maxstar) {
+      save.ach.maxstar = true;
+      writeSave(save);
+      notifyAchievements();
+    }
     UI.toast(HEROES[now.id].name + ' → ' + now.star + ' 星' + (rebate ? '（+' + rebate + '兩）' : ''));
     advanceTutorial(2);
     state.mergeFromUid = null;
@@ -542,7 +663,10 @@
     if (occupied) {
       state.selectedHeroUid = occupied.uid;
       state.mergeFromUid = occupied.uid;
-      UI.toast('已選 ' + HEROES[occupied.id].name + ' — 合併或調位');
+      const sk = HEROES[occupied.id].skill;
+      UI.toast(
+        '已選 ' + HEROES[occupied.id].name + (sk ? '｜' + sk.name : '') + ' — 合併或調位'
+      );
       syncAll();
     }
   });
@@ -733,7 +857,14 @@
         lane = sp.laneCycle % YD.GRID.lanes;
         sp.laneCycle += 1;
       }
-      state.enemies.push(Battle.makeEnemy(job.enemy, lane, { hpMul: job.hpMul || 1 }));
+      const enemy = Battle.makeEnemy(job.enemy, lane, { hpMul: job.hpMul || 1 });
+      state.enemies.push(enemy);
+      if (!save.seenEnemies || !save.seenEnemies[job.enemy]) {
+        markSeenEnemy(save, job.enemy);
+        writeSave(save);
+        notifyAchievements();
+      }
+      if (enemy.boss) Battle.announceBoss(state, enemy);
       job.left -= 1;
     }
     if (!remaining && state.enemies.length === 0) {
@@ -769,7 +900,6 @@
     } else if (!state.paused) {
       Battle.tickFloats(state, dt);
     } else {
-      // 暫停：特效緩慢淡出
       Battle.tickFloats(state, rawDt * 0.3);
     }
 
@@ -780,12 +910,15 @@
   }
 
   const unlocked = save.maxStageCleared || 0;
+  const dailyMeta = dailyStageMeta();
   UI.showOverlay(
     '銀樓防衛',
-    '合併塔防 v0.3.0\n' +
-      '拖放放置 → 同種合併升星 → 開波守銀樓。\n' +
-      '新：羈絆、招股鼓手／逼空客、第 4 關、暫停／設定。\n' +
-      '累計銀兩帳：' +
+    '合併塔防 v0.4.0\n' +
+      '拖放放置 → 合併升星 → 開波守銀樓。\n' +
+      '新：每人簡版技能、Boss 入場、圖鑑／成就／每日關。\n' +
+      '今日：' +
+      dailyMeta.name +
+      '\n累計銀兩帳：' +
       save.totalSilver +
       '｜最高關：' +
       unlocked +
@@ -799,5 +932,6 @@
   );
 
   syncAll();
+  notifyAchievements();
   requestAnimationFrame(frame);
 })();
