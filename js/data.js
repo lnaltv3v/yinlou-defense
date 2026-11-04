@@ -1454,6 +1454,12 @@
         '三潮之後帳本未合——墨影從裂縫滲出，暗盤影成群護帳。\n\n' +
         '今夜只打一潮：護住銀袋，先清影再軋帳心。鎖倉居士減抽、鐵衛頂前；合到 2–3 星再開波。\n\n' +
         '中段會見弱化墨影試探，末波正式翻帳——銀兩唔好堆住等人抽。',
+      banner: {
+        tag: '墨影潮',
+        threat: '抽銀／降攻',
+        beats: ['暗盤護帳', '弱化墨影試探', '正式翻帳壓軸'],
+        tip: '鎖倉減抽 · 鐵衛頂前 · 合星回補',
+      },
       challenge: true,
       startSilver: 420,
       coreHp: 445,
@@ -1524,6 +1530,12 @@
         '翻帳未盡，第二帳從裂縫並肩翻開——雙墨同場，銀袋兩頭抽。\n\n' +
         '分路口訣：左帳（上線）鐵衛＋鎖倉減抽；右帳（下線）第二鐵衛／刀客清影。\n\n' +
         '護銀分路，先清暗盤再開合星階梯回補。末波兩帳分先後入場——唔好兩邊都空。',
+      banner: {
+        tag: '雙墨夜',
+        threat: '雙路抽銀',
+        beats: ['左帳上線', '右帳下線', '末波分先後入場'],
+        tip: '兩邊唔好都空 · 合星階梯回補',
+      },
       challenge: true,
       startSilver: 435,
       coreHp: 462,
@@ -1593,7 +1605,7 @@
   const ENDLESS = {
     id: 'endless',
     name: '無盡殺跌',
-    story: '殺跌無盡，浪高過浪。里程碑銀兩係你唯一嘅喘息；修飾詞會改寫盤口——守得愈久，江湖傳聞愈響，亦愈難轉身離場。\n\nv3.0：100+ 雙墨週期、130 長帳；合星階梯同護銀係晚盤關鍵。',
+    story: '殺跌無盡，浪高過浪。里程碑銀兩係你唯一嘅喘息；修飾詞會改寫盤口——守得愈久，江湖傳聞愈響，亦愈難轉身離場。\n\nv3.1：140 長城＋140+ 第三池修飾；100+ 雙墨週期、130 長帳仍在；合星階梯同護銀係晚盤關鍵。',
     startSilver: 215,
     coreHp: 235,
     unlockHeroes: Object.keys(HEROES),
@@ -1606,6 +1618,7 @@
       let b = 18 + waveIndex * 6.5 + Math.min(40, waveIndex * 1.2);
       if (waveIndex >= 100) b += 8 + Math.min(18, (waveIndex - 100) * 0.35);
       if (waveIndex >= 130) b += 6;
+      if (waveIndex >= 140) b += 8;
       return Math.round(b);
     }
     return 26 + waveIndex * 8;
@@ -1627,6 +1640,7 @@
     { wave: 110, silver: 1150, label: '百十浪帳守' },
     { wave: 120, silver: 1350, label: '百廿浪雙墨' },
     { wave: 130, silver: 1550, label: '百卅浪長帳' },
+    { wave: 140, silver: 1800, label: '百四十浪長城' },
   ];
 
   function endlessMilestone(waveIndex) {
@@ -2189,6 +2203,50 @@
     },
   ];
 
+  /** v3.1：曾達 140 再開無盡必帶其一（第三池） */
+  const RUN_MODIFIERS_140 = [
+    {
+      id: 'great_wall_vault',
+      name: '長城銀庫',
+      blurb: '開局銀 +16%；波次補銀 +10%',
+      late140: true,
+      apply: (ctx) => {
+        ctx.silverMul = (ctx.silverMul || 1) * 1.16;
+        ctx.waveBonusMul = (ctx.waveBonusMul || 1) * 1.1;
+      },
+    },
+    {
+      id: 'ink_tax_shield',
+      name: '墨稅鐵盾',
+      blurb: '墨影抽銀 ×0.35；核心 HP +6%',
+      late140: true,
+      apply: (ctx) => {
+        ctx.silverDrainMul = (ctx.silverDrainMul || 1) * 0.35;
+        ctx.coreMul = (ctx.coreMul || 1) * 1.06;
+      },
+    },
+    {
+      id: 'star_fortress',
+      name: '合星堡壘',
+      blurb: '合併回報 ×1.3；俠客冷卻 −4%',
+      late140: true,
+      apply: (ctx) => {
+        ctx.mergeRebateMul = (ctx.mergeRebateMul || 1) * 1.3;
+        ctx.heroCdMul = (ctx.heroCdMul || 1) * 0.96;
+      },
+    },
+    {
+      id: 'tide_anchor',
+      name: '潮錨定盤',
+      blurb: '敵速 −6%；鎖倉持續 ×1.12',
+      late140: true,
+      apply: (ctx) => {
+        ctx.enemySpeedMul = (ctx.enemySpeedMul || 1) * 0.94;
+        ctx.lockDurMul = (ctx.lockDurMul || 1) * 1.12;
+      },
+    },
+  ];
+
   function hashStr(s) {
     let h = 0;
     for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
@@ -2455,6 +2513,14 @@
       if (!mods.some((m) => m.id === late2.id)) {
         if (mods.length >= 3) mods[0] = late2;
         else mods.push(late2);
+      }
+    }
+    if (best >= 140 && RUN_MODIFIERS_140.length) {
+      const h4 = (seed ^ 0x140f00d) >>> 0;
+      const late3 = RUN_MODIFIERS_140[h4 % RUN_MODIFIERS_140.length];
+      if (!mods.some((m) => m.id === late3.id)) {
+        if (mods.length >= 3) mods[mods.length - 1] = late3;
+        else mods.push(late3);
       }
     }
     return mods;
@@ -3025,6 +3091,10 @@
     { id: 'v3_migrated', cat: 'meta', name: '銀樓三開', blurb: '升級到 v3.0 存檔（version 30）', check: (s) => (s.version || 0) >= 30 || !!(s.ach && s.ach.v3_migrated) },
     { id: 'fail_retry', cat: 'meta', name: '重整旗鼓', blurb: '失敗後用推薦陣容重開一次', check: (s) => !!s.ach && !!s.ach.fail_retry },
     { id: 'tutorial_v3', cat: 'meta', name: '五步入門', blurb: '完成 v3 新手五步導引', check: (s) => !!s.ach && !!s.ach.tutorial_v3 },
+    { id: 'endless140', cat: 'combat', name: '百四十浪長城', blurb: '無盡最佳 ≥ 140 波', check: (s) => (s.bestEndlessWave || 0) >= 140 },
+    { id: 'late140_run', cat: 'meta', name: '長城開盤', blurb: '曾達 140 浪後再開無盡（抽第三池修飾）', check: (s) => !!s.ach && !!s.ach.late140_run },
+    { id: 'tutorial_skip_step', cat: 'meta', name: '跳步入門', blurb: '教學中跳過一步', check: (s) => !!s.ach && !!s.ach.tutorial_skip_step },
+    { id: 'wall_compare_ui', cat: 'meta', name: '牆影對盤簡', blurb: '用牆面板內嵌對照一次短碼', check: (s) => !!s.ach && !!s.ach.wall_compare_ui },
   ];
 
   /** 首通銀兩獎勵（入累計帳） */
@@ -3075,7 +3145,8 @@
     const late90 = n >= 90 ? (n - 90) * 0.008 : 0;
     const late120 = n >= 120 ? (n - 120) * 0.006 : 0;
     const late130 = n >= 130 ? Math.min(0.12, (n - 130) * 0.004) : 0;
-    const mul = 1 + (n - 1) * 0.105 + late50 + late75 + late90 + late120 + late130;
+    const late140 = n >= 140 ? Math.min(0.1, (n - 140) * 0.0035) : 0;
+    const mul = 1 + (n - 1) * 0.105 + late50 + late75 + late90 + late120 + late130 + late140;
     const countLate = n >= 50 ? Math.min(n - 50, 25) * 0.01 + (n >= 75 ? (n - 75) * 0.006 : 0) : 0;
     const count = (base) => {
       let raw = Math.max(1, Math.round(base * (1 + (n - 1) * 0.072 + countLate)));
@@ -3280,7 +3351,7 @@
         hpMul: mul * 0.94,
       });
     }
-    if (n === 120 || n === 130) {
+    if (n === 120 || n === 130 || n === 140) {
       let haveInk = spawns.filter((s) => s.enemy === 'ink_specter').reduce((a, s) => a + (s.count || 1), 0);
       if (haveInk < 1) {
         spawns.push({
@@ -3481,7 +3552,10 @@
       s.ach.v3_migrated = true;
       if (s.reduceFlash) s.prefersReducedMotion = true;
     }
-    s.version = Math.max(30, from, base.version || 30);
+    if (from < 31) {
+      s.ach.v31_migrated = true;
+    }
+    s.version = Math.max(31, from, base.version || 31);
     return s;
   }
 
@@ -3497,7 +3571,7 @@
 
   function defaultSave() {
     return {
-      version: 30,
+      version: 31,
       totalSilver: 0,
       totalKills: 0,
       maxStageCleared: 0,
@@ -4021,6 +4095,7 @@
     ENDLESS_MILESTONES,
     RUN_MODIFIERS_90,
     RUN_MODIFIERS_100,
+    RUN_MODIFIERS_140,
     buildEndlessWave,
     buildDailyWaves,
     buildWeeklyWaves,

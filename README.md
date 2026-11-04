@@ -1,4 +1,4 @@
-# 銀樓防衛（Yinlou Defense）· v3.0.0
+# 銀樓防衛（Yinlou Defense）· v3.1.0
 
 武俠 × 金融江湖嘅 **HTML5 合併塔防**（Merge TD）。目錄 `yinlou-defense`。
 
@@ -29,10 +29,10 @@ python3 -m http.server 8765
 ## 技術
 - 純前端 Vanilla JS，無框架
 - Canvas 960×540，pixelated
-- 存檔：`localStorage` key `yinlou-defense-save-v1`（version **30**；可 JSON 匯出／匯入）
+- 存檔：`localStorage` key `yinlou-defense-save-v1`（version **31**；可 JSON 匯出／匯入）
 
 ## 版本
-而家 **v3.0.0**（大打磨：五步教學、失敗重整、推薦卡全關、Boss 威脅／對策、成就分類、存檔 v30；成就 88；音檔仍後補）。詳見 `CHANGELOG.md`、`DESIGN.md`。
+而家 **v3.1.0**（大打磨：五步教學、失敗重整、推薦卡全關、Boss 威脅／對策、成就分類、存檔 v30；成就 92；音檔仍後補）。詳見 `CHANGELOG.md`、`DESIGN.md`。
 
 ### 已知問題／後補
 - 戰場已接**場景四層 PNG**（ground／mid／wall／props）；俠 **12**（鎖倉居士暫幾何）＋敵 9 正式 PNG。

@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v3.0.0
+ * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v3.1.0
  */
 (function (global) {
   const {
@@ -96,7 +96,7 @@
       ink +
       '"></i>' +
       gear;
-    const src = (window.YDSprites && window.YDSprites.urlFor) ? window.YDSprites.urlFor(def.id) : ('assets/sprites/' + def.id + '.png?v=3.0.0');
+    const src = (window.YDSprites && window.YDSprites.urlFor) ? window.YDSprites.urlFor(def.id) : ('assets/sprites/' + def.id + '.png?v=3.1.0');
     return (
       '<span class="hero-avatar" aria-hidden="true" data-hero="' +
       def.id +
@@ -290,8 +290,38 @@
       ov.classList.add('codex-mode', 'paper-panel');
       $('overlay-title').textContent = title;
       const rec = opts.rec;
-      let html =
-        '<div class="paper-body"><p class="story-body">' +
+      let html = '<div class="paper-body">';
+      const ban = opts.banner;
+      if (ban) {
+        html +=
+          '<div class="stage-banner card-thick">' +
+          '<div class="stage-banner-top">' +
+          '<span class="stage-banner-tag">' +
+          (ban.tag || '關卡') +
+          '</span>' +
+          (ban.threat
+            ? '<span class="boss-threat">威脅｜' + ban.threat + '</span>'
+            : '') +
+          '</div>';
+        if (ban.beats && ban.beats.length) {
+          html += '<div class="stage-banner-beats">';
+          for (let i = 0; i < ban.beats.length; i++) {
+            html +=
+              '<span class="stage-beat">' +
+              (i + 1) +
+              '. ' +
+              ban.beats[i] +
+              '</span>';
+          }
+          html += '</div>';
+        }
+        if (ban.tip) {
+          html += '<div class="boss-counter">口訣｜' + ban.tip + '</div>';
+        }
+        html += '</div>';
+      }
+      html +=
+        '<p class="story-body">' +
         String(body || '').replace(/\n/g, '<br/>') +
         '</p>';
       if (rec && rec.lineup) {
@@ -686,10 +716,10 @@
           })()
         : '—') +
       '</strong></div>' +
-      '<div class="paper-row"><span>版本</span><strong>v3.0.0｜存檔 v' +
+      '<div class="paper-row"><span>版本</span><strong>v3.1.0｜存檔 v' +
       (save.version || 30) +
       '</strong></div>' +
-      '<p class="paper-note">v3.0 大打磨：五步教學、失敗重整、推薦卡全關、成就分類。點場上俠客可強化；本地牆本機匯出｜唔做線上排行。無障礙：可減震屏／閃光。</p>' +
+      '<p class="paper-note">v3.1：第13／14入場橫幅、無盡140+第三池、牆對照簡化、成就進度條、教學跳步／復位。點場上俠客可強化；本地牆本機｜唔做線上排行。</p>' +
       '</div>';
     const btn = $('btn-overlay');
     btn.textContent = '關閉';
@@ -798,6 +828,28 @@
         true
       );
     }
+    if (opts.onSkipTutorialStep) {
+      mk(
+        '教學：跳過本步',
+        () => {
+          opts.onSkipTutorialStep();
+          showSettings(opts);
+        },
+        false,
+        true
+      );
+    }
+    if (opts.onResetTutorialStep) {
+      mk(
+        '教學：復位到第①步',
+        () => {
+          opts.onResetTutorialStep();
+          hideOverlay();
+        },
+        false,
+        true
+      );
+    }
     section('圖鑑／存檔');
     if (onOpenCodex) mk('圖鑑', () => onOpenCodex(), false, true);
     if (onOpenAch) mk('成就', () => onOpenAch(), false, true);
@@ -863,7 +915,7 @@
     const src = id && window.YDSprites && window.YDSprites.urlFor
       ? window.YDSprites.urlFor(id)
       : id
-        ? 'assets/sprites/' + id + '.png?v=3.0.0'
+        ? 'assets/sprites/' + id + '.png?v=3.1.0'
         : '';
     const fallback =
       '<span class="codex-thumb-fallback" style="background:' + c + '"></span>';
@@ -1104,16 +1156,16 @@
     const ov = $('overlay');
     ov.classList.remove('settings-mode');
     ov.classList.add('codex-mode', 'paper-panel');
-    const t = tier >= 100 ? '100+' : tier >= 90 ? '90+' : '本局';
+    const t = tier >= 140 ? '140+' : tier >= 100 ? '100+' : tier >= 90 ? '90+' : '本局';
     $('overlay-title').textContent = '修飾說明｜' + t;
     const parts = [
       '<div class="paper-body">',
-      '<p class="paper-note">點頂欄修飾條可重開｜晚盤專屬會標 late</p>',
+      '<p class="paper-note">點頂欄修飾條可重開｜晚盤專屬會標 late（90／100／140）</p>',
     ];
     for (const m of mods || []) {
-      const tag = m.late100 ? '【100+】' : m.late90 ? '【90+】' : '';
-      const icon = m.late100 ? '⬡ ' : m.late90 ? '◇ ' : '◆ ';
-      const col = m.late100 ? '#E8DCC8' : m.late90 ? '#8A9BB0' : '#C9A227';
+      const tag = m.late140 ? '【140+】' : m.late100 ? '【100+】' : m.late90 ? '【90+】' : '';
+      const icon = m.late140 ? '▣ ' : m.late100 ? '⬡ ' : m.late90 ? '◇ ' : '◆ ';
+      const col = m.late140 ? '#F0E6C8' : m.late100 ? '#E8DCC8' : m.late90 ? '#8A9BB0' : '#C9A227';
       parts.push(
         '<div class="paper-entry card-thick mod-row">' +
           '<strong style="color:' +
@@ -1171,12 +1223,18 @@
           (spark.bars || '') +
           '</span>' +
           '<canvas id="wall-spark-canvas" class="wall-spark-canvas" width="320" height="56" aria-label="牆走勢"></canvas>' +
-          '<div class="wall-spark-actions">' +
-          '<button type="button" class="wall-mode-btn" id="wall-export-png">匯出走勢圖</button>' +
+          '<div class="wall-spark-actions wall-spark-actions-v31">' +
+          '<button type="button" class="wall-mode-btn" id="wall-export-png">匯出圖</button>' +
           '<button type="button" class="wall-mode-btn" id="wall-copy-code">複製短碼</button>' +
           '<span class="mono wall-spark-code" id="wall-spark-code">' +
           (typeof encodeWallShort === 'function' ? encodeWallShort(save) : '') +
           '</span></div>' +
+          '<div class="wall-compare-box">' +
+          '<label class="wall-compare-label" for="wall-compare-input">對照短碼</label>' +
+          '<input type="text" id="wall-compare-input" class="wall-compare-input" placeholder="貼上 YL-E…-S…-M…-H…" autocomplete="off" spellcheck="false" />' +
+          '<button type="button" class="wall-mode-btn" id="wall-compare-btn">對照</button>' +
+          '<div class="wall-compare-result card-meta" id="wall-compare-result">本機對照｜唔上線</div>' +
+          '</div>' +
           '<span class="card-meta" id="wall-spark-meta">' +
           (spark.label || '') +
           '</span></div>'
@@ -1435,6 +1493,42 @@
         '</div>'
     );
     const cats = [{ id: 'all', name: '全部' }].concat(ACHIEVEMENT_CATS || []);
+    const totalDone = ACHIEVEMENTS.filter((a) => save.unlockedAch && save.unlockedAch[a.id]).length;
+    const totalAll = ACHIEVEMENTS.length;
+    const pctAll = totalAll ? Math.round((totalDone / totalAll) * 100) : 0;
+    parts.push(
+      '<div class="ach-overview card-thick">' +
+        '<div class="ach-overview-row"><strong>成就進度</strong><span>' +
+        totalDone +
+        '/' +
+        totalAll +
+        '（' +
+        pctAll +
+        '%）</span></div>' +
+        '<div class="ach-overview-bar" role="progressbar" aria-valuenow="' +
+        pctAll +
+        '" aria-valuemin="0" aria-valuemax="100"><i style="width:' +
+        pctAll +
+        '%"></i></div>' +
+        '<div class="ach-cat-bars">'
+    );
+    for (const cat of ACHIEVEMENT_CATS || []) {
+      const list = ACHIEVEMENTS.filter((a) => (a.cat || 'all') === cat.id);
+      const done = list.filter((a) => save.unlockedAch && save.unlockedAch[a.id]).length;
+      const pct = list.length ? Math.round((done / list.length) * 100) : 0;
+      parts.push(
+        '<div class="ach-cat-bar"><span>' +
+          cat.name +
+          ' ' +
+          done +
+          '/' +
+          list.length +
+          '</span><div class="ach-overview-bar thin"><i style="width:' +
+          pct +
+          '%"></i></div></div>'
+      );
+    }
+    parts.push('</div></div>');
     parts.push('<div class="ach-tabs" role="tablist" aria-label="成就分類">');
     for (const cat of cats) {
       parts.push(
@@ -1493,6 +1587,44 @@
     document.querySelectorAll('.ach-tab').forEach((b) => {
       b.onclick = () => renderCat(b.getAttribute('data-ach-cat'));
     });
+
+    const cmpBtn = $('wall-compare-btn');
+    const cmpIn = $('wall-compare-input');
+    const cmpOut = $('wall-compare-result');
+    if (cmpBtn && cmpIn) {
+      const runCmp = () => {
+        const other = String(cmpIn.value || '').trim();
+        if (!other) {
+          if (cmpOut) cmpOut.textContent = '請貼上對方短碼';
+          toast('請貼上短碼');
+          return;
+        }
+        const cmp =
+          typeof compareWallShort === 'function' ? compareWallShort(save, other) : null;
+        if (!cmp || !cmp.ok) {
+          const err = (cmp && cmp.error) || '短碼格式唔啱';
+          if (cmpOut) cmpOut.textContent = err;
+          toast(err);
+          return;
+        }
+        if (cmpOut) {
+          cmpOut.innerHTML =
+            '<strong style="color:#C9A227">' +
+            cmp.summary +
+            '</strong><br/>' +
+            (cmp.note || '本機對照');
+        }
+        if (window.__yinlouMarkWallCompare) window.__yinlouMarkWallCompare();
+        toast(cmp.summary, 2800);
+      };
+      cmpBtn.onclick = runCmp;
+      cmpIn.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter') {
+          ev.preventDefault();
+          runCmp();
+        }
+      });
+    }
     const btn = $('btn-overlay');
     btn.textContent = '關閉';
     btn.onclick = () => {

@@ -532,7 +532,7 @@
       return;
     }
     if (state.tutorialStep === 4) {
-      UI.setHint('⑤ 失敗可重開／跟推薦芯片；設定可略過教學或重播導引');
+      UI.setHint('⑤ 失敗可重開／跟推薦；設定可跳過本步／復位／重播導引');
       return;
     }
     if (state.drag && state.drag.active) {
@@ -742,6 +742,8 @@
             : null
           : null;
     const rich = !!(rec && rec.lineup) && !save.skipTutorial;
+    const banner = st && st.banner ? st.banner : null;
+    const storyOpts = rich || banner ? { rich: !!(rich || banner), rec: rec, banner: banner } : null;
     UI.showStory(
       title,
       story,
@@ -749,7 +751,7 @@
         if (thenToast) UI.toast(thenToast);
         syncAll();
       },
-      rich ? { rich: true, rec: rec } : null
+      storyOpts
     );
   }
 
@@ -798,22 +800,34 @@
       }
       if (enterStage(0, true, false, false)) {
         const lab = modifierLabel(state.modifiers || []);
-        const lateMods = (state.modifiers || []).filter((m) => m.late90 || m.late100);
+        const lateMods = (state.modifiers || []).filter(
+          (m) => m.late90 || m.late100 || m.late140
+        );
         state._lateModBadge = lateMods.length
           ? lateMods.map((m) => m.name).join(' · ')
           : '';
-        state._lateModTier = lateMods.some((m) => m.late100)
-          ? 100
-          : lateMods.some((m) => m.late90)
-            ? 90
-            : 0;
+        state._lateModTier = lateMods.some((m) => m.late140)
+          ? 140
+          : lateMods.some((m) => m.late100)
+            ? 100
+            : lateMods.some((m) => m.late90)
+              ? 90
+              : 0;
+        if ((save.bestEndlessWave || 0) >= 140) {
+          if (!save.ach) save.ach = {};
+          save.ach.late140_run = true;
+          writeSave(save);
+          notifyAchievements();
+        }
         if (state._lateModBadge) {
           setTimeout(() => {
-            UI.toast(
-              (state._lateModTier >= 100 ? '【100+】' : '【90+】') +
-                state._lateModBadge,
-              3000
-            );
+            const tag =
+              state._lateModTier >= 140
+                ? '【140+】'
+                : state._lateModTier >= 100
+                  ? '【100+】'
+                  : '【90+】';
+            UI.toast(tag + state._lateModBadge, 3000);
           }, 200);
         }
         const allClear = (save.maxStageCleared || 0) >= STAGES.length;
@@ -1569,6 +1583,27 @@
         UI.toast('已重播新手導引｜跟底欄五步', 2400);
         syncAll();
       },
+      onSkipTutorialStep: () => {
+        if (state.tutorialStep >= 99) {
+          UI.toast('教學已完成／已略過', 1600);
+          return;
+        }
+        if (!save.ach) save.ach = {};
+        save.ach.tutorial_skip_step = true;
+        writeSave(save);
+        notifyAchievements();
+        advanceTutorial();
+        UI.toast('已跳過本步｜現係第 ' + Math.min(5, (state.tutorialStep || 0) + 1) + ' 步', 2000);
+        syncAll();
+      },
+      onResetTutorialStep: () => {
+        save.skipTutorial = false;
+        save.tutorialDone = false;
+        state.tutorialStep = 0;
+        writeSave(save);
+        UI.toast('教學已復位到第①步', 2000);
+        syncAll();
+      },
       onSkipTutorial: () => {
         save.skipTutorial = !save.skipTutorial;
         writeSave(save);
@@ -1660,6 +1695,16 @@
             writeSave(save);
             notifyAchievements();
             UI.toast('成就｜牆影出圖', 1800);
+          }
+        };
+        window.__yinlouMarkWallCompare = () => {
+          if (!save.ach) save.ach = {};
+          if (!save.ach.wall_compare_ui) {
+            save.ach.wall_compare_ui = true;
+            save.ach.wall_compare = true;
+            writeSave(save);
+            notifyAchievements();
+            UI.toast('成就｜牆影對盤簡', 1800);
           }
         };
         UI.showWallTimeline(
