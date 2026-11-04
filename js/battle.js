@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 戰鬥／生成／合併邏輯 v0.4.0
+ * 銀樓防衛 — 戰鬥／生成／合併邏輯 v0.5.0
  */
 (function (global) {
   const { HEROES, ENEMIES, GRID, CORE, heroStats, activeBonds, bondModsFor } = global.YD;
@@ -47,7 +47,9 @@
 
   function makeEnemy(typeId, lane, extra) {
     const def = ENEMIES[typeId];
-    const hpMul = (extra && extra.hpMul) || 1;
+    const elite = !!(extra && extra.elite) && !def.boss;
+    let hpMul = (extra && extra.hpMul) || 1;
+    if (elite) hpMul *= 1.85;
     const y = laneY(lane) + (Math.random() * 10 - 5);
     return {
       uid: 'e' + Math.random().toString(36).slice(2, 9),
@@ -57,16 +59,17 @@
       y,
       hp: def.hp * hpMul,
       maxHp: def.hp * hpMul,
-      speed: def.speed,
-      baseSpeed: def.speed,
-      atk: Math.round(def.atk * (0.9 + hpMul * 0.1)),
-      reward: Math.round(def.reward * (1 + (hpMul - 1) * 0.5)),
-      radius: def.radius,
+      speed: elite ? def.speed * 0.92 : def.speed,
+      baseSpeed: elite ? def.speed * 0.92 : def.speed,
+      atk: Math.round(def.atk * (0.9 + hpMul * 0.1) * (elite ? 1.25 : 1)),
+      reward: Math.round(def.reward * (1 + (hpMul - 1) * 0.5) * (elite ? 2.2 : 1)),
+      radius: def.radius + (elite ? 3 : 0),
       slowT: 0,
       def,
       boss: !!def.boss,
+      elite: elite,
       attackRange: def.attackRange || 45,
-      attackCd: def.attackCd || 1,
+      attackCd: (def.attackCd || 1) * (elite ? 0.9 : 1),
       cd: Math.random() * 0.4,
       preferHero: def.preferHero != null ? def.preferHero : 0.5,
       mode: 'march',
@@ -374,9 +377,14 @@
     const sk = hero.def.skill;
     let healMul = 1;
     let silExtra = 0;
+    if (sk && sk.every) {
+      hero.skillProgress = ((hero.auraTicks || 0) % sk.every) / sk.every;
+      hero.skillReadyIn = sk.every - ((hero.auraTicks || 0) % sk.every);
+    }
     if (sk && sk.every && hero.auraTicks % sk.every === 0) {
       healMul = sk.healMul || 1.35;
       silExtra = sk.silverBurst || 3;
+      hero.skillProgress = 1;
       pushFloat(state.floats, {
         x: hero.x,
         y: hero.y - 38,
@@ -435,8 +443,39 @@
       }
       h.cd = h.cooldown * mods.cdMul;
       heroAttack(h, state.enemies, state.floats, state);
+      // 技能進度：距離下次 every 觸發
+      const sk = h.def.skill;
+      if (sk && sk.every) {
+        const rem = sk.every - ((h.atkCount || 0) % sk.every);
+        h.skillProgress = 1 - (rem === sk.every ? 0 : rem) / sk.every;
+        h.skillReadyIn = rem === sk.every ? sk.every : rem;
+      } else if (sk && sk.proc) {
+        h.skillProgress = sk.proc;
+        h.skillReadyIn = 0;
+      }
     }
   }
+
+  /** 0..1 技能冷卻／蓄力顯示 */
+  function skillMeter(hero) {
+    const sk = hero.def && hero.def.skill;
+    if (!sk) return null;
+    if (sk.every) {
+      const every = sk.every;
+      const mod = (hero.atkCount || 0) % every;
+      return { kind: 'every', progress: mod / every, label: sk.name, every, mod };
+    }
+    if (sk.id === 'guard_wall') {
+      return { kind: 'proc', progress: hero.guardProcT > 0 ? 1 : sk.proc || 0.18, label: sk.name };
+    }
+    if (sk.every == null && hero.def.role === 'support') {
+      const every = sk.every || 4;
+      const mod = (hero.auraTicks || 0) % every;
+      return { kind: 'aura', progress: mod / every, label: sk.name };
+    }
+    return { kind: 'passive', progress: 1, label: sk.name };
+  }
+
 
   function nearestHeroOnLane(enemy, heroes) {
     let best = null;
@@ -528,6 +567,18 @@
           life: 0.75,
         });
         state.kills += 1;
+        if (e.elite) {
+          state._eliteKills = (state._eliteKills || 0) + 1;
+          pushFloat(state.floats, {
+            x: e.x,
+            y: e.y - 24,
+            text: '精英擊破',
+            color: '#C45C4A',
+            size: 14,
+            vy: -30,
+            life: 1.0,
+          });
+        }
         state.fx.push({ type: 'hit', x: e.x, y: e.y, color: '#C9A227', life: 0.2, r: 14 });
       }
     }
@@ -564,6 +615,10 @@
       state.bossBanner.life -= dt;
       if (state.bossBanner.life <= 0) state.bossBanner = null;
     }
+    if (state.bondBanner && state.bondBanner.life > 0) {
+      state.bondBanner.life -= dt;
+      if (state.bondBanner.life <= 0) state.bondBanner = null;
+    }
   }
 
   function announceBoss(state, enemy) {
@@ -571,6 +626,7 @@
       name: enemy.def.name,
       life: 2.6,
       maxLife: 2.6,
+      kind: 'boss',
     };
     state.shake = Math.max(state.shake || 0, 0.28);
     state.fx.push({ type: 'bossWarn', life: 2.4 });
@@ -586,6 +642,55 @@
     });
   }
 
+  function announceElite(state, enemy) {
+    state.bossBanner = {
+      name: '精英·' + enemy.def.name,
+      life: 2.2,
+      maxLife: 2.2,
+      kind: 'elite',
+    };
+    state.shake = Math.max(state.shake || 0, 0.18);
+    state.fx.push({ type: 'eliteWarn', life: 1.8 });
+    pushFloat(state.floats, {
+      x: 480,
+      y: 210,
+      text: '精英波 — ' + enemy.def.name,
+      color: '#C45C4A',
+      size: 18,
+      vy: -14,
+      life: 1.8,
+      bounce: 0,
+    });
+  }
+
+  function announceBond(state, bond) {
+    state.bondBanner = {
+      name: bond.name,
+      blurb: bond.blurb,
+      life: 2.0,
+      maxLife: 2.0,
+    };
+    state.fx.push({
+      type: 'bond',
+      x: 480,
+      y: 120,
+      color: '#C9A227',
+      life: 1.6,
+      text: bond.name,
+    });
+    pushFloat(state.floats, {
+      x: 480,
+      y: 160,
+      text: '羈絆發動：' + bond.name,
+      color: '#C9A227',
+      size: 16,
+      vy: -18,
+      life: 1.6,
+      bounce: 0,
+    });
+  }
+
+
   function createSpawner(waveDef) {
     const jobs = [];
     const hpMul = waveDef.hpMul || 1;
@@ -600,6 +705,7 @@
         laneMode: s.lane,
         fixedLane: typeof s.lane === 'number' ? s.lane : null,
         hpMul: s.hpMul || hpMul,
+        elite: !!s.elite,
       });
     }
     return { jobs, laneCycle: 0, done: false, elapsed: 0 };
@@ -654,6 +760,9 @@
     spawnMergeFx,
     pushFloat,
     announceBoss,
+    announceElite,
+    announceBond,
+    skillMeter,
     activeBonds,
   };
 })(window);

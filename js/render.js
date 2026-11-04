@@ -1,6 +1,6 @@
 /**
- * 銀樓防衛 — Canvas 繪製 v0.4.0
- * 場景密度加厚、idle 微動、攻擊揮擊、Boss／技能橫幅
+ * 銀樓防衛 — Canvas 繪製 v0.5.0
+ * 場景再加厚、技能 CD 條、精英／羈絆橫幅、單位細節
  */
 (function (global) {
   const { COLORS, GRID, CORE, HEROES, ENEMIES } = global.YD;
@@ -75,12 +75,24 @@
       ctx.globalAlpha = 1;
     }
 
-    // 牆邊木箱／旗
+    // 牆邊木箱／旗／銅錢堆／燈籠柱
     drawPixelRect(ctx, 88, floorBot - 36, 18, 14, '#5A4030');
     drawPixelRect(ctx, 90, floorBot - 34, 14, 4, '#C9A227');
+    drawPixelRect(ctx, 86, floorBot - 48, 10, 10, '#6A5040');
+    drawPixelRect(ctx, 88, floorBot - 46, 6, 3, '#C9A227');
     drawPixelRect(ctx, wallX + 18, floorTop + 20, 3, 28, '#3A2820');
     drawPixelRect(ctx, wallX + 21, floorTop + 20, 14, 10, '#C45C4A');
     drawPixelRect(ctx, wallX + 21, floorTop + 30, 14, 8, '#E8DCC8');
+    // 右下拒馬／沙袋
+    drawPixelRect(ctx, w - 90, floorBot - 28, 40, 10, '#4A4034');
+    drawPixelRect(ctx, w - 86, floorBot - 36, 8, 12, '#5A4030');
+    drawPixelRect(ctx, w - 70, floorBot - 34, 8, 10, '#5A4030');
+    // 天上墨點雲
+    ctx.globalAlpha = 0.2;
+    drawPixelRect(ctx, 200, 10, 60, 10, '#1A1510');
+    drawPixelRect(ctx, 420, 6, 80, 12, '#1A1510');
+    drawPixelRect(ctx, 700, 12, 50, 8, '#1A1510');
+    ctx.globalAlpha = 1;
 
     // lane 分隔細線
     for (let lane = 1; lane < GRID.lanes; lane++) {
@@ -164,12 +176,18 @@
     const hy = h.y + oy;
     // 身體
     drawPixelRect(ctx, hx - s, hy - s - 4, s * 2, s * 2 + 8, def.color);
-    // 衣褶
+    // 衣褶／腰帶
     drawPixelRect(ctx, hx - s + 2, hy - 2, 3, s + 2, ink);
+    drawPixelRect(ctx, hx - s + 1, hy + 4, s * 2 - 2, 3, ink);
+    drawPixelRect(ctx, hx - 2, hy + 5, 4, 2, '#C9A227');
+    // 靴
+    drawPixelRect(ctx, hx - s + 1, hy + s + 2, 6, 4, ink);
+    drawPixelRect(ctx, hx + s - 7, hy + s + 2, 6, 4, ink);
     // 頭
     drawPixelRect(ctx, hx - 8, hy - s - 16, 16, 14, paper);
     drawPixelRect(ctx, hx - 5, hy - s - 12, 3, 3, ink);
     drawPixelRect(ctx, hx + 2, hy - s - 12, 3, 3, ink);
+    drawPixelRect(ctx, hx - 3, hy - s - 6, 6, 2, '#C45C4A'); // 唇／印記點
 
     // 揮擊：武器額外前伸
     const swing = h.swingT > 0 ? (1 - h.swingT / 0.22) : 0;
@@ -324,6 +342,31 @@
       const bw = 36;
       drawPixelRect(ctx, h.x - bw / 2 + lean, h.y - s - 26 + idle, bw, 4, '#1A1510');
       drawPixelRect(ctx, h.x - bw / 2 + lean, h.y - s - 26 + idle, bw * (h.hp / h.maxHp), 4, '#3A7A6A');
+      // 技能 CD／蓄力條
+      const showCd = !state || state.showSkillCd !== false;
+      if (showCd && def.skill) {
+        let prog = 0;
+        const sk = def.skill;
+        if (sk.every) {
+          if (def.role === 'support') {
+            prog = ((h.auraTicks || 0) % sk.every) / sk.every;
+          } else {
+            prog = ((h.atkCount || 0) % sk.every) / sk.every;
+          }
+        } else if (sk.proc) {
+          prog = h.guardProcT > 0 ? 1 : 0.15;
+        }
+        drawPixelRect(ctx, h.x - bw / 2 + lean, h.y - s - 21 + idle, bw, 3, '#1A1510');
+        const ready = prog >= 0.95 || (sk.proc && h.guardProcT > 0);
+        drawPixelRect(
+          ctx,
+          h.x - bw / 2 + lean,
+          h.y - s - 21 + idle,
+          Math.max(1, bw * prog),
+          3,
+          ready ? '#C9A227' : def.color
+        );
+      }
     }
 
     if (selected || mergeMark) {
@@ -349,12 +392,23 @@
     if (e.hitFlash > 0) ctx.globalAlpha = 0.55 + Math.sin(e.hitFlash * 50) * 0.3;
     // 身體＋簡單特徵
     drawPixelRect(ctx, e.x - r, e.y - r + bob, r * 2, r * 2, e.def.color);
+    drawPixelRect(ctx, e.x - r + 2, e.y - r + 4 + bob, r * 2 - 4, 3, '#1A1510');
     drawPixelRect(ctx, e.x - r + 2, e.y - r + 2 + bob, 3, 3, '#1A1510');
     drawPixelRect(ctx, e.x + r - 5, e.y - r + 2 + bob, 3, 3, '#1A1510');
+    drawPixelRect(ctx, e.x - 3, e.y + 2 + bob, 6, 2, '#E8DCC8');
     if (e.boss) {
       // 羽翼感
       drawPixelRect(ctx, e.x - r - 8, e.y - 4 + bob, 8, 10, '#2A241C');
       drawPixelRect(ctx, e.x + r, e.y - 4 + bob, 8, 10, '#2A241C');
+      drawPixelRect(ctx, e.x - r - 6, e.y - 2 + bob, 4, 4, '#5A4060');
+      drawPixelRect(ctx, e.x + r + 2, e.y - 2 + bob, 4, 4, '#5A4060');
+    }
+    if (e.elite) {
+      const pulse = 0.5 + 0.5 * Math.sin(t * 7);
+      ctx.strokeStyle = pulse > 0.4 ? '#C45C4A' : '#C9A227';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(e.x - r - 3, e.y - r - 3 + bob, r * 2 + 6, r * 2 + 6);
+      drawPixelRect(ctx, e.x - 4, e.y - r - 10 + bob, 8, 4, '#C45C4A');
     }
     if (e.mode === 'fight') {
       ctx.strokeStyle = '#C45C4A';
@@ -369,6 +423,14 @@
       ctx.font = '9px sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('黑天鵝', e.x, e.y - r - 8 + bob);
+    } else if (e.elite) {
+      ctx.fillStyle = '#C45C4A';
+      ctx.font = 'bold 9px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('精英', e.x, e.y - r - 12 + bob);
+      ctx.fillStyle = COLORS.paper;
+      ctx.font = '9px sans-serif';
+      ctx.fillText(e.def.name.slice(0, 2), e.x, e.y + 3 + bob);
     } else {
       ctx.fillStyle = COLORS.paper;
       ctx.font = '9px sans-serif';
@@ -462,6 +524,23 @@
         ctx.globalAlpha = Math.min(0.25, fx.life * 0.2);
         drawPixelRect(ctx, 0, 0, ctx.canvas.width, ctx.canvas.height, '#5A4060');
         ctx.globalAlpha = 1;
+      } else if (fx.type === 'eliteWarn') {
+        ctx.globalAlpha = Math.min(0.2, fx.life * 0.18);
+        drawPixelRect(ctx, 0, 0, ctx.canvas.width, ctx.canvas.height, '#C45C4A');
+        ctx.globalAlpha = 1;
+      } else if (fx.type === 'bond') {
+        const t = Math.max(0, fx.life);
+        ctx.globalAlpha = Math.min(0.9, t * 1.2);
+        ctx.strokeStyle = '#C9A227';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(fx.x - 80, fx.y - 16, 160, 32);
+        if (fx.text) {
+          ctx.font = 'bold 13px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillStyle = '#C9A227';
+          ctx.fillText(fx.text, fx.x, fx.y + 4);
+        }
+        ctx.globalAlpha = 1;
       }
     }
     for (const f of state.floats) {
@@ -486,14 +565,35 @@
     const p = Math.min(1, b.life / (b.maxLife || 2.6));
     const alpha = p > 0.85 ? (1 - p) / 0.15 : p < 0.2 ? p / 0.2 : 1;
     ctx.globalAlpha = Math.min(1, alpha);
+    const elite = b.kind === 'elite';
     drawPixelRect(ctx, 160, 200, 640, 56, '#1A1510');
-    ctx.strokeStyle = '#C9A227';
+    ctx.strokeStyle = elite ? '#C45C4A' : '#C9A227';
     ctx.lineWidth = 3;
     ctx.strokeRect(162, 202, 636, 52);
-    ctx.fillStyle = '#C9A227';
+    ctx.fillStyle = elite ? '#C45C4A' : '#C9A227';
     ctx.font = 'bold 22px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('⚠ Boss 入場 — ' + b.name, 480, 236);
+    ctx.fillText((elite ? '⚔ 精英來襲 — ' : '⚠ Boss 入場 — ') + b.name, 480, 236);
+    ctx.globalAlpha = 1;
+  }
+
+  function drawBondBanner(ctx, state) {
+    const b = state.bondBanner;
+    if (!b || b.life <= 0) return;
+    const p = Math.min(1, b.life / (b.maxLife || 2));
+    const alpha = p > 0.85 ? (1 - p) / 0.15 : p < 0.25 ? p / 0.25 : 1;
+    ctx.globalAlpha = Math.min(1, alpha);
+    drawPixelRect(ctx, 220, 70, 520, 44, '#1A1510');
+    ctx.strokeStyle = '#C9A227';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(222, 72, 516, 40);
+    ctx.fillStyle = '#C9A227';
+    ctx.font = 'bold 16px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('合擊羈絆 · ' + b.name, 480, 90);
+    ctx.fillStyle = '#E8DCC8';
+    ctx.font = '11px sans-serif';
+    ctx.fillText(b.blurb || '', 480, 106);
     ctx.globalAlpha = 1;
   }
 
@@ -578,7 +678,7 @@
     }
     ctx.save();
     if (state.shake > 0 && !state.paused) {
-      const mag = Math.min(6, state.shake * 28);
+      const mag = Math.min(state.reduceShake ? 3 : 6, state.shake * (state.reduceShake ? 14 : 28));
       ctx.translate((Math.random() - 0.5) * mag, (Math.random() - 0.5) * mag);
     }
     drawBackground(ctx, w, h, state);
@@ -588,6 +688,7 @@
     drawDragGhost(ctx, state);
     drawFx(ctx, state);
     drawBossBanner(ctx, state);
+    drawBondBanner(ctx, state);
     drawBanner(ctx, state);
     drawPauseVeil(ctx, state);
     ctx.restore();

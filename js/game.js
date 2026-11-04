@@ -1,6 +1,6 @@
 /**
- * 銀樓防衛 — 主循環 v0.4.0
- * 技能／Boss 入場、圖鑑／成就／每日關、視覺＋平衡
+ * 銀樓防衛 — 主循環 v0.5.0
+ * 上手／技能條／羈絆提示／精英波／存檔匯出匯入
  */
 (function () {
   const {
@@ -8,9 +8,14 @@
     ENDLESS,
     HEROES,
     SPEED_OPTIONS,
+    LINEUPS,
     loadSave,
     writeSave,
     defaultSave,
+    exportSaveJson,
+    importSaveJson,
+    pickFailTip,
+    firstRunBonus,
     buildEndlessWave,
     buildDailyWaves,
     dailyStageMeta,
@@ -37,8 +42,11 @@
   if (!save.ach) save.ach = {};
   if (!save.unlockedAch) save.unlockedAch = {};
   if (save.totalKills == null) save.totalKills = 0;
-  if (save.version < 4) {
-    save.version = 4;
+  if (save.showSkillCd == null) save.showSkillCd = true;
+  if (save.reduceShake == null) save.reduceShake = false;
+  if (save.firstBootDone == null) save.firstBootDone = false;
+  if (save.version < 5) {
+    save.version = 5;
     writeSave(save);
   }
 
@@ -107,15 +115,32 @@
       tutorialStep: save.skipTutorial || save.maxStageCleared > 0 ? 99 : 0,
       summonCounts: {},
       showCellHints: save.showCellHints !== false,
+      showSkillCd: save.showSkillCd !== false,
+      reduceShake: !!save.reduceShake,
       _bonds: [],
+      _bondIds: [],
       bossBanner: null,
+      bondBanner: null,
+      _eliteKills: 0,
+      _eliteAnnounced: false,
+      eventBanner: null,
     };
   }
 
   let state = freshState(Math.min(save.maxStageCleared, STAGES.length - 1), false, false);
 
   function syncAll() {
-    state._bonds = activeBonds(state.heroes);
+    const bonds = activeBonds(state.heroes);
+    const ids = bonds.map((b) => b.id);
+    const prev = state._bondIds || [];
+    for (const b of bonds) {
+      if (!prev.includes(b.id)) {
+        Battle.announceBond(state, b);
+        UI.toast('羈絆：' + b.name + ' — ' + b.blurb, 2200);
+      }
+    }
+    state._bonds = bonds;
+    state._bondIds = ids;
     if (state._bonds.length && !save.ach.bond) {
       save.ach.bond = true;
       writeSave(save);
@@ -287,6 +312,26 @@
     state.waveIndex += 1;
     const waveDef = currentWaveDef();
     state.spawner = Battle.createSpawner(waveDef);
+    state._eliteAnnounced = false;
+    // 簡單精英波事件：關卡第 3 波／無盡每 4 波，若波內未標 elite 則加一隻
+    const needEliteEvent =
+      (!state.endless && !state.daily && state.waveIndex === 3 && state.stageIndex >= 0) ||
+      (state.endless && state.waveIndex > 0 && state.waveIndex % 4 === 0) ||
+      (state.daily && state.waveIndex === Math.max(2, (state.stage.waves.length / 2) | 0));
+    if (needEliteEvent && state.spawner.jobs.every((j) => !j.elite)) {
+      state.spawner.jobs.push({
+        enemy: state.endless || state.stageIndex >= 2 ? 'leverage_fiend' : 'chase_zombie',
+        left: 1,
+        interval: 0,
+        delay: 2.2,
+        timer: 0,
+        started: false,
+        laneMode: 'random',
+        fixedLane: null,
+        hpMul: 1.1,
+        elite: true,
+      });
+    }
     for (const job of state.spawner.jobs) {
       job.timer = job.interval;
       job.started = false;
@@ -426,6 +471,7 @@
     }
     writeSave(save);
     notifyAchievements();
+    const tip = pickFailTip(state.kills * 17 + state.waveIndex * 3);
     UI.showOverlay(
       '銀樓失守',
       '核心被攻破。擊殺 ' +
@@ -435,13 +481,47 @@
           : state.daily
             ? '｜每日未過'
             : '') +
-        '。調整陣容／技能／羈絆再試。',
+        '。\n\n提示：' +
+        tip,
       '重開本關',
       () => {
         UI.hideOverlay();
         resetRun(state.endless, state.daily);
-      }
+      },
+      [
+        {
+          label: '用「新手鐵壁」再開',
+          secondary: true,
+          onClick: () => {
+            UI.hideOverlay();
+            resetRun(state.endless, state.daily);
+            applyLineup(LINEUPS[0]);
+          },
+        },
+      ]
     );
+    // 失敗畫面下方再加陣容芯片
+    setTimeout(() => {
+      const extra = document.getElementById('overlay-extra');
+      if (!extra || state.phase !== 'lost') return;
+      UI.renderLineupChips(extra, (lu) => {
+        UI.hideOverlay();
+        resetRun(state.endless, state.daily);
+        applyLineup(lu);
+      });
+    }, 0);
+  }
+
+  function applyLineup(lu) {
+    if (!lu) return;
+    state.selectedShopId = lu.heroes[0] || null;
+    save.ach.lineup = true;
+    writeSave(save);
+    notifyAchievements();
+    const names = lu.heroes.map((id) => HEROES[id].name).join('、');
+    UI.toast('推薦：' + lu.name + ' — 先召 ' + names, 2600);
+    UI.setHint('陣容「' + lu.name + '」：' + (lu.tip || lu.blurb) + '｜已選 ' + HEROES[lu.heroes[0]].name);
+    syncAll();
   }
 
   function resetRun(keepEndless, keepDaily) {
@@ -449,6 +529,8 @@
     const endless = !daily && keepEndless && state.endless;
     const idx = endless || daily ? 0 : state.stageIndex >= 0 ? state.stageIndex : 0;
     state = freshState(idx, endless, daily);
+    const b = firstRunBonus(save);
+    if (b > 0 && !endless && !daily && idx === 0) state.silver += b;
     resetWaveBtn();
     syncAll();
     UI.toast('新一局 — 放置俠客後開波');
@@ -481,11 +563,67 @@
         state.showCellHints = save.showCellHints !== false;
         syncAll();
       },
+      onToggleSkillCd: () => {
+        save.showSkillCd = save.showSkillCd === false;
+        writeSave(save);
+        state.showSkillCd = save.showSkillCd !== false;
+        syncAll();
+      },
+      onToggleShake: () => {
+        save.reduceShake = !save.reduceShake;
+        writeSave(save);
+        state.reduceShake = !!save.reduceShake;
+        syncAll();
+      },
       onSkipTutorial: () => {
         save.skipTutorial = !save.skipTutorial;
         writeSave(save);
         state.tutorialStep = save.skipTutorial ? 99 : 0;
         syncAll();
+      },
+      onExportSave: () => {
+        try {
+          const json = exportSaveJson(save);
+          const blob = new Blob([json], { type: 'application/json' });
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = 'yinlou-defense-save.json';
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(() => {
+            URL.revokeObjectURL(a.href);
+            a.remove();
+          }, 500);
+          UI.toast('已匯出存檔 JSON');
+        } catch (err) {
+          UI.toast('匯出失敗');
+        }
+      },
+      onImportSave: () => {
+        const inp = document.createElement('input');
+        inp.type = 'file';
+        inp.accept = 'application/json,.json';
+        inp.onchange = () => {
+          const file = inp.files && inp.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = () => {
+            try {
+              save = importSaveJson(String(reader.result || ''));
+              writeSave(save);
+              state = freshState(0, false, false);
+              resetWaveBtn();
+              syncAll();
+              notifyAchievements();
+              UI.hideOverlay();
+              UI.toast('存檔已匯入');
+            } catch (err) {
+              UI.toast('匯入失敗：檔案無效');
+            }
+          };
+          reader.readAsText(file);
+        };
+        inp.click();
       },
       onClearSave: () => {
         save = defaultSave();
@@ -857,7 +995,10 @@
         lane = sp.laneCycle % YD.GRID.lanes;
         sp.laneCycle += 1;
       }
-      const enemy = Battle.makeEnemy(job.enemy, lane, { hpMul: job.hpMul || 1 });
+      const enemy = Battle.makeEnemy(job.enemy, lane, {
+        hpMul: job.hpMul || 1,
+        elite: !!job.elite,
+      });
       state.enemies.push(enemy);
       if (!save.seenEnemies || !save.seenEnemies[job.enemy]) {
         markSeenEnemy(save, job.enemy);
@@ -865,6 +1006,11 @@
         notifyAchievements();
       }
       if (enemy.boss) Battle.announceBoss(state, enemy);
+      else if (enemy.elite && !state._eliteAnnounced) {
+        state._eliteAnnounced = true;
+        Battle.announceElite(state, enemy);
+        UI.toast('精英波！強化敵人入場', 2000);
+      }
       job.left -= 1;
     }
     if (!remaining && state.enemies.length === 0) {
@@ -882,7 +1028,13 @@
       tickSpawnerFixed(dt);
       Battle.tickHeroes(state, dt);
       Battle.tickEnemies(state, dt);
+      const eliteBefore = state._eliteKills || 0;
       Battle.collectDead(state);
+      if ((state._eliteKills || 0) > eliteBefore && !save.ach.elite) {
+        save.ach.elite = true;
+        writeSave(save);
+        notifyAchievements();
+      }
       Battle.tickFloats(state, dt);
 
       if (state.coreHp <= 0) {
@@ -911,11 +1063,16 @@
 
   const unlocked = save.maxStageCleared || 0;
   const dailyMeta = dailyStageMeta();
+  const bonus = firstRunBonus(save);
+  if (bonus > 0 && state.stageIndex === 0 && !state.endless && !state.daily) {
+    state.silver += bonus;
+  }
   UI.showOverlay(
     '銀樓防衛',
-    '合併塔防 v0.4.0\n' +
+    '合併塔防 v0.5.0\n' +
       '拖放放置 → 合併升星 → 開波守銀樓。\n' +
-      '新：每人簡版技能、Boss 入場、圖鑑／成就／每日關。\n' +
+      '新：技能冷卻條、羈絆提示、精英波、推薦陣容、存檔匯出／匯入。\n' +
+      (bonus > 0 ? '新手加銀 +' + bonus + ' 兩（僅首局）\n' : '') +
       '今日：' +
       dailyMeta.name +
       '\n累計銀兩帳：' +
@@ -926,10 +1083,22 @@
     '開始',
     () => {
       UI.hideOverlay();
-      UI.toast(state.tutorialStep < 99 ? '跟提示三步就識' : '準備就緒');
+      if (!save.firstBootDone) {
+        save.firstBootDone = true;
+        writeSave(save);
+      }
+      UI.toast(state.tutorialStep < 99 ? '跟提示三步就識；可撳推薦陣容' : '準備就緒');
       syncAll();
     }
   );
+  setTimeout(() => {
+    const extra = document.getElementById('overlay-extra');
+    if (!extra) return;
+    UI.renderLineupChips(extra, (lu) => {
+      applyLineup(lu);
+      UI.toast('已套用提示：' + lu.name + ' — 開始後跟住召', 2000);
+    });
+  }, 0);
 
   syncAll();
   notifyAchievements();

@@ -3,3 +3,5 @@
 node_modules/
 .idea/
 .vscode/
+# 版權／內部參考圖：唔入 git（Pages／公開 repo）
+assets/_ref/

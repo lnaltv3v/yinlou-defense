@@ -193,3 +193,89 @@ header.title {
 #overlay.codex-mode {
   padding-top: 24px;
 }
+
+/* v0.5 — 商店頭像／推薦陣容 */
+.hero-btn { min-height: 64px; }
+.hero-btn-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+.hero-btn-meta { flex: 1; min-width: 0; }
+.hero-blurb {
+  font-size: 10px;
+  opacity: .85;
+  line-height: 1.25;
+  margin: 2px 0;
+}
+.hero-avatar {
+  position: relative;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  background: #1A1510;
+  border: 2px solid #3A3028;
+  image-rendering: pixelated;
+  overflow: hidden;
+}
+.hero-avatar i {
+  position: absolute;
+  display: block;
+  image-rendering: pixelated;
+}
+.hero-avatar .av-body {
+  left: 6px; top: 12px;
+  width: 16px; height: 14px;
+}
+.hero-avatar .av-head {
+  left: 8px; top: 4px;
+  width: 12px; height: 10px;
+}
+.hero-avatar .av-eye {
+  top: 7px;
+  width: 2px; height: 2px;
+}
+.lineup-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  max-width: 560px;
+  margin-top: 4px;
+}
+.lineup-label {
+  width: 100%;
+  text-align: center;
+  font-size: 12px;
+  color: #C9A227;
+}
+.lineup-chip {
+  flex: 1 1 140px;
+  max-width: 200px;
+  text-align: left;
+  background: #2A241C;
+  border: 2px solid #5A4030;
+  color: #E8DCC8;
+  padding: 8px 10px;
+  cursor: pointer;
+  font-size: 11px;
+  line-height: 1.35;
+}
+.lineup-chip:hover { border-color: #C9A227; }
+.lineup-chip strong {
+  display: block;
+  color: #C9A227;
+  font-size: 13px;
+  margin-bottom: 2px;
+}
+.lineup-chip span { display: block; opacity: .9; }
+.lineup-chip em {
+  display: block;
+  margin-top: 4px;
+  font-style: normal;
+  color: #8A7E6E;
+  font-size: 10px;
+}
+#overlay.settings-mode .overlay-extra {
+  max-width: 520px;
+}

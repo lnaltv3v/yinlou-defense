@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 靜態資料 v0.4.0
+ * 銀樓防衛 — 靜態資料 v0.5.0
  * 角色為原創綽號，影射金融江湖氣氛；唔用真人真名／金庸名／Fortias IP。
  */
 (function (global) {
@@ -336,19 +336,19 @@
     {
       id: 1,
       name: '錢莊初夜',
-      startSilver: 145,
-      coreHp: 170,
+      startSilver: 165,
+      coreHp: 185,
       unlockHeroes: Object.keys(HEROES),
       waves: [
-        wavePack([{ enemy: 'retail_tide', count: 4, lane: 'cycle', interval: 1.05 }]),
+        wavePack([{ enemy: 'retail_tide', count: 3, lane: 'cycle', interval: 1.2 }]),
         wavePack([
-          { enemy: 'retail_tide', count: 6, lane: 'cycle', interval: 0.8 },
-          { enemy: 'chase_zombie', count: 1, lane: 'random', interval: 1.6, delay: 2.5 },
+          { enemy: 'retail_tide', count: 5, lane: 'cycle', interval: 0.95 },
+          { enemy: 'chase_zombie', count: 1, lane: 'random', interval: 1.8, delay: 3.0 },
         ]),
         wavePack([
-          { enemy: 'retail_tide', count: 6, lane: 'cycle', interval: 0.7 },
-          { enemy: 'chase_zombie', count: 3, lane: 'cycle', interval: 1.15, delay: 1 },
-          { enemy: 'leverage_fiend', count: 1, lane: 1, interval: 0, delay: 4.5 },
+          { enemy: 'retail_tide', count: 5, lane: 'cycle', interval: 0.8 },
+          { enemy: 'chase_zombie', count: 2, lane: 'cycle', interval: 1.25, delay: 1.2 },
+          { enemy: 'leverage_fiend', count: 1, lane: 1, interval: 0, delay: 5.0, elite: true },
         ]),
         wavePack([
           { enemy: 'retail_tide', count: 9, lane: 'cycle', interval: 0.58 },
@@ -607,6 +607,51 @@
     return waves;
   }
 
+
+  /** 推薦陣容芯片（上手／羈絆導向） */
+  const LINEUPS = [
+    {
+      id: 'iron_wall',
+      name: '新手鐵壁',
+      heroes: ['market_guard', 'dividend_hermit', 'long_bull'],
+      blurb: '坦＋奶＋刀｜優先觸發銀樓鐵壁',
+      tip: '鐵衛前排、隱士中、刀客輸出',
+    },
+    {
+      id: 'bull_bear',
+      name: '多空開倉',
+      heroes: ['long_bull', 'short_blade', 'ipo_herald'],
+      blurb: '近遠＋鼓手｜觸發多空對決',
+      tip: '刀劍同場再加鼓手加攻',
+    },
+    {
+      id: 'leverage',
+      name: '槓桿雙煞',
+      heroes: ['leverage_monk', 'penny_assassin', 'market_guard'],
+      blurb: '範圍＋刺客＋坦',
+      tip: '狂僧清潮、刺客打後、鐵衛頂',
+    },
+    {
+      id: 'squeeze',
+      name: '招股軋空',
+      heroes: ['ipo_herald', 'squeeze_blade', 'short_blade'],
+      blurb: '鼓手＋逼空＋劍',
+      tip: '對 Boss／高血怪特別強',
+    },
+  ];
+
+  /** 失敗後隨機提示 */
+  const FAIL_TIPS = [
+    '前排放莊家鐵衛擋路，後排放空頭劍客／細價股刺客。',
+    '同種合併升星通常比亂召一堆 1 星更強；合併有銀兩回報。',
+    '股息隱士＋莊家鐵衛 → 羈絆「銀樓鐵壁」（減傷＋光環）。',
+    '多頭刀客＋空頭劍客 →「多空對決」雙方攻擊 +12%。',
+    '波次間用補銀繼續合併；唔好銀兩放住唔用。',
+    '精英波／Boss 前先合成到 2 星以上再硬頂。',
+    '拖放可調位：坦克靠左、輸出靠右（敵人由右入）。',
+    '開波前睇羈絆列：齊人先開波，收益更大。',
+  ];
+
   const ACHIEVEMENTS = [
     { id: 'first_clear', name: '開張大吉', blurb: '通關第 1 關', check: (s) => (s.maxStageCleared || 0) >= 1 },
     { id: 'stage4', name: '清算達人', blurb: '通關第 4 關', check: (s) => (s.maxStageCleared || 0) >= 4 },
@@ -618,6 +663,8 @@
     { id: 'codex_heroes', name: '門派圖齊', blurb: '圖鑑見齊全部俠客', check: (s) => Object.keys(HEROES).every((id) => (s.seenHeroes || {})[id]) },
     { id: 'codex_enemies', name: '敵情盡知', blurb: '圖鑑見齊全部敵人', check: (s) => Object.keys(ENEMIES).every((id) => (s.seenEnemies || {})[id]) },
     { id: 'daily', name: '日日開盤', blurb: '完成一次每日關', check: (s) => !!s.ach && s.ach.daily },
+    { id: 'elite', name: '精英過招', blurb: '擊敗一次精英敵', check: (s) => !!s.ach && s.ach.elite },
+    { id: 'lineup', name: '跟單上陣', blurb: '使用一次推薦陣容芯片', check: (s) => !!s.ach && s.ach.lineup },
   ];
 
   function buildEndlessWave(n) {
@@ -755,7 +802,7 @@
 
   function defaultSave() {
     return {
-      version: 4,
+      version: 5,
       totalSilver: 0,
       totalKills: 0,
       maxStageCleared: 0,
@@ -764,14 +811,50 @@
       lastSpeed: 1,
       skipTutorial: false,
       showCellHints: true,
+      showSkillCd: true,
+      reduceShake: false,
+      autoPauseOnBond: false,
       seenHeroes: {},
       seenEnemies: {},
       ach: {},
       unlockedAch: {},
       dailyDate: '',
       dailyCleared: false,
+      firstBootDone: false,
     };
   }
+
+  function exportSaveJson(save) {
+    const payload = {
+      meta: { game: 'yinlou-defense', exportedAt: new Date().toISOString(), version: save.version || 5 },
+      save: { ...defaultSave(), ...save },
+    };
+    return JSON.stringify(payload, null, 2);
+  }
+
+  function importSaveJson(raw) {
+    const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    const body = data && data.save ? data.save : data;
+    if (!body || typeof body !== 'object') throw new Error('無效存檔');
+    const merged = { ...defaultSave(), ...body };
+    merged.version = Math.max(5, merged.version || 5);
+    if (!merged.seenHeroes) merged.seenHeroes = {};
+    if (!merged.seenEnemies) merged.seenEnemies = {};
+    if (!merged.ach) merged.ach = {};
+    if (!merged.unlockedAch) merged.unlockedAch = {};
+    return merged;
+  }
+
+  function pickFailTip(seed) {
+    const i = Math.abs((seed || Date.now()) | 0) % FAIL_TIPS.length;
+    return FAIL_TIPS[i];
+  }
+
+  function firstRunBonus(save) {
+    if ((save.maxStageCleared || 0) > 0) return 0;
+    return 25;
+  }
+
 
   function markSeenHero(save, id) {
     if (!save.seenHeroes) save.seenHeroes = {};
@@ -811,6 +894,8 @@
     STAGES,
     ENDLESS,
     ACHIEVEMENTS,
+    LINEUPS,
+    FAIL_TIPS,
     buildEndlessWave,
     buildDailyWaves,
     dailyStageMeta,
@@ -829,6 +914,10 @@
     loadSave,
     writeSave,
     defaultSave,
+    exportSaveJson,
+    importSaveJson,
+    pickFailTip,
+    firstRunBonus,
     markSeenHero,
     markSeenEnemy,
     refreshAchievements,

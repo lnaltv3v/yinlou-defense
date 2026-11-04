@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就 v0.4.0
+ * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔 v0.5.0
  */
 (function (global) {
   const {
@@ -9,9 +9,11 @@
     SPEED_OPTIONS,
     BONDS,
     ACHIEVEMENTS,
+    LINEUPS,
     summonCost,
     hkDateString,
     dailyStageMeta,
+    pickFailTip,
   } = global.YD;
 
   function $(id) {
@@ -24,6 +26,51 @@
     el.classList.add('show');
     clearTimeout(toast._t);
     toast._t = setTimeout(() => el.classList.remove('show'), ms || 1600);
+  }
+
+  /** 商店可讀像素頭像（硬邊色塊，唔用外圖） */
+  function avatarHtml(def) {
+    const c = def.color;
+    const ink = '#1A1510';
+    const paper = '#E8DCC8';
+    const sil = def.silhouette || def.role;
+    let gear = '';
+    if (sil === 'blade' || sil === 'melee') {
+      gear = '<i class="av-gear" style="background:#E8DCC8;left:22px;top:8px;width:6px;height:14px"></i>';
+    } else if (sil === 'sword' || sil === 'ranged') {
+      gear = '<i class="av-gear" style="background:#C9A227;left:20px;top:6px;width:4px;height:16px"></i>';
+    } else if (sil === 'shield' || sil === 'tank') {
+      gear = '<i class="av-gear" style="background:#8A8070;left:2px;top:10px;width:8px;height:12px"></i>';
+    } else if (sil === 'hat' || sil === 'support') {
+      gear = '<i class="av-gear" style="background:#3A7A6A;left:6px;top:2px;width:16px;height:5px"></i>';
+    } else if (sil === 'staff' || sil === 'aoe') {
+      gear = '<i class="av-gear" style="background:#5A4060;left:2px;top:4px;width:6px;height:18px"></i>';
+    } else if (sil === 'dagger' || sil === 'assassin') {
+      gear = '<i class="av-gear" style="background:#A04040;left:20px;top:10px;width:8px;height:4px"></i>';
+    } else if (sil === 'drum' || sil === 'buffer') {
+      gear = '<i class="av-gear" style="background:#C9A227;left:6px;top:18px;width:16px;height:8px"></i>';
+    } else if (sil === 'hook' || sil === 'hunter') {
+      gear = '<i class="av-gear" style="background:#8A5040;left:20px;top:8px;width:8px;height:4px"></i>';
+    }
+    return (
+      '<span class="hero-avatar" aria-hidden="true" style="--av:' +
+      c +
+      '">' +
+      '<i class="av-body" style="background:' +
+      c +
+      '"></i>' +
+      '<i class="av-head" style="background:' +
+      paper +
+      '"></i>' +
+      '<i class="av-eye" style="left:8px;background:' +
+      ink +
+      '"></i>' +
+      '<i class="av-eye" style="left:16px;background:' +
+      ink +
+      '"></i>' +
+      gear +
+      '</span>'
+    );
   }
 
   function buildShop(onSelect, getSelectedId, getSilver, handlers) {
@@ -39,18 +86,22 @@
       btn.draggable = true;
       const sk = def.skill ? def.skill.name : '';
       btn.innerHTML =
+        '<div class="hero-btn-row">' +
+        avatarHtml(def) +
+        '<div class="hero-btn-meta">' +
         '<div><strong style="color:' +
         def.color +
         '">' +
         def.name +
         '</strong></div>' +
-        '<div style="font-size:10px;opacity:.85">' +
+        '<div class="hero-blurb">' +
         def.blurb +
         (sk ? ' · ' + sk : '') +
         '</div>' +
         '<div class="cost">銀兩 <span class="cost-num">' +
         def.cost +
-        '</span></div>';
+        '</span></div>' +
+        '</div></div>';
       btn.title = def.skill ? def.skill.name + '：' + def.skill.blurb : def.blurb;
       btn.addEventListener('click', () => onSelect(id));
       btn.addEventListener('dragstart', (ev) => {
@@ -251,11 +302,15 @@
       getSave,
       onToggleHints,
       onSkipTutorial,
+      onToggleSkillCd,
+      onToggleShake,
       onClearSave,
       onClose,
       onRestart,
       onOpenCodex,
       onOpenAch,
+      onExportSave,
+      onImportSave,
     } = opts;
     const save = getSave();
     const ov = $('overlay');
@@ -266,14 +321,19 @@
     $('overlay-msg').textContent =
       '欄位高亮：' +
       (save.showCellHints !== false ? '開' : '關') +
-      '｜教學：' +
+      '｜技能條：' +
+      (save.showSkillCd !== false ? '開' : '關') +
+      '｜震屏：' +
+      (save.reduceShake ? '減弱' : '正常') +
+      '\n教學：' +
       (save.skipTutorial ? '已略過' : '會顯示') +
-      '\n羈絆 ' +
+      '｜羈絆 ' +
       BONDS.length +
-      ' 種｜成就 ' +
+      '｜成就 ' +
       achN +
       '/' +
-      ACHIEVEMENTS.length;
+      ACHIEVEMENTS.length +
+      '\n存檔可匯出 JSON 備份，或由檔案匯入。';
     const btn = $('btn-overlay');
     btn.textContent = '關閉';
     btn.onclick = () => {
@@ -299,6 +359,28 @@
       false,
       true
     );
+    if (onToggleSkillCd) {
+      mk(
+        save.showSkillCd !== false ? '隱藏技能條' : '顯示技能條',
+        () => {
+          onToggleSkillCd();
+          showSettings(opts);
+        },
+        false,
+        true
+      );
+    }
+    if (onToggleShake) {
+      mk(
+        save.reduceShake ? '震屏：正常' : '震屏：減弱',
+        () => {
+          onToggleShake();
+          showSettings(opts);
+        },
+        false,
+        true
+      );
+    }
     mk(
       save.skipTutorial ? '重開教學' : '略過教學',
       () => {
@@ -308,6 +390,8 @@
       false,
       true
     );
+    if (onExportSave) mk('匯出存檔 JSON', () => onExportSave(), false, true);
+    if (onImportSave) mk('匯入存檔 JSON', () => onImportSave(), false, true);
     if (onOpenCodex) mk('打開圖鑑', () => onOpenCodex(), false, true);
     if (onOpenAch) mk('成就一覽', () => onOpenAch(), false, true);
     mk(
@@ -330,6 +414,33 @@
       true
     );
     ov.classList.add('show');
+  }
+
+  function renderLineupChips(container, onPick) {
+    if (!container) return;
+    container.innerHTML = '';
+    const wrap = document.createElement('div');
+    wrap.className = 'lineup-chips';
+    const lab = document.createElement('div');
+    lab.className = 'lineup-label';
+    lab.textContent = '推薦陣容（點一下選商店俠客提示）';
+    wrap.appendChild(lab);
+    for (const lu of LINEUPS) {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'lineup-chip';
+      chip.title = lu.tip || lu.blurb;
+      const names = lu.heroes.map((id) => (HEROES[id] ? HEROES[id].name : id)).join('＋');
+      chip.innerHTML =
+        '<strong>' + lu.name + '</strong><span>' + lu.blurb + '</span><em>' + names + '</em>';
+      chip.addEventListener('click', () => onPick(lu));
+      wrap.appendChild(chip);
+    }
+    container.appendChild(wrap);
+  }
+
+  function failTipText(seed) {
+    return pickFailTip ? pickFailTip(seed) : '';
   }
 
   function showCodex(getSave, onClose) {
@@ -427,5 +538,9 @@
     showCodex,
     showAchievements,
     setHint,
+    renderLineupChips,
+    failTipText,
+    avatarHtml,
+    LINEUPS,
   };
 })(window);
