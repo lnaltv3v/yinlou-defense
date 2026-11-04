@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 戰鬥／生成／合併邏輯
+ * 銀樓防衛 — 戰鬥／生成／合併邏輯 v0.2.0
  */
 (function (global) {
   const { HEROES, ENEMIES, GRID, CORE, heroStats } = global.YD;
@@ -33,12 +33,14 @@
       cooldown: st.cooldown,
       cd: Math.random() * 0.3,
       auraT: 0,
+      hitFlash: 0,
       def,
     };
   }
 
   function makeEnemy(typeId, lane, extra) {
     const def = ENEMIES[typeId];
+    const hpMul = (extra && extra.hpMul) || 1;
     const y = laneY(lane) + (Math.random() * 10 - 5);
     return {
       uid: 'e' + Math.random().toString(36).slice(2, 9),
@@ -46,16 +48,22 @@
       lane,
       x: 980 + ((extra && extra.xOff) || 0),
       y,
-      hp: def.hp * ((extra && extra.hpMul) || 1),
-      maxHp: def.hp * ((extra && extra.hpMul) || 1),
+      hp: def.hp * hpMul,
+      maxHp: def.hp * hpMul,
       speed: def.speed,
       baseSpeed: def.speed,
-      atk: def.atk,
-      reward: def.reward,
+      atk: Math.round(def.atk * (0.9 + hpMul * 0.1)),
+      reward: Math.round(def.reward * (1 + (hpMul - 1) * 0.5)),
       radius: def.radius,
       slowT: 0,
       def,
       boss: !!def.boss,
+      attackRange: def.attackRange || 45,
+      attackCd: def.attackCd || 1,
+      cd: Math.random() * 0.4,
+      preferHero: def.preferHero != null ? def.preferHero : 0.5,
+      mode: 'march', // march | fight
+      hitFlash: 0,
     };
   }
 
@@ -112,15 +120,46 @@
     return inRange.reduce((a, b) => (a.x < b.x ? a : b));
   }
 
+  function pushFloat(floats, opts) {
+    floats.push({
+      x: opts.x + (Math.random() * 10 - 5),
+      y: opts.y,
+      text: opts.text,
+      life: opts.life != null ? opts.life : 0.75,
+      maxLife: opts.life != null ? opts.life : 0.75,
+      color: opts.color || '#E8DCC8',
+      vy: opts.vy != null ? opts.vy : -36,
+      size: opts.size || 14,
+      bounce: opts.bounce != null ? opts.bounce : 1,
+    });
+  }
+
   function applyDamage(enemy, amount, floats, kind) {
     enemy.hp -= amount;
-    floats.push({
+    enemy.hitFlash = 0.12;
+    const crit = kind === 'crit' || amount >= 28;
+    pushFloat(floats, {
       x: enemy.x,
       y: enemy.y - 16,
       text: '-' + Math.round(amount),
+      color: crit ? '#C9A227' : kind === 'splash' ? '#A080C0' : '#E8DCC8',
+      size: crit ? 18 : 15,
+      vy: -42,
+      life: 0.85,
+    });
+  }
+
+  function applyHeroDamage(hero, amount, floats) {
+    hero.hp -= amount;
+    hero.hitFlash = 0.15;
+    pushFloat(floats, {
+      x: hero.x,
+      y: hero.y - 28,
+      text: '-' + Math.round(amount),
+      color: '#C45C4A',
+      size: 13,
+      vy: -30,
       life: 0.7,
-      color: kind === 'crit' ? '#C9A227' : '#E8DCC8',
-      vy: -28,
     });
   }
 
@@ -129,9 +168,13 @@
     if (!target) return;
 
     let dmg = hero.atk;
-    if (hero.def.role === 'assassin' && target.x > 700) dmg = Math.round(dmg * 1.35);
+    let kind = 'hit';
+    if (hero.def.role === 'assassin' && target.x > 700) {
+      dmg = Math.round(dmg * 1.35);
+      kind = 'crit';
+    }
 
-    applyDamage(target, dmg, floats, 'hit');
+    applyDamage(target, dmg, floats, kind);
 
     if (hero.def.slow && target.hp > 0) {
       target.slowT = Math.max(target.slowT, hero.def.slowDur);
@@ -147,13 +190,14 @@
       }
       if (hero.def.selfRisk && Math.random() < hero.def.selfRisk) {
         hero.hp = Math.max(1, hero.hp - Math.round(hero.maxHp * 0.04));
-        floats.push({
+        pushFloat(floats, {
           x: hero.x,
           y: hero.y - 20,
           text: '槓桿反噬',
-          life: 0.8,
           color: '#5A4060',
+          size: 12,
           vy: -20,
+          life: 0.8,
         });
       }
     }
@@ -165,8 +209,17 @@
       x1: target.x,
       y1: target.y,
       color: hero.def.color,
-      life: 0.12,
+      life: 0.14,
     });
+    state.fx.push({
+      type: 'hit',
+      x: target.x,
+      y: target.y,
+      color: hero.def.color,
+      life: 0.18,
+      r: 10 + (kind === 'crit' ? 6 : 0),
+    });
+    if (!state.shake || state.shake < 0.08) state.shake = kind === 'crit' ? 0.12 : 0.06;
   }
 
   function tickSupport(hero, heroes, state, dt) {
@@ -180,19 +233,21 @@
       }
     }
     state.silver += (hero.def.auraSilver || 0) * hero.star;
-    state.floats.push({
+    pushFloat(state.floats, {
       x: hero.x,
       y: hero.y - 24,
       text: '+' + ((hero.def.auraSilver || 0) * hero.star).toFixed(1) + '兩',
-      life: 0.6,
       color: '#D4AF37',
+      size: 12,
       vy: -18,
+      life: 0.6,
     });
   }
 
   function tickHeroes(state, dt) {
     for (const h of state.heroes) {
       if (h.hp <= 0) continue;
+      if (h.hitFlash > 0) h.hitFlash -= dt;
       tickSupport(h, state.heroes, state, dt);
       h.cd -= dt;
       if (h.cd > 0) continue;
@@ -202,25 +257,82 @@
     }
   }
 
+  function nearestHeroOnLane(enemy, heroes) {
+    let best = null;
+    let bestD = Infinity;
+    for (const h of heroes) {
+      if (h.hp <= 0) continue;
+      if (h.lane !== enemy.lane) continue;
+      // 俠客要喺敵人左邊（銀樓方向）或貼近
+      if (h.x > enemy.x + 8) continue;
+      const d = enemy.x - h.x;
+      if (d < bestD) {
+        bestD = d;
+        best = h;
+      }
+    }
+    return best;
+  }
+
   function tickEnemies(state, dt) {
     const arrived = [];
     for (const e of state.enemies) {
+      if (e.hitFlash > 0) e.hitFlash -= dt;
       if (e.slowT > 0) {
         e.slowT -= dt;
         if (e.slowT <= 0) e.speed = e.baseSpeed;
       }
-      e.x -= e.speed * dt;
+
+      e.cd -= dt;
+      const hero = nearestHeroOnLane(e, state.heroes);
+      const distHero = hero ? Math.abs(e.x - hero.x) : Infinity;
+      const inHeroRange = hero && distHero <= e.attackRange + 18;
+
+      // 混用：有機率／距離內就打塔，否則衝核心
+      if (inHeroRange && (e.mode === 'fight' || Math.random() < e.preferHero * 0.02 + (inHeroRange ? 0.5 : 0))) {
+        e.mode = 'fight';
+      } else if (!inHeroRange) {
+        e.mode = 'march';
+      }
+
+      if (e.mode === 'fight' && hero && hero.hp > 0) {
+        // 停下攻擊最近俠客
+        if (e.cd <= 0) {
+          e.cd = e.attackCd;
+          applyHeroDamage(hero, e.atk, state.floats);
+          state.fx.push({
+            type: 'hit',
+            x: hero.x,
+            y: hero.y,
+            color: e.def.color,
+            life: 0.16,
+            r: 12,
+          });
+          if (!state.shake || state.shake < 0.1) state.shake = 0.1;
+        }
+      } else {
+        e.x -= e.speed * dt;
+      }
+
       if (e.x - e.radius <= CORE.x + 20) arrived.push(e);
     }
+
     for (const e of arrived) {
       state.coreHp -= e.atk;
-      state.floats.push({
+      state.coreHitFlash = 0.35;
+      state.shake = 0.22;
+      pushFloat(state.floats, {
         x: CORE.x,
         y: CORE.y - 40,
         text: '破門 -' + e.atk,
-        life: 0.9,
         color: '#C45C4A',
-        vy: -30,
+        size: 18,
+        vy: -34,
+        life: 1.0,
+      });
+      state.fx.push({
+        type: 'coreHit',
+        life: 0.35,
       });
       e.hp = 0;
     }
@@ -231,33 +343,54 @@
     for (const e of dead) {
       if (e.x > CORE.x + 20) {
         state.silver += e.reward;
-        state.floats.push({
+        pushFloat(state.floats, {
           x: e.x,
           y: e.y,
           text: '+' + e.reward,
-          life: 0.7,
           color: '#D4AF37',
-          vy: -24,
+          size: 14,
+          vy: -28,
+          life: 0.75,
         });
         state.kills += 1;
+        state.fx.push({ type: 'hit', x: e.x, y: e.y, color: '#C9A227', life: 0.2, r: 14 });
       }
     }
     state.enemies = state.enemies.filter((e) => e.hp > 0);
+    // 俠客陣亡
+    const deadH = state.heroes.filter((h) => h.hp <= 0);
+    for (const h of deadH) {
+      pushFloat(state.floats, {
+        x: h.x,
+        y: h.y,
+        text: '陣亡',
+        color: '#8A7E6E',
+        size: 12,
+        vy: -16,
+        life: 0.9,
+      });
+    }
     state.heroes = state.heroes.filter((h) => h.hp > 0);
   }
 
   function tickFloats(state, dt) {
     for (const f of state.floats) {
       f.life -= dt;
+      const t = 1 - f.life / (f.maxLife || 0.75);
+      const bounce = f.bounce ? Math.sin(Math.min(1, t * 8) * Math.PI) * 4 * (1 - t) : 0;
       f.y += (f.vy || -20) * dt;
+      f._bounceY = bounce;
     }
     state.floats = state.floats.filter((f) => f.life > 0);
     for (const fx of state.fx) fx.life -= dt;
     state.fx = state.fx.filter((fx) => fx.life > 0);
+    if (state.shake > 0) state.shake = Math.max(0, state.shake - dt);
+    if (state.coreHitFlash > 0) state.coreHitFlash = Math.max(0, state.coreHitFlash - dt);
   }
 
   function createSpawner(waveDef) {
     const jobs = [];
+    const hpMul = waveDef.hpMul || 1;
     for (const s of waveDef.spawns) {
       jobs.push({
         enemy: s.enemy,
@@ -268,6 +401,7 @@
         started: false,
         laneMode: s.lane,
         fixedLane: typeof s.lane === 'number' ? s.lane : null,
+        hpMul: s.hpMul || hpMul,
       });
     }
     return { jobs, laneCycle: 0, done: false, elapsed: 0 };
@@ -286,6 +420,14 @@
     return null;
   }
 
+  function hitTestHero(heroes, mx, my) {
+    for (let i = heroes.length - 1; i >= 0; i--) {
+      const h = heroes[i];
+      if (Math.abs(mx - h.x) < 28 && Math.abs(my - h.y) < 36) return h;
+    }
+    return null;
+  }
+
   global.YDBattle = {
     cellCenter,
     laneY,
@@ -300,5 +442,6 @@
     tickFloats,
     createSpawner,
     hitTestCell,
+    hitTestHero,
   };
 })(window);

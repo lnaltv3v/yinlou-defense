@@ -3,12 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-  <title>銀樓防衛 v0.1.0</title>
-  <link rel="stylesheet" href="css/style.css" />
+  <title>銀樓防衛 v0.2.0</title>
+  <link rel="stylesheet" href="css/style.css?v=0.2.0" />
 </head>
 <body>
   <div id="app">
     <header class="title">銀樓防衛 · YINLOU DEFENSE</header>
+    <div id="stage-bar" class="tool-bar" aria-label="關卡選擇"></div>
     <div id="wrap">
       <canvas id="game" width="960" height="540" aria-label="遊戲畫面"></canvas>
       <div id="toast"></div>
@@ -16,6 +17,7 @@
         <h2 id="overlay-title">準備</h2>
         <p id="overlay-msg"></p>
         <button type="button" class="action-btn" id="btn-overlay">開始</button>
+        <div id="overlay-extra" class="overlay-extra"></div>
       </div>
     </div>
     <div id="hud">
@@ -23,14 +25,16 @@
       <div class="stat">核心 <strong id="stat-hp">0</strong></div>
       <div class="stat">波次 <strong id="stat-wave">0</strong></div>
       <div class="stat">關卡 <strong id="stat-stage">1</strong></div>
+      <div class="stat">擊殺 <strong id="stat-kills">0</strong></div>
+      <div id="speed-bar" class="tool-bar inline" aria-label="速度"></div>
     </div>
     <div id="shop"></div>
-    <p class="hint">點底欄俠客 → 點空格放置｜點兩名同種同星合併升星｜開波守銀樓｜最高 3 星</p>
+    <p class="hint" id="hint">拖底欄俠客到空格放置｜拖同種同星合併升星｜開波守銀樓｜最高 3 星</p>
   </div>
-  <script src="js/data.js"></script>
-  <script src="js/battle.js"></script>
-  <script src="js/render.js"></script>
-  <script src="js/ui.js"></script>
-  <script src="js/game.js"></script>
+  <script src="js/data.js?v=0.2.0"></script>
+  <script src="js/battle.js?v=0.2.0"></script>
+  <script src="js/render.js?v=0.2.0"></script>
+  <script src="js/ui.js?v=0.2.0"></script>
+  <script src="js/game.js?v=0.2.0"></script>
 </body>
 </html>
