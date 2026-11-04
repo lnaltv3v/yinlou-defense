@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — Canvas 繪製 v2.5.0
+ * 銀樓防衛 — Canvas 繪製 v2.6.0
  * v1.5：場景四層 ground→mid→wall→props；halt_seal PNG；擊破／暴擊
  */
 (function (global) {
@@ -835,19 +835,47 @@
         ctx.globalAlpha = 1;
       } else if (fx.type === 'mergeRing') {
         const tLife = Math.max(0, fx.life || 0);
-        const r = 18 + (1 - Math.min(1, tLife / 0.55)) * (22 + (fx.star || 1) * 4);
-        ctx.globalAlpha = Math.min(0.85, tLife * 1.6);
+        const lifeMax = fx.star >= 4 ? 0.85 : fx.star >= 3 ? 0.7 : 0.55;
+        const rr = 18 + (1 - Math.min(1, tLife / lifeMax)) * (24 + (fx.star || 1) * 5);
+        ctx.globalAlpha = Math.min(0.9, tLife * 1.7);
         ctx.strokeStyle = fx.star >= 4 ? '#E8DCC8' : '#C9A227';
-        ctx.lineWidth = 3;
+        ctx.lineWidth = fx.star >= 3 ? 4 : 3;
         ctx.beginPath();
-        ctx.arc(fx.x, fx.y, r, 0, Math.PI * 2);
+        ctx.arc(fx.x, fx.y, rr, 0, Math.PI * 2);
         ctx.stroke();
-        ctx.globalAlpha = Math.min(0.5, tLife);
+        ctx.globalAlpha = Math.min(0.55, tLife);
         ctx.strokeStyle = '#D4AF37';
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.arc(fx.x, fx.y, r * 0.7, 0, Math.PI * 2);
+        ctx.arc(fx.x, fx.y, rr * 0.7, 0, Math.PI * 2);
         ctx.stroke();
+        // 合星火花點
+        const sparks = 4 + (fx.star || 1);
+        for (let i = 0; i < sparks; i++) {
+          const ang = (i / sparks) * Math.PI * 2 + tLife * 6;
+          const rad = rr * (0.85 + (1 - tLife) * 0.35);
+          ctx.globalAlpha = Math.min(0.8, tLife * 1.2);
+          drawPixelRect(
+            ctx,
+            fx.x + Math.cos(ang) * rad - 2,
+            fx.y + Math.sin(ang) * rad - 2,
+            4,
+            4,
+            i % 2 ? '#C9A227' : '#E8DCC8'
+          );
+        }
+        ctx.globalAlpha = 1;
+      } else if (fx.type === 'mergeSpark') {
+        const t = Math.max(0, fx.life || 0);
+        ctx.globalAlpha = Math.min(0.9, t * 2);
+        ctx.fillStyle = fx.color || '#C9A227';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.strokeStyle = '#1A1510';
+        ctx.lineWidth = 3;
+        const txt = fx.text || '合';
+        ctx.strokeText(txt, fx.x, fx.y);
+        ctx.fillText(txt, fx.x, fx.y);
         ctx.globalAlpha = 1;
       } else if (fx.type === 'maxstar') {
         const t = Math.max(0, fx.life);
@@ -1073,15 +1101,22 @@
   function drawModStrip(ctx, state) {
     const mods = state.modifiers;
     if (!mods || !mods.length) return;
-    const label = mods.map((m) => m.name).join(' · ');
+    const late = (mods || []).filter((m) => m.late90 || m.late100);
+    const badge =
+      late.length === 0
+        ? ''
+        : late.some((m) => m.late100)
+          ? '【100+】'
+          : '【90+】';
+    const label = badge + mods.map((m) => m.name).join(' · ');
     ctx.globalAlpha = 0.92;
     drawPixelRect(ctx, 220, 8, 520, 22, '#1A1510');
-    ctx.strokeStyle = '#5A4030';
+    ctx.strokeStyle = late.length ? '#8A9BB0' : '#5A4030';
     ctx.lineWidth = 2;
     ctx.strokeRect(220, 8, 520, 22);
     ctx.font = 'bold 11px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillStyle = '#C9A227';
+    ctx.fillStyle = late.some((m) => m.late100) ? '#E8DCC8' : '#C9A227';
     ctx.fillText('修飾｜' + label, 480, 23);
     ctx.globalAlpha = 1;
   }

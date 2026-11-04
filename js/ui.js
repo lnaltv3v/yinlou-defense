@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v2.5.0
+ * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v2.6.0
  */
 (function (global) {
   const {
@@ -96,7 +96,7 @@
       ink +
       '"></i>' +
       gear;
-    const src = (window.YDSprites && window.YDSprites.urlFor) ? window.YDSprites.urlFor(def.id) : ('assets/sprites/' + def.id + '.png?v=2.3.0');
+    const src = (window.YDSprites && window.YDSprites.urlFor) ? window.YDSprites.urlFor(def.id) : ('assets/sprites/' + def.id + '.png?v=2.6.0');
     return (
       '<span class="hero-avatar" aria-hidden="true" data-hero="' +
       def.id +
@@ -719,7 +719,7 @@
     const src = id && window.YDSprites && window.YDSprites.urlFor
       ? window.YDSprites.urlFor(id)
       : id
-        ? 'assets/sprites/' + id + '.png?v=2.3.0'
+        ? 'assets/sprites/' + id + '.png?v=2.6.0'
         : '';
     const fallback =
       '<span class="codex-thumb-fallback" style="background:' + c + '"></span>';
@@ -867,13 +867,16 @@
           '｜靜態短頁｜可喺設定重讀</p>'
       );
       for (const step of lesson.steps || []) {
+        const bossDef = step.bossId && ENEMIES[step.bossId] ? ENEMIES[step.bossId] : null;
+        const thumb = bossDef ? codexThumbHtml(bossDef, 'enemy') : '';
         parts.push(
-          '<div class="paper-entry card-thick">' +
-            '<strong style="color:#C9A227">' +
+          '<div class="paper-entry card-thick card-row lesson-step">' +
+            thumb +
+            '<div class="card-body"><strong style="color:#C9A227">' +
             (step.name || '') +
             '</strong><span>' +
             (step.text || '') +
-            '</span></div>'
+            '</span></div></div>'
         );
       }
     }
@@ -918,13 +921,16 @@
       '<p class="paper-note">' + (lesson.blurb || '') + '｜靜態短頁｜唔做影片</p>',
     ];
     for (const step of lesson.steps || []) {
+      const bossDef = step.bossId && ENEMIES[step.bossId] ? ENEMIES[step.bossId] : null;
+      const thumb = bossDef ? codexThumbHtml(bossDef, 'enemy') : '';
       parts.push(
-        '<div class="paper-entry card-thick">' +
-          '<strong style="color:#C9A227">' +
+        '<div class="paper-entry card-thick card-row lesson-step">' +
+          thumb +
+          '<div class="card-body"><strong style="color:#C9A227">' +
           (step.name || '') +
           '</strong><span>' +
           (step.text || '') +
-          '</span></div>'
+          '</span></div></div>'
       );
     }
     parts.push(

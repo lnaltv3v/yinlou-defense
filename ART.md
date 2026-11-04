@@ -119,3 +119,6 @@
 ## v2.5
 - `ink_specter`／`ink_specter_attack`／`ink_specter_sheet`：**正式 PNG 已接入**（48×48／sheet 96×48）；`sprites.js` 與其他 Boss 同路徑（`*.png`／`*_attack`／`*_sheet`，`CACHE_VER=2.4.0`）。缺檔時先借 `dark_tape`，再幾何。
 - 場景四層 PNG 未改動。
+
+## v2.6
+- 四潮教學步驟接 Boss PNG 縮圖；合星環火花純程式；mid／props 無新檔；`CACHE_VER=2.6.0`。

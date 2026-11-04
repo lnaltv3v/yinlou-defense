@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 主循環 v2.5.0
+ * 銀樓防衛 — 主循環 v2.6.0
  * v1.9.0：第7關／鎖倉居士／週連續＋本地最佳牆／手感平衡
  */
 (function () {
@@ -222,6 +222,10 @@
       if ((save.bestEndlessWave || 0) >= 90) {
         if (!save.ach) save.ach = {};
         save.ach.late90_run = true;
+      }
+      if ((save.bestEndlessWave || 0) >= 100) {
+        if (!save.ach) save.ach = {};
+        save.ach.late100_run = true;
       }
       const modStory =
         ENDLESS.story +
@@ -712,6 +716,24 @@
       }
       if (enterStage(0, true, false, false)) {
         const lab = modifierLabel(state.modifiers || []);
+        const lateMods = (state.modifiers || []).filter((m) => m.late90 || m.late100);
+        state._lateModBadge = lateMods.length
+          ? lateMods.map((m) => m.name).join(' · ')
+          : '';
+        state._lateModTier = lateMods.some((m) => m.late100)
+          ? 100
+          : lateMods.some((m) => m.late90)
+            ? 90
+            : 0;
+        if (state._lateModBadge) {
+          setTimeout(() => {
+            UI.toast(
+              (state._lateModTier >= 100 ? '【100+】' : '【90+】') +
+                state._lateModBadge,
+              3000
+            );
+          }, 200);
+        }
         const allClear = (save.maxStageCleared || 0) >= STAGES.length;
         if (!save.quadTideTutorialDone && (allClear || (save.maxStageCleared || 0) >= 10)) {
           setTimeout(() => {

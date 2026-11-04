@@ -1447,6 +1447,73 @@
       ],
     },
 
+    {
+      id: 13,
+      name: '墨影翻帳',
+      story: '三潮之後帳本未合——墨影從裂縫滲出，暗盤影成群護帳。今夜只打一潮：護住銀袋，先清影再軋帳心；鎖倉減抽，合星護核。',
+      challenge: true,
+      startSilver: 390,
+      coreHp: 420,
+      unlockHeroes: Object.keys(HEROES),
+      firstClearBonus: 420,
+      waves: [
+        wavePack([
+          { enemy: 'dark_tape', count: 10, lane: 'cycle', interval: 0.36 },
+          { enemy: 'retail_tide', count: 12, lane: 'random', interval: 0.3, delay: 0.25 },
+          { enemy: 'rumor_swarm', count: 9, lane: 'cycle', interval: 0.28, delay: 0.4 },
+        ]),
+        wavePack([
+          { enemy: 'dark_tape', count: 12, lane: 'cycle', interval: 0.3 },
+          { enemy: 'halt_seal', count: 7, lane: 'random', interval: 0.55, delay: 0.5 },
+          { enemy: 'margin_call', count: 7, lane: 'cycle', interval: 0.55, delay: 0.7 },
+        ]),
+        wavePack([
+          { enemy: 'panic_board', count: 5, lane: 'cycle', interval: 0.85, delay: 0.3, elite: true },
+          { enemy: 'dark_tape', count: 14, lane: 'random', interval: 0.26, delay: 0.2 },
+          { enemy: 'leverage_fiend', count: 3, lane: 'cycle', interval: 1.0, delay: 1.0 },
+        ]),
+        wavePack([
+          { enemy: 'rumor_swarm', count: 12, lane: 'cycle', interval: 0.24 },
+          { enemy: 'dark_tape', count: 13, lane: 'random', interval: 0.28, delay: 0.2 },
+          { enemy: 'halt_seal', count: 8, lane: 'cycle', interval: 0.5, delay: 0.6 },
+          { enemy: 'margin_call', count: 8, lane: 'random', interval: 0.48, delay: 0.4 },
+        ]),
+        wavePack([
+          { enemy: 'panic_board', count: 6, lane: 'cycle', interval: 0.78 },
+          { enemy: 'dark_tape', count: 15, lane: 'random', interval: 0.24, delay: 0.18 },
+          { enemy: 'ink_specter', count: 1, lane: 2, interval: 0, delay: 3.2, hpMul: 0.82 },
+          { enemy: 'leverage_fiend', count: 3, lane: 'cycle', interval: 0.9, delay: 0.8, elite: true },
+        ]),
+        wavePack([
+          { enemy: 'halt_seal', count: 9, lane: 'cycle', interval: 0.42 },
+          { enemy: 'dark_tape', count: 14, lane: 'random', interval: 0.26, delay: 0.2 },
+          { enemy: 'panic_board', count: 5, lane: 'cycle', interval: 0.8, delay: 0.5 },
+          { enemy: 'chase_zombie', count: 8, lane: 'random', interval: 0.4, delay: 0.35 },
+        ]),
+        wavePack([
+          { enemy: 'dark_tape', count: 16, lane: 'cycle', interval: 0.22 },
+          { enemy: 'rumor_swarm', count: 12, lane: 'random', interval: 0.24, delay: 0.18 },
+          { enemy: 'margin_call', count: 9, lane: 'cycle', interval: 0.42, delay: 0.3 },
+          { enemy: 'ink_specter', count: 1, lane: 1, interval: 0, delay: 2.8, hpMul: 0.92 },
+        ]),
+        wavePack([
+          { enemy: 'panic_board', count: 6, lane: 'cycle', interval: 0.7 },
+          { enemy: 'dark_tape', count: 15, lane: 'random', interval: 0.22, delay: 0.15 },
+          { enemy: 'halt_seal', count: 10, lane: 'cycle', interval: 0.38, delay: 0.35 },
+          { enemy: 'leverage_fiend', count: 4, lane: 'random', interval: 0.85, delay: 0.6, elite: true },
+        ]),
+        wavePack([
+          { enemy: 'dark_tape', count: 16, lane: 'cycle', interval: 0.2 },
+          { enemy: 'panic_board', count: 7, lane: 'random', interval: 0.62, delay: 0.2 },
+          { enemy: 'halt_seal', count: 10, lane: 'cycle', interval: 0.36, delay: 0.3 },
+          { enemy: 'margin_call', count: 9, lane: 'random', interval: 0.4, delay: 0.35 },
+          { enemy: 'ink_specter', count: 1, lane: 2, interval: 0, delay: 2.0, hpMul: 1.08 },
+          { enemy: 'leverage_fiend', count: 4, lane: 'cycle', interval: 0.8, delay: 0.55, elite: true },
+          { enemy: 'chase_zombie', count: 8, lane: 'random', interval: 0.42, delay: 0.5 },
+        ]),
+      ],
+    },
+
   ];
 
   const ENDLESS = {
@@ -1480,6 +1547,7 @@
     { wave: 75, silver: 700, label: '七十五浪硬頂' },
     { wave: 90, silver: 820, label: '九十浪長城' },
     { wave: 100, silver: 1000, label: '百浪墨城' },
+    { wave: 110, silver: 1150, label: '百十浪帳守' },
   ];
 
   function endlessMilestone(waveIndex) {
@@ -1998,6 +2066,50 @@
     },
   ];
 
+  /** 無盡 100+ 專屬修飾第二池 */
+  const RUN_MODIFIERS_100 = [
+    {
+      id: 'century_vault',
+      name: '百浪銀庫',
+      blurb: '開局銀 +14%；核心 HP +8%',
+      late100: true,
+      apply: (ctx) => {
+        ctx.silverMul = (ctx.silverMul || 1) * 1.14;
+        ctx.coreMul = (ctx.coreMul || 1) * 1.08;
+      },
+    },
+    {
+      id: 'ink_mirror',
+      name: '墨鏡反照',
+      blurb: '墨影抽銀 ×0.4；俠客冷卻 −5%',
+      late100: true,
+      apply: (ctx) => {
+        ctx.silverDrainMul = (ctx.silverDrainMul || 1) * 0.4;
+        ctx.heroCdMul = (ctx.heroCdMul || 1) * 0.95;
+      },
+    },
+    {
+      id: 'star_cascade',
+      name: '合星連瀑',
+      blurb: '合併回報 ×1.26；召喚費 −5%',
+      late100: true,
+      apply: (ctx) => {
+        ctx.mergeRebateMul = (ctx.mergeRebateMul || 1) * 1.26;
+        ctx.summonCostMul = (ctx.summonCostMul || 1) * 0.95;
+      },
+    },
+    {
+      id: 'ledger_fortress',
+      name: '帳堡鐵壁',
+      blurb: '核心 HP +15%；鎖倉持續 ×1.1',
+      late100: true,
+      apply: (ctx) => {
+        ctx.coreMul = (ctx.coreMul || 1) * 1.15;
+        ctx.lockDurMul = (ctx.lockDurMul || 1) * 1.1;
+      },
+    },
+  ];
+
   function hashStr(s) {
     let h = 0;
     for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
@@ -2258,6 +2370,14 @@
         else mods.push(late);
       }
     }
+    if (best >= 100 && RUN_MODIFIERS_100.length) {
+      const h3 = (seed ^ 0x100cafe) >>> 0;
+      const late2 = RUN_MODIFIERS_100[h3 % RUN_MODIFIERS_100.length];
+      if (!mods.some((m) => m.id === late2.id)) {
+        if (mods.length >= 3) mods[0] = late2;
+        else mods.push(late2);
+      }
+    }
     return mods;
   }
 
@@ -2394,6 +2514,33 @@
         last.spawns.push({ enemy: 'halt_tide', count: 1, lane: 3, interval: 0, delay: 5.8, hpMul: 1.1 * scale });
       }
       if (meta.focus === 'ink_specter') {
+        // v2.6：墨影週波編加厚——中段暗盤霧、倒數第二波弱化墨影、末波抽銀壓境
+        for (let wi = 2; wi < waves.length - 1; wi++) {
+          const w = waves[wi];
+          w.spawns = w.spawns || [];
+          w.spawns.push({
+            enemy: 'dark_tape',
+            count: 5 + wi,
+            lane: 'cycle',
+            interval: 0.34,
+            delay: 0.4,
+            hpMul: 1.05 * scale,
+          });
+        }
+        if (waves.length >= 2) {
+          const pen = waves[waves.length - 2];
+          pen.spawns = pen.spawns || [];
+          if (!pen.spawns.some((s) => s.enemy === 'ink_specter')) {
+            pen.spawns.push({
+              enemy: 'ink_specter',
+              count: 1,
+              lane: 1,
+              interval: 0,
+              delay: 3.2,
+              hpMul: 0.78 * scale,
+            });
+          }
+        }
         const hasInk = last.spawns.some((s) => s.enemy === 'ink_specter');
         if (!hasInk) {
           last.spawns.push({
@@ -2402,9 +2549,26 @@
             lane: 2,
             interval: 0,
             delay: 4.6,
-            hpMul: 1.12 * scale,
+            hpMul: 1.14 * scale,
           });
         }
+        last.spawns.push({
+          enemy: 'dark_tape',
+          count: 10,
+          lane: 'random',
+          interval: 0.28,
+          delay: 0.5,
+          hpMul: 1.08 * scale,
+        });
+        last.spawns.push({
+          enemy: 'panic_board',
+          count: 4,
+          lane: 'cycle',
+          interval: 0.85,
+          delay: 1.2,
+          elite: true,
+          hpMul: 1.1 * scale,
+        });
       }
       if (meta.focus === 'quad_tide') {
         last.spawns.push({ enemy: 'black_swan', count: 1, lane: 0, interval: 0, delay: 2.2, hpMul: 1.08 * scale });
@@ -2578,7 +2742,13 @@
       heroes: ['lock_hermit', 'market_guard', 'short_blade'],
       blurb: '鎖倉＋坦＋劍｜擋停牌潮',
       tip: '第 11 關／停牌潮：鐵筆減攻、鐵衛頂、劍減速收割',
-    },
+    },,
+    {
+      id: 'ink_guard',
+      name: '護銀抗墨',
+      heroes: ['market_guard', 'lock_hermit', 'dividend_hermit', 'night_broker'],
+      blurb: '鐵衛＋鎖倉＋隱士＋掮客——抗抽銀、清暗盤',
+    }
   ];
 
   /** 四潮教學（靜態短頁；v2.4） */
@@ -2587,11 +2757,11 @@
     title: '四潮教學',
     blurb: '黑羽＋金邊＋臨停＋墨影——無盡每 60 波同場',
     steps: [
-      { name: '① 鎖倉清符', text: '停牌潮帶停牌符；鎖倉居士減攻，先清符再硬頂潮心。' },
-      { name: '② 守鐘護核', text: '熔斷天鵝停刀鐘響——鐵衛扛前排，內息／甲厚撐過停刀窗。' },
-      { name: '③ 收羽軋空', text: '黑天鵝減速震核；逼空客＋標記收割，合星後再開逼。' },
-      { name: '④ 護銀抗墨', text: '墨影帳降攻抽銀；暗盤影優先清，銀兩唔好堆住等人抽。' },
-      { name: '⑤ 無盡節奏', text: '30 波三潮、60 波四潮；75+ 密度升但血量增速略收，合 3–4 星優先。' },
+      { name: '① 鎖倉清符', text: '停牌潮帶停牌符；鎖倉居士減攻，先清符再硬頂潮心。', bossId: 'halt_tide' },
+      { name: '② 守鐘護核', text: '熔斷天鵝停刀鐘響——鐵衛扛前排，內息／甲厚撐過停刀窗。', bossId: 'circuit_swan' },
+      { name: '③ 收羽軋空', text: '黑天鵝減速震核；逼空客＋標記收割，合星後再開逼。', bossId: 'black_swan' },
+      { name: '④ 護銀抗墨', text: '墨影帳降攻抽銀；暗盤影優先清，銀兩唔好堆住等人抽。', bossId: 'ink_specter' },
+      { name: '⑤ 無盡節奏', text: '30 波三潮、60 波四潮；75+／90+／100+ 修飾池遞進，合 3–4 星優先。', bossId: null },
     ],
   };
 
@@ -2629,6 +2799,8 @@
     '墨影帳抽銀降攻：護住銀袋，暗盤影優先清，再軋帳心。',
     '無盡 90+ 會抽專屬修飾（墨衛護銀／九十堡壘等）；百浪有里程碑。',
     '牆時間軸有差值走勢條——本機對盤，唔做線上排行。',
+    '第 13 關「墨影翻帳」專打墨影：暗盤影先清，銀兩唔好堆。',
+    '無盡 100+ 再開有第二池修飾（百浪銀庫／墨鏡反照等）。',
     '無盡 75+：潮變密但血量增速略收；合 3–4 星＋鎖倉鐵壁優先於亂召。',
     '牆快照時間軸可對照上一筆差值（本機｜唔做線上排行）。',
   ];
@@ -2671,7 +2843,7 @@
     { id: 'stage10', cat: 'stage', name: '雙天鵝夜', blurb: '通關第 10 關「雙天鵝夜」', check: (s) => (s.maxStageCleared || 0) >= 10 },
     { id: 'stage11', cat: 'stage', name: '停牌潮夜', blurb: '通關第 11 關「停牌潮夜」', check: (s) => (s.maxStageCleared || 0) >= 11 },
     { id: 'stage12', cat: 'stage', name: '三潮同場', blurb: '通關第 12 關「三潮同場」', check: (s) => (s.maxStageCleared || 0) >= 12 },
-    { id: 'all_stages', cat: 'stage', name: '十二關皆破', blurb: '通關全部主線關卡', check: (s) => (s.maxStageCleared || 0) >= STAGES.length },
+    { id: 'all_stages', cat: 'stage', name: '主線全破', blurb: '通關全部主線關卡', check: (s) => (s.maxStageCleared || 0) >= STAGES.length },
     { id: 'star3', cat: 'merge', name: '三星掛牌', blurb: '首次合成 3 星', check: (s) => !!s.ach && s.ach.star3 },
     { id: 'maxstar', cat: 'merge', name: '滿星開盤', blurb: '首次合成 4 星', check: (s) => !!s.ach && s.ach.maxstar },
     { id: 'upgrade', cat: 'merge', name: '鍛打開倉', blurb: '首次強化場上俠客', check: (s) => !!s.ach && s.ach.upgrade },
@@ -2741,6 +2913,10 @@
     { id: 'endless100', cat: 'combat', name: '百浪墨城', blurb: '無盡最佳 ≥ 100 波', check: (s) => (s.bestEndlessWave || 0) >= 100 },
     { id: 'ink_curtain', cat: 'combat', name: '帳幔裂縫', blurb: '見過墨影帳幔／裂縫特效', check: (s) => !!s.ach && !!s.ach.ink_curtain },
     { id: 'wall_spark', cat: 'meta', name: '牆影走勢', blurb: '喺時間軸睇過差值走勢', check: (s) => !!s.ach && !!s.ach.wall_spark },
+    { id: 'stage13', cat: 'stage', name: '墨影翻帳', blurb: '通關第 13 關「墨影翻帳」', check: (s) => (s.maxStageCleared || 0) >= 13 },
+    { id: 'all13', cat: 'stage', name: '十三關皆破', blurb: '通關全部主線關卡（含墨影）', check: (s) => (s.maxStageCleared || 0) >= STAGES.length },
+    { id: 'late100_run', cat: 'meta', name: '百浪開盤', blurb: '曾達 100 浪後再開無盡（抽第二池修飾）', check: (s) => !!s.ach && !!s.ach.late100_run },
+    { id: 'endless110', cat: 'combat', name: '百十浪帳守', blurb: '無盡最佳 ≥ 110 波', check: (s) => (s.bestEndlessWave || 0) >= 110 },
   ];
 
   /** 首通銀兩獎勵（入累計帳） */
@@ -2757,7 +2933,8 @@
     10: 300,
     11: 340,
     12: 380,
-    all: 480,
+    13: 420,
+    all: 520,
   };
 
   function stageFirstClearBonus(stageId) {
@@ -3073,7 +3250,7 @@
   function mergeRebate(heroId, newStar) {
     const def = HEROES[heroId];
     if (!def) return 0;
-    return Math.round(def.cost * 0.18 * newStar);
+    return Math.round(def.cost * 0.182 * newStar);
   }
 
   function activeBonds(heroes) {
@@ -3113,7 +3290,7 @@
 
   function defaultSave() {
     return {
-      version: 25,
+      version: 26,
       totalSilver: 0,
       totalKills: 0,
       maxStageCleared: 0,
@@ -3367,7 +3544,7 @@
         game: 'yinlou-defense',
         kind: 'local-best-wall',
         exportedAt: new Date().toISOString(),
-        version: (save && save.version) || 25,
+        version: (save && save.version) || 26,
         note: '本機進度牆｜唔做線上排行',
       },
       wall: wall,
@@ -3454,6 +3631,10 @@
 
   /** 根據關卡敵組成動態推薦陣容（簡版） */
   function recommendForStage(stage, endless, daily, weekly) {
+    if (stage && stage.id === 13) {
+      const lu = LINEUPS.find((x) => x.id === 'ink_guard') || LINEUPS[0];
+      return { lineup: lu, reason: '墨影翻帳——護銀抗墨：鐵衛＋鎖倉清影' };
+    }
     const counts = {};
     const waves = (stage && stage.waves) || [];
     for (const w of waves) {
@@ -3579,6 +3760,7 @@
     upgradeLabel,
     ENDLESS_MILESTONES,
     RUN_MODIFIERS_90,
+    RUN_MODIFIERS_100,
     buildEndlessWave,
     buildDailyWaves,
     buildWeeklyWaves,

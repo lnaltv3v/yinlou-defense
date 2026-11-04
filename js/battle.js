@@ -1618,37 +1618,54 @@
   /** 合併成功特效包 */
   function spawnMergeFx(state, hero) {
     const prev = Math.max(1, (hero.star || 1) - 1);
-    state.fx.push({ type: 'merge', x: hero.x, y: hero.y, star: hero.star, fromStar: prev, life: 0.85 });
-    state.fx.push({ type: 'hit', x: hero.x, y: hero.y, color: '#C9A227', life: 0.55, r: 36 });
-    state.fx.push({ type: 'mergeRing', x: hero.x, y: hero.y, star: hero.star, life: 0.55 });
+    const ringLife = hero.star >= 4 ? 0.85 : hero.star >= 3 ? 0.7 : 0.6;
+    state.fx.push({ type: 'merge', x: hero.x, y: hero.y, star: hero.star, fromStar: prev, life: 0.95 });
+    state.fx.push({ type: 'hit', x: hero.x, y: hero.y, color: '#C9A227', life: 0.6, r: 38 + hero.star * 2 });
+    state.fx.push({ type: 'mergeRing', x: hero.x, y: hero.y, star: hero.star, life: ringLife });
+    state.fx.push({
+      type: 'mergeSpark',
+      x: hero.x,
+      y: hero.y - 28,
+      text: '★' + hero.star,
+      color: '#C9A227',
+      life: 0.75,
+    });
     pushFloat(state.floats, {
       x: hero.x,
       y: hero.y - 52,
       text: '升星 ★' + prev + '→★' + hero.star,
       color: '#C9A227',
-      size: hero.star >= 3 ? 19 : 17,
-      vy: -36,
-      life: 1.15,
-      bounce: 1.25,
+      size: hero.star >= 3 ? 20 : 17,
+      vy: -38,
+      life: 1.25,
+      bounce: 1.3,
     });
     if (hero.star >= MAX_STAR) {
-      state.fx.push({ type: 'maxstar', x: hero.x, y: hero.y, life: 1.25 });
-      state.fx.push({ type: 'hit', x: hero.x, y: hero.y - 10, color: '#E8DCC8', life: 0.6, r: 44 });
-      state.fx.push({ type: 'mergeRing', x: hero.x, y: hero.y, star: hero.star, life: 0.7 });
+      state.fx.push({ type: 'maxstar', x: hero.x, y: hero.y, life: 1.4 });
+      state.fx.push({ type: 'hit', x: hero.x, y: hero.y - 10, color: '#E8DCC8', life: 0.7, r: 48 });
+      state.fx.push({ type: 'mergeRing', x: hero.x, y: hero.y, star: hero.star, life: 0.9 });
+      state.fx.push({
+        type: 'mergeSpark',
+        x: hero.x + 16,
+        y: hero.y - 40,
+        text: '滿',
+        color: '#E8DCC8',
+        life: 1.0,
+      });
       pushFloat(state.floats, {
         x: hero.x,
         y: hero.y - 78,
         text: '滿星開盤',
         color: '#E8DCC8',
-        size: 15,
-        vy: -22,
-        life: 1.0,
-        bounce: 0.8,
+        size: 16,
+        vy: -24,
+        life: 1.15,
+        bounce: 0.9,
       });
     } else if (hero.star >= 3) {
-      state.fx.push({ type: 'merge', x: hero.x, y: hero.y - 8, star: hero.star, life: 0.55 });
+      state.fx.push({ type: 'merge', x: hero.x, y: hero.y - 8, star: hero.star, life: 0.65 });
     }
-    if (!state.shake || state.shake < 0.18) state.shake = hero.star >= 3 ? 0.22 : 0.18;
+    if (!state.shake || state.shake < 0.2) state.shake = hero.star >= 3 ? 0.26 : 0.2;
   }
 
 

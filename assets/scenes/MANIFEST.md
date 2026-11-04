@@ -40,3 +40,6 @@ Canvas **960×540**，硬邊／嚴格色盤，PNG RGBA。
 
 ## v2.5
 - mid／props 無新加厚；程式 FX 加厚墨影帳幔／裂縫；`CACHE_VER=2.5.0`。
+
+## v2.6
+- mid／props 無新加厚；`CACHE_VER=2.6.0`。
