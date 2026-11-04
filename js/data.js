@@ -1777,6 +1777,8 @@
     { wave: 700, silver: 11400, label: '七百浪長池' },
     { wave: 750, silver: 12200, label: '七百五十浪十四池' },
     { wave: 800, silver: 13000, label: '八百浪終池' },
+    { wave: 850, silver: 13800, label: '八百五十浪十五池' },
+    { wave: 900, silver: 14600, label: '九百浪長池城' },
   ];
 
   function endlessMilestone(waveIndex) {
@@ -2937,6 +2939,49 @@
     },
   ];
 
+  const RUN_MODIFIERS_850 = [
+    {
+      id: 'fifteen_vault',
+      name: '十五池銀庫',
+      blurb: '開局銀 +40%；核心 HP +24%',
+      late850: true,
+      apply: (ctx) => {
+        ctx.silverMul = (ctx.silverMul || 1) * 1.4;
+        ctx.coreMul = (ctx.coreMul || 1) * 1.24;
+      },
+    },
+    {
+      id: 'fifteen_mirror',
+      name: '十五池鏡穹',
+      blurb: '鏡稅地板 +0.22；抽銀 ×0.08',
+      late850: true,
+      apply: (ctx) => {
+        ctx.mirageTaxFloorBonus = (ctx.mirageTaxFloorBonus || 0) + 0.22;
+        ctx.silverDrainMul = (ctx.silverDrainMul || 1) * 0.08;
+      },
+    },
+    {
+      id: 'fifteen_path',
+      name: '十五池合脈',
+      blurb: '合星 ×1.14；進階共鳴 ×1.12',
+      late850: true,
+      apply: (ctx) => {
+        ctx.mergeRebateMul = (ctx.mergeRebateMul || 1) * 1.14;
+        ctx.charmSetAdvMul = (ctx.charmSetAdvMul || 1) * 1.12;
+      },
+    },
+    {
+      id: 'fifteen_seal',
+      name: '十五池印陣',
+      blurb: '敵速 −15%；俠客冷卻 −13%',
+      late850: true,
+      apply: (ctx) => {
+        ctx.enemySpeedMul = (ctx.enemySpeedMul || 1) * 0.85;
+        ctx.heroCdMul = (ctx.heroCdMul || 1) * 0.87;
+      },
+    },
+  ];
+
   /** 符咒 → 本局修飾欄項目（可裝備） */
   const CHARM_MAX_STAR = 3;
   const CHARM_EQUIP_SLOTS = 3;
@@ -3154,6 +3199,117 @@
         },
       };
     });
+  }
+
+  /** 套裝進度／下一件提示（徽記明細） */
+  function charmSetProgress(save) {
+    const equipped = getEquippedCharms(save);
+    const eqIds = {};
+    equipped.forEach(function (p) {
+      if (p.charm) eqIds[p.charm.id] = true;
+    });
+    const owned = (save && save.ownedCharms) || {};
+    return Object.keys(CHARM_SET_DEFS).map(function (set) {
+      const def = CHARM_SET_DEFS[set];
+      const members = DUAL_PENTA_CHARMS.filter(function (c) {
+        return c.set === set;
+      });
+      const equippedMembers = members.filter(function (c) {
+        return eqIds[c.id];
+      });
+      const missing = members.filter(function (c) {
+        return !eqIds[c.id];
+      });
+      const ownedMissing = missing.filter(function (c) {
+        return (Number(owned[c.id]) || 0) > 0 || owned[c.id] === true;
+      });
+      const next =
+        ownedMissing[0] ||
+        missing[0] ||
+        null;
+      const count = equippedMembers.length;
+      const need = def.need || 2;
+      const needAdv = def.needAdv || 3;
+      const active = count >= need;
+      const advanced = !!(def.needAdv && count >= needAdv);
+      let nextHint = '已滿套';
+      if (next) {
+        const have = (Number(owned[next.id]) || 0) > 0 || owned[next.id] === true;
+        if (advanced) nextHint = '進階已齊｜可換裝微調';
+        else if (active && needAdv)
+          nextHint =
+            '下一件進階：' +
+            next.name +
+            (have ? '（已擁有・裝上）' : '（未擁有・等潮掉）');
+        else
+          nextHint =
+            '下一件共鳴：' +
+            next.name +
+            (have ? '（已擁有・裝上）' : '（未擁有・等潮掉）');
+      }
+      return {
+        set: set,
+        id: def.id,
+        name: advanced ? def.nameAdv || def.name + '·進階' : def.name,
+        blurb: advanced ? def.blurbAdv || def.blurb : def.blurb,
+        count: count,
+        need: need,
+        needAdv: needAdv,
+        active: active,
+        advanced: advanced,
+        members: members.map(function (c) {
+          return {
+            id: c.id,
+            name: c.name,
+            equipped: !!eqIds[c.id],
+            owned: (Number(owned[c.id]) || 0) > 0 || owned[c.id] === true,
+          };
+        }),
+        nextId: next ? next.id : '',
+        nextName: next ? next.name : '',
+        nextHint: nextHint,
+      };
+    });
+  }
+
+  function formatCharmSetDetailHtml(save, focusSet) {
+    const rows = charmSetProgress(save);
+    const focus = focusSet
+      ? rows.filter(function (r) {
+          return r.set === focusSet;
+        })
+      : rows;
+    const bits = focus.map(function (r) {
+      const mem = r.members
+        .map(function (m) {
+          const mark = m.equipped ? '◆' : m.owned ? '◇' : '·';
+          return mark + m.name;
+        })
+        .join('　');
+      return (
+        '<div class="set-detail-card card-thick' +
+        (r.advanced ? ' adv' : r.active ? ' on' : '') +
+        '"><strong>' +
+        (r.advanced ? '◆' : r.active ? '◇' : '○') +
+        (r.name || '') +
+        '｜' +
+        r.count +
+        '/' +
+        r.needAdv +
+        '</strong><div class="card-meta">' +
+        (r.blurb || '') +
+        '</div><div class="set-detail-members">' +
+        mem +
+        '</div><div class="set-detail-next">' +
+        (r.nextHint || '') +
+        '</div></div>'
+      );
+    });
+    return (
+      '<div class="paper-body set-detail-page">' +
+      bits.join('') +
+      '<p class="paper-note">點徽記睇明細｜◆已裝備　◇已擁有　·未擁有｜v4.3</p></div>'
+    );
   }
 
   function listOwnedCharms(save) {
@@ -3542,6 +3698,14 @@
       if (!mods.some((m) => m.id === late14.id)) {
         if (mods.length >= 3) mods[0] = late14;
         else mods.push(late14);
+      }
+    }
+    if (best >= 850 && RUN_MODIFIERS_850.length) {
+      const h16 = (seed ^ 0x850cafe) >>> 0;
+      const late15 = RUN_MODIFIERS_850[h16 % RUN_MODIFIERS_850.length];
+      if (!mods.some((m) => m.id === late15.id)) {
+        if (mods.length >= 3) mods[mods.length - 1] = late15;
+        else mods.push(late15);
       }
     }
     return mods;
@@ -4224,9 +4388,13 @@
     { id: 'late550_run', cat: 'meta', name: '十二池開盤', blurb: '曾達 550 浪後再開無盡（抽第十二池修飾）', check: (s) => !!s.ach && !!s.ach.late550_run },
     { id: 'late650_run', cat: 'meta', name: '十三池開盤', blurb: '曾達 650 浪後再開無盡（抽第十三池修飾）', check: (s) => !!s.ach && !!s.ach.late650_run },
     { id: 'late750_run', cat: 'meta', name: '十四池開盤', blurb: '曾達 750 浪後再開無盡（抽第十四池修飾）', check: (s) => !!s.ach && !!s.ach.late750_run },
+    { id: 'late850_run', cat: 'meta', name: '十五池開盤', blurb: '曾達 850 浪後再開無盡（抽第十五池修飾）', check: (s) => !!s.ach && !!s.ach.late850_run },
     { id: 'set_badge_hud', cat: 'meta', name: '共鳴徽記', blurb: '見過進階共鳴 HUD 徽記', check: (s) => !!s.ach && !!s.ach.set_badge_hud },
+    { id: 'set_badge_detail', cat: 'meta', name: '徽記明細', blurb: '點開共鳴徽記睇過套裝明細／下一件', check: (s) => !!s.ach && !!s.ach.set_badge_detail },
     { id: 'replay_multi_metric', cat: 'meta', name: '多指標折線', blurb: '用過多指標疊加回放折線', check: (s) => !!s.ach && !!s.ach.replay_multi_metric },
+    { id: 'replay_silver_metric', cat: 'meta', name: '銀兩折線', blurb: '回放疊加／篩選用過銀兩指標或區間', check: (s) => !!s.ach && !!s.ach.replay_silver_metric },
     { id: 'tut_all_gesture', cat: 'meta', name: '全步跟手', blurb: '教學多步見過跟手／高亮格', check: (s) => !!s.ach && !!s.ach.tut_all_gesture },
+    { id: 'tut_merge_path', cat: 'meta', name: '合路徑預覽', blurb: '教學見過合併合法格路徑預覽', check: (s) => !!s.ach && !!s.ach.tut_merge_path },
     { id: 'charm_set_adv', cat: 'meta', name: '進階共鳴', blurb: '觸發套裝第三件進階共鳴', check: (s) => !!s.ach && !!s.ach.charm_set_adv },
     { id: 'replay_line_png', cat: 'meta', name: '折線 PNG', blurb: '匯出回放折線 PNG', check: (s) => !!s.ach && !!s.ach.replay_line_png },
     { id: 'fail_share', cat: 'meta', name: '結算分享', blurb: '從失敗／結算面板一鍵分享短碼或文字', check: (s) => !!s.ach && !!s.ach.fail_share },
@@ -4311,12 +4479,15 @@
     const late700 = n >= 700 ? Math.min(0.04, (n - 700) * 0.0008) : 0;
     const late750 = n >= 750 ? Math.min(0.04, (n - 750) * 0.0007) : 0;
     const late800 = n >= 800 ? Math.min(0.035, (n - 800) * 0.0006) : 0;
-    const mul = 1 + (n - 1) * 0.105 + late50 + late75 + late90 + late120 + late130 + late140 + late150 + late160 + late180 + late200 + late220 + late250 + late300 + late350 + late400 + late450 + late500 + late550 + late600 + late650 + late700 + late750 + late800;
+    const late850 = n >= 850 ? Math.min(0.03, (n - 850) * 0.00055) : 0;
+    const late900 = n >= 900 ? Math.min(0.028, (n - 900) * 0.0005) : 0;
+    const mul = 1 + (n - 1) * 0.105 + late50 + late75 + late90 + late120 + late130 + late140 + late150 + late160 + late180 + late200 + late220 + late250 + late300 + late350 + late400 + late450 + late500 + late550 + late600 + late650 + late700 + late750 + late800 + late850 + late900;
     const countLate = n >= 50 ? Math.min(n - 50, 25) * 0.01 + (n >= 75 ? (n - 75) * 0.006 : 0) : 0;
     const count = (base) => {
       let raw = Math.max(1, Math.round(base * (1 + (n - 1) * 0.072 + countLate)));
       // v2.4：絕對軟頂——75+ 壓力改由 Boss／精英／間隔承担，避免符紙／暗盤洪峰
-      if (n >= 75) raw = Math.min(raw, 20 + Math.min(8, Math.floor((n - 75) / 5)));
+      if (n >= 850) raw = Math.min(raw, 22 + Math.min(6, Math.floor((n - 850) / 20)));
+      else if (n >= 75) raw = Math.min(raw, 20 + Math.min(8, Math.floor((n - 75) / 5)));
       else if (n >= 50) raw = Math.min(raw, 26);
       else if (n >= 30) raw = Math.min(raw, 34);
       return raw;
@@ -4784,7 +4955,7 @@
       s.equippedCharmIds = s.equippedCharmId ? [s.equippedCharmId] : [];
     }
     if (!s.endlessReplayFav || typeof s.endlessReplayFav !== 'object') s.endlessReplayFav = {};
-    s.version = Math.max(42, from, base.version || 42);
+    s.version = Math.max(43, from, base.version || 43);
     return s;
   }
 
@@ -4800,7 +4971,7 @@
 
   function defaultSave() {
     return {
-      version: 42,
+      version: 43,
       totalSilver: 0,
       totalKills: 0,
       maxStageCleared: 0,
@@ -5059,16 +5230,21 @@
     const metrics = Array.isArray(opts.metrics) && opts.metrics.length
       ? opts.metrics
       : metric === 'multi'
-        ? ['wave', 'kills', 'silverRain']
+        ? ['wave', 'kills', 'silver']
         : [metric];
     const meta = {
       wave: { name: '浪次', color: '#C9A227' },
       kills: { name: '擊殺', color: '#C45C4A' },
       silverRain: { name: '銀雨', color: '#5A9A7A' },
+      silver: { name: '銀兩', color: '#D4B45A' },
       dualPenta: { name: '雙五', color: '#8A9BB0' },
       taxStacks: { name: '鏡稅叠', color: '#3A7A6A' },
     };
-    const rows = formatEndlessReplay(save, { favOnly: !!opts.favOnly });
+    const rows = formatEndlessReplay(save, {
+      favOnly: !!opts.favOnly,
+      minWave: opts.minWave || null,
+      maxWave: opts.maxWave || null,
+    });
     const series = rows.slice(0, 8).reverse();
     const lines = metrics.map(function (key) {
       const m = meta[key] || { name: key, color: '#A89070' };
@@ -5101,6 +5277,7 @@
           wave: r.wave,
           kills: r.kills,
           silverRain: r.silverRain || 0,
+          silver: r.silver || 0,
           dualPenta: r.dualPenta,
           taxStacks: r.taxStacks,
           fav: r.fav,
@@ -5191,6 +5368,7 @@
           kills: e.kills || 0,
           dualPenta: e.dualPenta || 0,
           silverRain: e.silverRain || 0,
+          silver: e.silver || 0,
           charm: e.charm || '',
           taxStacks: e.taxStacks || 0,
           mods: e.mods || '',
@@ -5201,12 +5379,14 @@
             (e.wave || 0) +
             '浪｜殺' +
             (e.kills || 0) +
+            (e.silver ? '｜銀' + e.silver : '') +
             (e.charm ? '｜' + e.charm : '') +
             (e.dualPenta ? '｜雙五×' + e.dualPenta : ''),
         };
       });
     if (opts.favOnly) arr = arr.filter(function (r) { return r.fav; });
     if (opts.minWave) arr = arr.filter(function (r) { return (r.wave || 0) >= opts.minWave; });
+    if (opts.maxWave) arr = arr.filter(function (r) { return (r.wave || 0) <= opts.maxWave; });
     return arr;
   }
 
@@ -5839,6 +6019,7 @@
     RUN_MODIFIERS_550,
     RUN_MODIFIERS_650,
     RUN_MODIFIERS_750,
+    RUN_MODIFIERS_850,
     DUAL_PENTA_CHARMS,
     pickDualPentaCharm,
     charmAsModifier,
@@ -5857,6 +6038,8 @@
     CHARM_SET_DEFS,
     charmSetResonance,
     charmSetAsModifiers,
+    charmSetProgress,
+    formatCharmSetDetailHtml,
     buildEndlessWave,
     buildDailyWaves,
     buildWeeklyWaves,

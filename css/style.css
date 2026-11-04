@@ -1504,7 +1504,10 @@ button.ach-cat-bar:focus {
   background: rgba(201,162,39,0.12);
   color: #E8DCC8;
   white-space: nowrap;
+  cursor: pointer;
+  font-family: inherit;
 }
+button.set-badge { appearance: none; -webkit-appearance: none; }
 .set-badge.adv {
   border-color: #C9A227;
   background: rgba(201,162,39,0.28);
@@ -1527,3 +1530,11 @@ button.ach-cat-bar:focus {
 .tut-gesture-trail.tut-g-step3 { bottom: 160px; left: 55%; }
 .tut-gesture-trail.tut-g-step4 { bottom: 72px; right: 56px; left: auto; transform: none; }
 .tut-gesture-trail.tut-g-step5 { bottom: 120px; left: 50%; }
+
+/* v4.3 set detail / merge path note */
+.set-detail-page { display: flex; flex-direction: column; gap: 8px; }
+.set-detail-card { padding: 8px 10px; border: 1px solid #4A4034; border-radius: 8px; background: rgba(26,21,16,0.55); }
+.set-detail-card.on { border-color: #8B6B3A; }
+.set-detail-card.adv { border-color: #C9A227; box-shadow: 0 0 8px rgba(201,162,39,0.25); }
+.set-detail-members { font-size: 12px; color: #C8BCA8; margin-top: 4px; line-height: 1.5; }
+.set-detail-next { font-size: 12px; color: #C9A227; margin-top: 4px; }

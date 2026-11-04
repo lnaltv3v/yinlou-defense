@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v4.2.0
+ * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v4.3.0
  */
 (function (global) {
   const {
@@ -42,6 +42,8 @@
     upgradeCharmStar,
     getEquippedCharms,
     charmSetResonance,
+    charmSetProgress,
+    formatCharmSetDetailHtml,
     listOwnedCharms,
     equipCharm,
     getEquippedCharm,
@@ -536,7 +538,7 @@
           : String(state.stage.id);
     const kills = $('stat-kills');
     if (kills) kills.textContent = String(state.kills || 0);
-    // v4.2：進階共鳴 HUD 徽記
+    // v4.3：共鳴 HUD 徽記（可點開明細）
     let badge = $('set-badge-hud');
     if (!badge) {
       badge = document.createElement('div');
@@ -551,18 +553,26 @@
       badge.innerHTML = sets
         .map(function (s) {
           return (
-            '<span class="set-badge' +
+            '<button type="button" class="set-badge' +
             (s.advanced ? ' adv' : '') +
+            '" data-set="' +
+            (s.set || '') +
             '" title="' +
             (s.blurb || '') +
-            '">' +
+            '｜點開明細">' +
             (s.advanced ? '◆' : '◇') +
             (s.name || '') +
-            '</span>'
+            '</button>'
           );
         })
         .join('');
       badge.classList.add('show');
+      badge.querySelectorAll('[data-set]').forEach(function (btn) {
+        btn.onclick = function (ev) {
+          ev.stopPropagation();
+          showCharmSetDetail(btn.getAttribute('data-set') || '');
+        };
+      });
       if (sets.some(function (s) { return s.advanced; }) && window.__yinlouMarkSetBadgeHud) {
         window.__yinlouMarkSetBadgeHud();
       }
@@ -1253,6 +1263,32 @@ function fillWallCompareHist(save, dayFilter) {
   }
 
 
+  function showCharmSetDetail(focusSet, getSave) {
+    const save =
+      typeof getSave === 'function'
+        ? getSave()
+        : window.__yinlouGetSave
+          ? window.__yinlouGetSave()
+          : null;
+    const ov = $('overlay');
+    ov.classList.remove('settings-mode');
+    ov.classList.add('codex-mode', 'paper-panel');
+    $('overlay-title').textContent = '套裝共鳴明細';
+    const html =
+      typeof formatCharmSetDetailHtml === 'function'
+        ? formatCharmSetDetailHtml(save, focusSet || '')
+        : '<p class="card-meta">尚無套裝資料</p>';
+    $('overlay-msg').innerHTML = html;
+    const btn = $('btn-overlay');
+    btn.textContent = '關閉';
+    btn.onclick = function () {
+      hideOverlay();
+    };
+    $('overlay-extra').innerHTML = '';
+    ov.classList.add('show');
+    if (window.__yinlouMarkSetBadgeDetail) window.__yinlouMarkSetBadgeDetail();
+  }
+
   function showEndlessReplay(getSave, onClose, filterOpts) {
     filterOpts = filterOpts || {};
     const save = getSave();
@@ -1262,29 +1298,43 @@ function fillWallCompareHist(save, dayFilter) {
     $('overlay-title').textContent = '無盡回放列表';
     const favOnly = !!filterOpts.favOnly;
     const minWave = filterOpts.minWave || 0;
+    const maxWave = filterOpts.maxWave || 0;
     const scrub = filterOpts.scrub != null ? filterOpts.scrub | 0 : 0;
     const metric = filterOpts.metric || 'multi';
     const rows =
       typeof formatEndlessReplay === 'function'
-        ? formatEndlessReplay(save, { favOnly: favOnly, minWave: minWave || null })
+        ? formatEndlessReplay(save, {
+            favOnly: favOnly,
+            minWave: minWave || null,
+            maxWave: maxWave || null,
+          })
         : [];
     let html = '<div class="paper-body endless-replay-page">';
     html +=
       '<div class="replay-filters">' +
       '<button type="button" class="wall-mode-btn' +
-      (!favOnly && !minWave ? ' selected' : '') +
+      (!favOnly && !minWave && !maxWave ? ' selected' : '') +
       '" data-rf="all">全部</button>' +
       '<button type="button" class="wall-mode-btn' +
       (favOnly ? ' selected' : '') +
       '" data-rf="fav">收藏</button>' +
       '<button type="button" class="wall-mode-btn' +
-      (minWave >= 50 ? ' selected' : '') +
+      (minWave >= 50 && !maxWave ? ' selected' : '') +
       '" data-rf="w50">≥50浪</button>' +
       '<button type="button" class="wall-mode-btn' +
-      (minWave >= 100 ? ' selected' : '') +
-      '" data-rf="w100">≥100浪</button></div>';
+      (minWave >= 100 && maxWave < 200 ? ' selected' : '') +
+      '" data-rf="w100">≥100浪</button>' +
+      '<button type="button" class="wall-mode-btn' +
+      (minWave >= 50 && maxWave === 99 ? ' selected' : '') +
+      '" data-rf="r50">50–99</button>' +
+      '<button type="button" class="wall-mode-btn' +
+      (minWave >= 100 && maxWave === 199 ? ' selected' : '') +
+      '" data-rf="r100">100–199</button>' +
+      '<button type="button" class="wall-mode-btn' +
+      (minWave >= 200 && !maxWave ? ' selected' : '') +
+      '" data-rf="w200">≥200浪</button></div>';
 
-    // multi-run line chart (v4.2 multi-metric overlay)
+    // multi-run line chart (v4.3：銀兩第三指標＋區間篩選)
     const metricMode = filterOpts.metric || 'multi';
     const multi =
       typeof formatEndlessReplayMultiChart === 'function'
@@ -1292,9 +1342,11 @@ function fillWallCompareHist(save, dayFilter) {
             metric: metricMode,
             metrics:
               metricMode === 'multi'
-                ? ['wave', 'kills', 'silverRain']
+                ? ['wave', 'kills', 'silver']
                 : [metricMode],
             favOnly: favOnly,
+            minWave: minWave || null,
+            maxWave: maxWave || null,
           })
         : null;
     if (multi && multi.points && multi.points.length >= 2) {
@@ -1315,7 +1367,10 @@ function fillWallCompareHist(save, dayFilter) {
         '" data-metric="kills">擊殺</button>' +
         '<button type="button" class="wall-mode-btn' +
         (metricMode === 'silverRain' ? ' selected' : '') +
-        '" data-metric="silverRain">銀雨</button></div>' +
+        '" data-metric="silverRain">銀雨</button>' +
+        '<button type="button" class="wall-mode-btn' +
+        (metricMode === 'silver' ? ' selected' : '') +
+        '" data-metric="silver">銀兩</button></div>' +
         '<svg class="replay-line-svg" viewBox="0 0 ' +
         W +
         ' ' +
@@ -1361,10 +1416,16 @@ function fillWallCompareHist(save, dayFilter) {
           .join(' ')) +
         '</div><div class="replay-line-actions">' +
         '<button type="button" class="wall-mode-btn" id="replay-line-export-png">匯出折線 PNG</button>' +
-        '<span class="card-meta">多局折線｜左舊右新｜可疊加浪次／擊殺／銀雨</span></div></div>';
+        '<span class="card-meta">多局折線｜左舊右新｜浪次／擊殺／銀兩｜可區間篩</span></div></div>';
       if (window.__yinlouMarkReplayTimeline) window.__yinlouMarkReplayTimeline();
       if (metricMode === 'multi' && window.__yinlouMarkReplayMultiMetric) {
         window.__yinlouMarkReplayMultiMetric();
+      }
+      if (
+        (metricMode === 'silver' || metricMode === 'multi' || maxWave || minWave >= 200) &&
+        window.__yinlouMarkReplaySilverMetric
+      ) {
+        window.__yinlouMarkReplaySilverMetric();
       }
     }
 
@@ -1457,7 +1518,7 @@ function fillWallCompareHist(save, dayFilter) {
       });
       html += '</ul>';
     }
-    html += '<p class="paper-note">本機回放｜唔做線上排行｜v4.2 時間線 scrub／多局折線</p></div>';
+    html += '<p class="paper-note">本機回放｜唔做線上排行｜v4.3 銀兩指標／區間篩選</p></div>';
     $('overlay-msg').innerHTML = html;
     const btn = $('btn-overlay');
     btn.textContent = '關閉';
@@ -1470,10 +1531,22 @@ function fillWallCompareHist(save, dayFilter) {
     document.querySelectorAll('[data-rf]').forEach(function (b) {
       b.onclick = function () {
         const k = b.getAttribute('data-rf');
-        const next = { favOnly: false, minWave: 0, metric: metric, scrub: 0 };
+        const next = { favOnly: false, minWave: 0, maxWave: 0, metric: metric, scrub: 0 };
         if (k === 'fav') next.favOnly = true;
         if (k === 'w50') next.minWave = 50;
         if (k === 'w100') next.minWave = 100;
+        if (k === 'w200') next.minWave = 200;
+        if (k === 'r50') {
+          next.minWave = 50;
+          next.maxWave = 99;
+        }
+        if (k === 'r100') {
+          next.minWave = 100;
+          next.maxWave = 199;
+        }
+        if ((k === 'r50' || k === 'r100' || k === 'w200') && window.__yinlouMarkReplaySilverMetric) {
+          window.__yinlouMarkReplaySilverMetric();
+        }
         showEndlessReplay(getSave, onClose, next);
       };
     });
@@ -1482,6 +1555,7 @@ function fillWallCompareHist(save, dayFilter) {
         showEndlessReplay(getSave, onClose, {
           favOnly: favOnly,
           minWave: minWave,
+          maxWave: maxWave,
           metric: b.getAttribute('data-metric'),
           scrub: scrub,
         });
@@ -1494,6 +1568,7 @@ function fillWallCompareHist(save, dayFilter) {
         showEndlessReplay(getSave, onClose, {
           favOnly: favOnly,
           minWave: minWave,
+          maxWave: maxWave,
           metric: metric,
           scrub: Number(range.value) || 0,
         });
@@ -1505,6 +1580,7 @@ function fillWallCompareHist(save, dayFilter) {
         showEndlessReplay(getSave, onClose, {
           favOnly: favOnly,
           minWave: minWave,
+          maxWave: maxWave,
           metric: metric,
           scrub: Number(li.getAttribute('data-scrub-li')) || 0,
         });
@@ -1801,7 +1877,7 @@ function fillWallCompareHist(save, dayFilter) {
       })() +
       '</strong></div>' +
       '<div class="paper-row"><span>版本</span><strong>v4.2.0｜存檔 v' +
-      (save.version || 42) +
+      (save.version || 43) +
       '</strong></div>' +
       '<p class="paper-note">v4.2：十四池750–800、進階共鳴 HUD 徽記、多指標折線疊加、教學全步跟手／高亮格。本地牆本機｜唔做線上排行。</p>' +
       '<div id="charm-equip-bar" class="charm-equip-bar"></div>' +
@@ -2962,6 +3038,7 @@ function fillWallCompareHist(save, dayFilter) {
     updateHud,
     showOverlay,
     hideOverlay,
+    showCharmSetDetail,
     showSettings,
     showFailPanel,
     updateTutGestureLive,

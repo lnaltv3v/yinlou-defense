@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 主循環 v4.2.0
+ * 銀樓防衛 — 主循環 v4.3.0
  * v1.9.0：第7關／鎖倉居士／週連續＋本地最佳牆／手感平衡
  */
 (function () {
@@ -89,6 +89,8 @@
     toggleEndlessReplayFav,
     charmSetAsModifiers,
     charmSetResonance,
+    charmSetProgress,
+    formatCharmSetDetailHtml,
     formatFailShareText,
   } = YD;
   const AudioSfx = window.YDAudio;
@@ -948,12 +950,15 @@
             m.late450 ||
             m.late550 ||
             m.late650 ||
-            m.late750
+            m.late750 ||
+            m.late850
         );
         state._lateModBadge = lateMods.length
           ? lateMods.map((m) => m.name).join(' · ')
           : '';
-        state._lateModTier = lateMods.some((m) => m.late750)
+        state._lateModTier = lateMods.some((m) => m.late850)
+          ? 850
+          : lateMods.some((m) => m.late750)
           ? 750
           : lateMods.some((m) => m.late650)
             ? 650
@@ -1054,6 +1059,12 @@
           writeSave(save);
           notifyAchievements();
         }
+        if ((save.bestEndlessWave || 0) >= 850) {
+          if (!save.ach) save.ach = {};
+          save.ach.late850_run = true;
+          writeSave(save);
+          notifyAchievements();
+        }
         if (save._equipCharmToast) {
           const nm = save._equipCharmToast;
           save._equipCharmToast = '';
@@ -1064,7 +1075,9 @@
         if (state._lateModBadge) {
           setTimeout(() => {
             const tag =
-              state._lateModTier >= 750
+              state._lateModTier >= 850
+                ? '【850+】'
+                : state._lateModTier >= 750
                 ? '【750+】'
                 : state._lateModTier >= 650
                   ? '【650+】'
@@ -2225,6 +2238,42 @@
       const A = window.YDAudio;
       if (A && A.play) A.play('set_badge');
     } catch (_) {}
+  };
+  window.__yinlouMarkSetBadgeDetail = function () {
+    if (!save.ach) save.ach = {};
+    if (!save.ach.set_badge_detail) {
+      save.ach.set_badge_detail = true;
+      writeSave(save);
+      notifyAchievements();
+      UI.toast('成就｜徽記明細', 1800);
+    }
+    try {
+      const A = window.YDAudio;
+      if (A && A.play) A.play('set_detail');
+    } catch (_) {}
+  };
+  window.__yinlouMarkReplaySilverMetric = function () {
+    if (!save.ach) save.ach = {};
+    if (!save.ach.replay_silver_metric) {
+      save.ach.replay_silver_metric = true;
+      writeSave(save);
+      notifyAchievements();
+    }
+  };
+  window.__yinlouMarkTutMergePath = function () {
+    if (!save.ach) save.ach = {};
+    if (!save.ach.tut_merge_path) {
+      save.ach.tut_merge_path = true;
+      writeSave(save);
+      notifyAchievements();
+    }
+  };
+  window.__yinlouGetSave = function () {
+    return save;
+  };
+  window.__yinlouShowSetDetail = function (focusSet) {
+    if (UI && UI.showCharmSetDetail) UI.showCharmSetDetail(focusSet || '', function () { return save; });
+    else if (window.__yinlouMarkSetBadgeDetail) window.__yinlouMarkSetBadgeDetail();
   };
   window.__yinlouMarkReplayMultiMetric = function () {
     if (!save.ach) save.ach = {};

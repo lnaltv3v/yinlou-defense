@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — Canvas 繪製 v4.2.0
+ * 銀樓防衛 — Canvas 繪製 v4.3.0
  * v1.5：場景四層 ground→mid→wall→props；halt_seal PNG；擊破／暴擊
  */
 (function (global) {
@@ -418,6 +418,25 @@
     }
   }
 
+  function cellCenter(lane, slot) {
+    return {
+      x: GRID.originX + slot * (GRID.cellW + GRID.gapX) + GRID.cellW / 2,
+      y: GRID.originY + lane * (GRID.cellH + GRID.gapY) + GRID.cellH / 2,
+    };
+  }
+
+  function mergeTargetsFor(state, from) {
+    if (!from || from.star >= MAX_STAR) return [];
+    return (state.heroes || []).filter(function (h) {
+      return (
+        h.uid !== from.uid &&
+        h.id === from.id &&
+        h.star === from.star &&
+        h.star < MAX_STAR
+      );
+    });
+  }
+
   function cellHighlightStyle(state, lane, slot) {
     const show = state.showCellHints !== false;
     if (!show) return null;
@@ -438,7 +457,7 @@
       }
       return null;
     }
-    // v4.2：教學全步 prep 時空格柔和高亮（跟手拖拽另見 trail）
+    // v4.3：教學全步 prep 時空格柔和高亮；合併步合法格／路徑預覽
     const tut = state.tutorialStep;
     if (
       state.phase === 'prep' &&
@@ -449,16 +468,20 @@
     ) {
       return 'tut';
     }
-    // 合併步：同種可合格額外高亮
-    if (
-      state.phase === 'prep' &&
-      tut === 1 &&
-      occ &&
-      state.drag &&
-      state.drag.active &&
-      state.drag.kind === 'hero'
-    ) {
-      const from = state.heroes.find((h) => h.uid === state.drag.heroUid);
+    // 合併步：拖拽中／點選來源／教學步一律高亮可合格
+    if (state.phase === 'prep' && occ) {
+      let from = null;
+      if (state.drag && state.drag.active && state.drag.kind === 'hero') {
+        from = state.heroes.find((h) => h.uid === state.drag.heroUid);
+      }
+      if (!from && state.mergeFromUid) {
+        from = state.heroes.find((h) => h.uid === state.mergeFromUid);
+      }
+      // 教學合併步：任一對可合的「對方」格都亮
+      if (!from && tut === 1) {
+        const peers = mergeTargetsFor(state, occ);
+        if (peers.length) return 'merge';
+      }
       if (
         from &&
         occ.uid !== from.uid &&
@@ -470,6 +493,67 @@
       }
     }
     return null;
+  }
+
+  function drawMergePathPreview(ctx, state) {
+    if (!state || state.phase !== 'prep') return;
+    if (state.showCellHints === false) return;
+    const tut = state.tutorialStep;
+    let from = null;
+    if (state.drag && state.drag.active && state.drag.kind === 'hero') {
+      from = state.heroes.find((h) => h.uid === state.drag.heroUid);
+    }
+    if (!from && state.mergeFromUid) {
+      from = state.heroes.find((h) => h.uid === state.mergeFromUid);
+    }
+    const pairs = [];
+    if (from) {
+      mergeTargetsFor(state, from).forEach(function (to) {
+        pairs.push([from, to]);
+      });
+    } else if (tut === 1) {
+      const seen = {};
+      (state.heroes || []).forEach(function (a) {
+        mergeTargetsFor(state, a).forEach(function (b) {
+          const key = [a.uid, b.uid].sort().join(':');
+          if (seen[key]) return;
+          seen[key] = true;
+          pairs.push([a, b]);
+        });
+      });
+    }
+    if (!pairs.length) return;
+    const t = state._animT || 0;
+    const pulse = 0.45 + 0.35 * Math.sin(t * 6);
+    ctx.save();
+    ctx.lineWidth = tut === 1 ? 3 : 2;
+    ctx.setLineDash([6, 5]);
+    ctx.lineCap = 'round';
+    pairs.forEach(function (pair) {
+      const a = pair[0];
+      const b = pair[1];
+      const ca = cellCenter(a.lane, a.slot);
+      const cb = cellCenter(b.lane, b.slot);
+      const mx = (ca.x + cb.x) / 2;
+      const my = (ca.y + cb.y) / 2 - 18;
+      ctx.strokeStyle = 'rgba(201,162,39,' + pulse.toFixed(2) + ')';
+      ctx.beginPath();
+      ctx.moveTo(ca.x, ca.y);
+      ctx.quadraticCurveTo(mx, my, cb.x, cb.y);
+      ctx.stroke();
+      // 端點徽
+      ctx.fillStyle = 'rgba(201,162,39,' + Math.min(1, pulse + 0.2).toFixed(2) + ')';
+      ctx.beginPath();
+      ctx.arc(ca.x, ca.y, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(cb.x, cb.y, 3, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.restore();
+    if ((tut === 1 || (state.drag && state.drag.active)) && window.__yinlouMarkTutMergePath) {
+      window.__yinlouMarkTutMergePath();
+    }
   }
 
   function drawGrid(ctx, state) {
@@ -513,6 +597,7 @@
         }
       }
     }
+    drawMergePathPreview(ctx, state);
     for (const h of heroes) {
       if (drag && drag.active && drag.heroUid === h.uid) continue;
       drawHero(ctx, h, h.uid === selectedUid, h.uid === mergeFromUid, false, state);

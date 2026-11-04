@@ -150,6 +150,15 @@
       buzz(760, 0.04, 'triangle', 0.035);
       setTimeout(function () { buzz(980, 0.055, 'sine', 0.04); }, 50);
     },
+    set_detail: function () {
+      buzz(640, 0.035, 'square', 0.03);
+      setTimeout(function () { buzz(860, 0.045, 'triangle', 0.035); }, 40);
+      setTimeout(function () { buzz(1080, 0.06, 'sine', 0.032); }, 95);
+    },
+    merge_path: function () {
+      buzz(480, 0.03, 'sine', 0.025);
+      setTimeout(function () { buzz(700, 0.04, 'triangle', 0.03); }, 35);
+    },
     charm_set_adv: function () {
       buzz(700, 0.045, 'square', 0.04);
       setTimeout(function () { buzz(940, 0.06, 'triangle', 0.045); }, 55);
