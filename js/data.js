@@ -1781,6 +1781,8 @@
     { wave: 900, silver: 14600, label: '九百浪長池城' },
     { wave: 950, silver: 15400, label: '九百五十浪十六池' },
     { wave: 1000, silver: 16200, label: '千浪不朽城' },
+    { wave: 1050, silver: 17000, label: '千五十浪十七池' },
+    { wave: 1100, silver: 17800, label: '千百浪長城' },
   ];
 
   function endlessMilestone(waveIndex) {
@@ -3027,6 +3029,49 @@
     },
   ];
 
+  const RUN_MODIFIERS_1050 = [
+    {
+      id: 'seventeen_vault',
+      name: '十七池銀庫',
+      blurb: '開局銀 +44%；核心 HP +28%',
+      late1050: true,
+      apply: (ctx) => {
+        ctx.silverMul = (ctx.silverMul || 1) * 1.44;
+        ctx.coreMul = (ctx.coreMul || 1) * 1.28;
+      },
+    },
+    {
+      id: 'seventeen_mirror',
+      name: '十七池鏡穹',
+      blurb: '鏡稅地板 +0.26；抽銀 ×0.06',
+      late1050: true,
+      apply: (ctx) => {
+        ctx.mirageTaxFloorBonus = (ctx.mirageTaxFloorBonus || 0) + 0.26;
+        ctx.silverDrainMul = (ctx.silverDrainMul || 1) * 0.06;
+      },
+    },
+    {
+      id: 'seventeen_slot',
+      name: '十七池換欄',
+      blurb: '合星 ×1.18；進階共鳴 ×1.16',
+      late1050: true,
+      apply: (ctx) => {
+        ctx.mergeRebateMul = (ctx.mergeRebateMul || 1) * 1.18;
+        ctx.charmSetAdvMul = (ctx.charmSetAdvMul || 1) * 1.16;
+      },
+    },
+    {
+      id: 'seventeen_seal',
+      name: '十七池印陣',
+      blurb: '敵速 −17%；俠客冷卻 −15%',
+      late1050: true,
+      apply: (ctx) => {
+        ctx.enemySpeedMul = (ctx.enemySpeedMul || 1) * 0.83;
+        ctx.heroCdMul = (ctx.heroCdMul || 1) * 0.85;
+      },
+    },
+  ];
+
   /** 符咒 → 本局修飾欄項目（可裝備） */
   const CHARM_MAX_STAR = 3;
   const CHARM_EQUIP_SLOTS = 3;
@@ -3137,6 +3182,24 @@
     save.equippedCharmIds = ids.slice(0, CHARM_EQUIP_SLOTS);
     save.equippedCharmId = save.equippedCharmIds[0] || '';
     return { ok: true, equipped: save.equippedCharmIds.slice() };
+  }
+
+  function swapCharmSlots(save, i, j) {
+    if (!save) return { ok: false, error: '無存檔' };
+    normalizeOwnedCharms(save);
+    const ids = (save.equippedCharmIds || []).slice();
+    const a = i | 0;
+    const b = j | 0;
+    if (a < 0 || b < 0 || a >= ids.length || b >= ids.length) {
+      return { ok: false, error: '欄位無效' };
+    }
+    if (a === b) return { ok: true, equipped: ids.slice(), swapped: false };
+    const tmp = ids[a];
+    ids[a] = ids[b];
+    ids[b] = tmp;
+    save.equippedCharmIds = ids;
+    save.equippedCharmId = ids[0] || '';
+    return { ok: true, equipped: ids.slice(), swapped: true };
   }
 
   function getEquippedCharm(save) {
@@ -3321,6 +3384,7 @@
 
   function formatCharmSetDetailHtml(save, focusSet) {
     const rows = charmSetProgress(save);
+    const eqIds = getEquippedCharmIds(save);
     const focus = focusSet
       ? rows.filter(function (r) {
           return r.set === focusSet;
@@ -3330,9 +3394,32 @@
       const mem = r.members
         .map(function (m) {
           const mark = m.equipped ? '◆' : m.owned ? '◇' : '·';
-          return mark + m.name;
+          const slot = eqIds.indexOf(m.id);
+          let actions = '';
+          if (m.equipped && slot >= 0) {
+            actions =
+              ' <button type="button" class="wall-mode-btn set-unequip" data-unequip-slot="' +
+              slot +
+              '" data-set="' +
+              r.set +
+              '">卸</button>';
+            if (eqIds.length >= 2) {
+              const other = (slot + 1) % eqIds.length;
+              actions +=
+                '<button type="button" class="wall-mode-btn set-swap-slot" data-swap-a="' +
+                slot +
+                '" data-swap-b="' +
+                other +
+                '" data-set="' +
+                r.set +
+                '">換欄</button>';
+            }
+          }
+          return (
+            '<span class="set-member-row">' + mark + m.name + (slot >= 0 ? '·欄' + (slot + 1) : '') + actions + '</span>'
+          );
         })
-        .join('　');
+        .join('');
       const equipBtn =
         r.nextId && r.nextOwned && !r.advanced
           ? '<button type="button" class="wall-mode-btn set-equip-next" data-equip-next="' +
@@ -3369,7 +3456,7 @@
     return (
       '<div class="paper-body set-detail-page">' +
       bits.join('') +
-      '<p class="paper-note">點徽記睇明細｜一鍵裝上下一件｜◆已裝備　◇已擁有　·未擁有｜v4.4</p></div>'
+      '<p class="paper-note">點徽記睇明細｜裝下件／卸／換欄｜◆已裝備　◇已擁有　·未擁有｜v4.5</p></div>'
     );
   }
 
@@ -3775,6 +3862,14 @@
       if (!mods.some((m) => m.id === late16.id)) {
         if (mods.length >= 3) mods[0] = late16;
         else mods.push(late16);
+      }
+    }
+    if (best >= 1050 && RUN_MODIFIERS_1050.length) {
+      const h18 = (seed ^ 0x1050cafe) >>> 0;
+      const late17 = RUN_MODIFIERS_1050[h18 % RUN_MODIFIERS_1050.length];
+      if (!mods.some((m) => m.id === late17.id)) {
+        if (mods.length >= 3) mods[mods.length - 1] = late17;
+        else mods.push(late17);
       }
     }
     return mods;
@@ -4459,9 +4554,13 @@
     { id: 'late750_run', cat: 'meta', name: '十四池開盤', blurb: '曾達 750 浪後再開無盡（抽第十四池修飾）', check: (s) => !!s.ach && !!s.ach.late750_run },
     { id: 'late850_run', cat: 'meta', name: '十五池開盤', blurb: '曾達 850 浪後再開無盡（抽第十五池修飾）', check: (s) => !!s.ach && !!s.ach.late850_run },
     { id: 'late950_run', cat: 'meta', name: '十六池開盤', blurb: '曾達 950 浪後再開無盡（抽第十六池修飾）', check: (s) => !!s.ach && !!s.ach.late950_run },
+    { id: 'late1050_run', cat: 'meta', name: '十七池開盤', blurb: '曾達 1050 浪後再開無盡（抽第十七池修飾）', check: (s) => !!s.ach && !!s.ach.late1050_run },
     { id: 'set_badge_hud', cat: 'meta', name: '共鳴徽記', blurb: '見過進階共鳴 HUD 徽記', check: (s) => !!s.ach && !!s.ach.set_badge_hud },
     { id: 'set_badge_detail', cat: 'meta', name: '徽記明細', blurb: '點開共鳴徽記睇過套裝明細／下一件', check: (s) => !!s.ach && !!s.ach.set_badge_detail },
     { id: 'set_equip_next', cat: 'meta', name: '一鍵裝下件', blurb: '由徽記明細一鍵裝上下一件符咒', check: (s) => !!s.ach && !!s.ach.set_equip_next },
+    { id: 'set_unequip_swap', cat: 'meta', name: '卸換欄位', blurb: '徽記明細一鍵卸下或換欄位', check: (s) => !!s.ach && !!s.ach.set_unequip_swap },
+    { id: 'replay_dual_custom', cat: 'meta', name: '自訂雙區間', blurb: '回放用過自填 min–max 雙區間', check: (s) => !!s.ach && !!s.ach.replay_dual_custom },
+    { id: 'merge_snap_tune', cat: 'meta', name: '吸附調校', blurb: '調過合併吸附靈敏度或 buzz', check: (s) => !!s.ach && !!s.ach.merge_snap_tune },
     { id: 'replay_multi_metric', cat: 'meta', name: '多指標折線', blurb: '用過多指標疊加回放折線', check: (s) => !!s.ach && !!s.ach.replay_multi_metric },
     { id: 'replay_silver_metric', cat: 'meta', name: '銀兩折線', blurb: '回放疊加／篩選用過銀兩指標或區間', check: (s) => !!s.ach && !!s.ach.replay_silver_metric },
     { id: 'replay_damage_metric', cat: 'meta', name: '傷量折線', blurb: '回放用過傷量指標或雙區間對照', check: (s) => !!s.ach && !!s.ach.replay_damage_metric },
@@ -4556,12 +4655,15 @@
     const late900 = n >= 900 ? Math.min(0.028, (n - 900) * 0.0005) : 0;
     const late950 = n >= 950 ? Math.min(0.026, (n - 950) * 0.00045) : 0;
     const late1000 = n >= 1000 ? Math.min(0.024, (n - 1000) * 0.0004) : 0;
-    const mul = 1 + (n - 1) * 0.105 + late50 + late75 + late90 + late120 + late130 + late140 + late150 + late160 + late180 + late200 + late220 + late250 + late300 + late350 + late400 + late450 + late500 + late550 + late600 + late650 + late700 + late750 + late800 + late850 + late900 + late950 + late1000;
+    const late1050 = n >= 1050 ? Math.min(0.022, (n - 1050) * 0.00038) : 0;
+    const late1100 = n >= 1100 ? Math.min(0.02, (n - 1100) * 0.00035) : 0;
+    const mul = 1 + (n - 1) * 0.105 + late50 + late75 + late90 + late120 + late130 + late140 + late150 + late160 + late180 + late200 + late220 + late250 + late300 + late350 + late400 + late450 + late500 + late550 + late600 + late650 + late700 + late750 + late800 + late850 + late900 + late950 + late1000 + late1050 + late1100;
     const countLate = n >= 50 ? Math.min(n - 50, 25) * 0.01 + (n >= 75 ? (n - 75) * 0.006 : 0) : 0;
     const count = (base) => {
       let raw = Math.max(1, Math.round(base * (1 + (n - 1) * 0.072 + countLate)));
       // v2.4：絕對軟頂——75+ 壓力改由 Boss／精英／間隔承担，避免符紙／暗盤洪峰
-      if (n >= 950) raw = Math.min(raw, 20 + Math.min(5, Math.floor((n - 950) / 25)));
+      if (n >= 1050) raw = Math.min(raw, 18 + Math.min(4, Math.floor((n - 1050) / 30)));
+      else if (n >= 950) raw = Math.min(raw, 20 + Math.min(5, Math.floor((n - 950) / 25)));
       else if (n >= 850) raw = Math.min(raw, 22 + Math.min(6, Math.floor((n - 850) / 20)));
       else if (n >= 75) raw = Math.min(raw, 20 + Math.min(8, Math.floor((n - 75) / 5)));
       else if (n >= 50) raw = Math.min(raw, 26);
@@ -4766,7 +4868,7 @@
       }
     }
 
-    // v4.4：超晚期 Boss 間隔微調（950+）— 拉開入場、略慢 trash interval
+    // v4.4／v4.5：超晚期 Boss 間隔＋千浪後節奏再收
     if (n >= 950) {
       const bossIds = {
         black_swan: 1,
@@ -4775,13 +4877,15 @@
         ink_specter: 1,
         ledger_mirage: 1,
       };
+      const bossExtra = n >= 1100 ? 1.45 : n >= 1050 ? 1.25 : n >= 1000 ? 1.1 : 0.75;
+      const trashMul = n >= 1100 ? 1.16 : n >= 1050 ? 1.12 : n >= 1000 ? 1.1 : 1.08;
       for (let i = 0; i < spawns.length; i++) {
         const s = spawns[i];
         if (bossIds[s.enemy]) {
-          s.delay = (s.delay || 0) + (n >= 1000 ? 1.1 : 0.75);
-          if (s.interval && s.interval > 0) s.interval = s.interval + 0.45;
+          s.delay = (s.delay || 0) + bossExtra;
+          if (s.interval && s.interval > 0) s.interval = s.interval + (n >= 1050 ? 0.55 : 0.45);
         } else if (s.interval && s.interval > 0.2) {
-          s.interval = Math.min(s.interval * 1.08, s.interval + 0.12);
+          s.interval = Math.min(s.interval * trashMul, s.interval + (n >= 1000 ? 0.18 : 0.12));
         }
       }
     }
@@ -5051,7 +5155,9 @@
       s.equippedCharmIds = s.equippedCharmId ? [s.equippedCharmId] : [];
     }
     if (!s.endlessReplayFav || typeof s.endlessReplayFav !== 'object') s.endlessReplayFav = {};
-    s.version = Math.max(44, from, base.version || 44);
+    if (!s.mergeSnapSens) s.mergeSnapSens = 'mid';
+    if (s.mergeSnapBuzz == null) s.mergeSnapBuzz = true;
+    s.version = Math.max(45, from, base.version || 45);
     return s;
   }
 
@@ -5067,7 +5173,7 @@
 
   function defaultSave() {
     return {
-      version: 44,
+      version: 45,
       totalSilver: 0,
       totalKills: 0,
       maxStageCleared: 0,
@@ -5077,6 +5183,8 @@
       lastSpeed: 1,
       skipTutorial: false,
       showCellHints: true,
+      mergeSnapSens: 'mid',
+      mergeSnapBuzz: true,
       showSkillCd: true,
       reduceShake: false,
       reduceFlash: false,
@@ -6164,12 +6272,14 @@
     RUN_MODIFIERS_750,
     RUN_MODIFIERS_850,
     RUN_MODIFIERS_950,
+    RUN_MODIFIERS_1050,
     DUAL_PENTA_CHARMS,
     pickDualPentaCharm,
     charmAsModifier,
     findCharmById,
     unlockCharm,
     equipCharm,
+    swapCharmSlots,
     getEquippedCharm,
     getEquippedCharms,
     getEquippedCharmIds,

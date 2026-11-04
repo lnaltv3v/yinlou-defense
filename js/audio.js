@@ -160,6 +160,11 @@
       setTimeout(function () { buzz(920, 0.05, 'triangle', 0.04); }, 45);
       setTimeout(function () { buzz(1140, 0.06, 'sine', 0.035); }, 100);
     },
+    set_unequip_swap: function () {
+      buzz(620, 0.035, 'triangle', 0.03);
+      setTimeout(function () { buzz(480, 0.04, 'sine', 0.032); }, 40);
+      setTimeout(function () { buzz(760, 0.045, 'square', 0.03); }, 90);
+    },
     merge_snap: function () {
       buzz(540, 0.028, 'sine', 0.028);
       setTimeout(function () { buzz(760, 0.035, 'triangle', 0.03); }, 30);

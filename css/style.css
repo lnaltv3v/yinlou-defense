@@ -1551,3 +1551,14 @@ button.set-badge { appearance: none; -webkit-appearance: none; }
   color: #E8DCC8;
 }
 .dual-range-tabs { margin: 4px 0 6px; flex-wrap: wrap; }
+
+.set-member-row { display: inline-flex; align-items: center; gap: 4px; margin: 2px 6px 2px 0; flex-wrap: wrap; }
+.set-unequip, .set-swap-slot { font-size: 11px; padding: 1px 6px; }
+.dual-custom-row {
+  display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+  margin: 6px 0; font-size: 12px; color: #E8DCC8;
+}
+.dual-input {
+  width: 56px; background: #1A1510; color: #E8DCC8;
+  border: 1px solid #4A4034; border-radius: 4px; padding: 2px 4px;
+}

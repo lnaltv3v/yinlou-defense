@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 正式 PNG 精靈載入（有就用、無就幾何 fallback）v4.4.0
+ * 銀樓防衛 — 正式 PNG 精靈載入（有就用、無就幾何 fallback）v4.5.0
  * sheet 96×48：frame0 idle／frame1 attack；亦可 *_attack.png
  * v1.5：場景 mid／props；halt_seal PNG；cache-bust／尺寸校驗／missing 重試／動態 id
  */
@@ -7,7 +7,7 @@
   const BASE = 'assets/sprites/';
   const SCENE_BASE = 'assets/scenes/';
   const FRAME = 48;
-  const CACHE_VER = '4.4.0';
+  const CACHE_VER = '4.5.0';
   const KNOWN_IDS = [
     'long_bull',
     'short_blade',

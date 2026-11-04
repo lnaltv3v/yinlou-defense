@@ -1,5 +1,13 @@
 # Changelog
 
+## v4.5.0 — 2026-11-05
+
+- **第十七池／1050–1100**：`RUN_MODIFIERS_1050` 四枚；里程碑 1050／1100；【1050+】；千浪後節奏再收；成就 `late1050_run`
+- **徽記卸／換欄**：明細頁一鍵卸下、換欄位；成就 `set_unequip_swap`
+- **自訂雙區間**：回放可自填 A/B min–max；成就 `replay_dual_custom`
+- **吸附調校**：設定循環 off／低／中／高＋buzz 開關；成就 `merge_snap_tune`
+- mid／props 無新檔；存檔 **version 45**；`?v=4.5.0`／`CACHE_VER=4.5.0`；Pages 全樹一次；無正式音檔
+
 ## v4.4.0 — 2026-11-05
 
 - **第十六池／950–1000**：`RUN_MODIFIERS_950` 四枚；里程碑 950／1000；【950+】；超晚期 Boss 間隔拉開；成就 `late950_run`

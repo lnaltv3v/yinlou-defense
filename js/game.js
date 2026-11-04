@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 主循環 v4.4.0
+ * 銀樓防衛 — 主循環 v4.5.0
  * v1.9.0：第7關／鎖倉居士／週連續＋本地最佳牆／手感平衡
  */
 (function () {
@@ -80,6 +80,7 @@
     findCharmById,
     unlockCharm,
     equipCharm,
+    swapCharmSlots,
     upgradeCharmStar,
     charmStarOf,
     charmAsModifier,
@@ -955,12 +956,15 @@
             m.late650 ||
             m.late750 ||
             m.late850 ||
-            m.late950
+            m.late950 ||
+            m.late1050
         );
         state._lateModBadge = lateMods.length
           ? lateMods.map((m) => m.name).join(' · ')
           : '';
-        state._lateModTier = lateMods.some((m) => m.late950)
+        state._lateModTier = lateMods.some((m) => m.late1050)
+          ? 1050
+          : lateMods.some((m) => m.late950)
           ? 950
           : lateMods.some((m) => m.late850)
           ? 850
@@ -1077,6 +1081,12 @@
           writeSave(save);
           notifyAchievements();
         }
+        if ((save.bestEndlessWave || 0) >= 1050) {
+          if (!save.ach) save.ach = {};
+          save.ach.late1050_run = true;
+          writeSave(save);
+          notifyAchievements();
+        }
         if (save._equipCharmToast) {
           const nm = save._equipCharmToast;
           save._equipCharmToast = '';
@@ -1087,7 +1097,9 @@
         if (state._lateModBadge) {
           setTimeout(() => {
             const tag =
-              state._lateModTier >= 950
+              state._lateModTier >= 1050
+                ? '【1050+】'
+                : state._lateModTier >= 950
                 ? '【950+】'
                 : state._lateModTier >= 850
                 ? '【850+】'
@@ -2280,6 +2292,66 @@
       if (A && A.play) A.play('set_equip_next');
     } catch (_) {}
   };
+  window.__yinlouMarkSetUnequipSwap = function () {
+    if (!save.ach) save.ach = {};
+    if (!save.ach.set_unequip_swap) {
+      save.ach.set_unequip_swap = true;
+      writeSave(save);
+      notifyAchievements();
+      UI.toast('成就｜卸換欄位', 1800);
+    }
+    try {
+      const A = window.YDAudio;
+      if (A && A.play) A.play('set_unequip_swap');
+    } catch (_) {}
+  };
+  window.__yinlouMarkReplayDualCustom = function () {
+    if (!save.ach) save.ach = {};
+    if (!save.ach.replay_dual_custom) {
+      save.ach.replay_dual_custom = true;
+      writeSave(save);
+      notifyAchievements();
+    }
+  };
+  window.__yinlouMarkMergeSnapTune = function () {
+    if (!save.ach) save.ach = {};
+    if (!save.ach.merge_snap_tune) {
+      save.ach.merge_snap_tune = true;
+      writeSave(save);
+      notifyAchievements();
+      UI.toast('成就｜吸附調校', 1800);
+    }
+  };
+  window.__yinlouSwapCharmSlots = function (a, b) {
+    const res = typeof swapCharmSlots === 'function' ? swapCharmSlots(save, a, b) : { ok: false };
+    if (!res || !res.ok) {
+      UI.toast((res && res.error) || '換欄失敗', 2000);
+      return res;
+    }
+    writeSave(save);
+    if (window.__yinlouMarkSetUnequipSwap) window.__yinlouMarkSetUnequipSwap();
+    UI.toast('已換欄位', 1600);
+    return res;
+  };
+  window.__yinlouCycleMergeSnapSens = function () {
+    const order = ['off', 'low', 'mid', 'high'];
+    const cur = save.mergeSnapSens || 'mid';
+    const i = order.indexOf(cur);
+    save.mergeSnapSens = order[(i + 1) % order.length];
+    writeSave(save);
+    if (window.__yinlouMarkMergeSnapTune) window.__yinlouMarkMergeSnapTune();
+    try {
+      const A = window.YDAudio;
+      if (A && A.play) A.play('merge_snap');
+    } catch (_) {}
+    return save.mergeSnapSens;
+  };
+  window.__yinlouToggleMergeSnapBuzz = function () {
+    save.mergeSnapBuzz = save.mergeSnapBuzz === false;
+    writeSave(save);
+    if (window.__yinlouMarkMergeSnapTune) window.__yinlouMarkMergeSnapTune();
+    return save.mergeSnapBuzz !== false;
+  };
   window.__yinlouMarkReplayDamageMetric = function () {
     if (!save.ach) save.ach = {};
     if (!save.ach.replay_damage_metric) {
@@ -3031,13 +3103,17 @@
     }
     const pad = ptr.isTouch ? 22 : 0;
     let cell = Battle.hitTestCell(x, y, pad);
+    const prevSnap = state.drag.snapHint;
     state.drag.snapHint = null;
-    // v4.4：合併合法格吸附（觸控優先）
-    if (ptr.kind === 'hero') {
+    // v4.5：合併合法格吸附（可調靈敏度／buzz）
+    const snapSens = save.mergeSnapSens || 'mid';
+    if (ptr.kind === 'hero' && snapSens !== 'off') {
       const from = state.heroes.find((h) => h.uid === ptr.heroUid);
       if (from && from.star < (typeof MAX_STAR === 'number' ? MAX_STAR : 5)) {
+        const touchBase = snapSens === 'high' ? 108 : snapSens === 'low' ? 52 : 78;
+        const mouseBase = snapSens === 'high' ? 72 : snapSens === 'low' ? 36 : 52;
         let best = null;
-        let bestD = ptr.isTouch ? 78 : 52;
+        let bestD = ptr.isTouch ? touchBase : mouseBase;
         for (const h of state.heroes || []) {
           if (h.uid === from.uid) continue;
           if (h.id !== from.id || h.star !== from.star) continue;
@@ -3052,6 +3128,14 @@
         if (best) {
           cell = { lane: best.lane, slot: best.slot };
           state.drag.snapHint = { lane: best.lane, slot: best.slot, dist: bestD };
+          const newly =
+            !prevSnap || prevSnap.lane !== best.lane || prevSnap.slot !== best.slot;
+          if (newly && save.mergeSnapBuzz !== false) {
+            try {
+              const A = window.YDAudio;
+              if (A && A.play) A.play('merge_snap');
+            } catch (_) {}
+          }
           if (window.__yinlouMarkTutMergeSnap) window.__yinlouMarkTutMergeSnap();
         }
       }
