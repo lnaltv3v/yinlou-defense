@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 戰鬥／生成／合併邏輯 v2.2.0
+ * 銀樓防衛 — 戰鬥／生成／合併邏輯 v2.3.0
  * v1.4：擊退／超殺／擊破爆點／陣亡墨塵
  */
 (function (global) {
@@ -42,6 +42,8 @@
       hitFlash: 0,
       atkBuff: 0,
       atkBuffT: 0,
+      atkDebuff: 0,
+      atkDebuffT: 0,
       atkCount: 0,
       swingT: 0,
       stunT: 0,
@@ -365,6 +367,7 @@
 
     let dmg = hero.atk * mods.atkMul;
     if (hero.atkBuffT > 0 && hero.atkBuff) dmg *= 1 + hero.atkBuff;
+    if (hero.atkDebuffT > 0 && hero.atkDebuff) dmg *= Math.max(0.4, 1 - hero.atkDebuff);
     if (state.modCtx && state.modCtx.heroAtkMul && state.modCtx.heroAtkMul !== 1) {
       dmg *= state.modCtx.heroAtkMul;
     }
@@ -884,6 +887,78 @@
         r: 30,
       });
       state._haltTideProcs = (state._haltTideProcs || 0) + 1;
+    } else if (sk.type === 'ink_specter') {
+      const rad = sk.blotRad || 170;
+      const deb = sk.atkDebuff || 0.2;
+      const dur = sk.atkDebuffDur || 3;
+      for (const h of state.heroes) {
+        if (h.hp <= 0) continue;
+        if (Math.hypot(h.x - enemy.x, h.y - enemy.y) > rad) continue;
+        h.atkDebuff = Math.max(h.atkDebuff || 0, deb);
+        h.atkDebuffT = Math.max(h.atkDebuffT || 0, dur);
+        h.hitFlash = Math.max(h.hitFlash || 0, 0.32);
+      }
+      if (sk.silverDrain) {
+        const drain = Math.min(state.silver || 0, sk.silverDrain);
+        state.silver = Math.max(0, (state.silver || 0) - drain);
+        if (drain > 0) {
+          pushFloat(state.floats, {
+            x: enemy.x,
+            y: enemy.y - 56,
+            text: '抽銀 -' + drain,
+            color: '#8A9BB0',
+            size: 14,
+            vy: -24,
+            life: 1.0,
+            bounce: 0.9,
+          });
+        }
+      }
+      if (sk.tapeRush) {
+        for (const o of state.enemies) {
+          if (o.hp <= 0 || o.uid === enemy.uid) continue;
+          if (o.id !== 'dark_tape' && !(o.def && o.def.id === 'dark_tape')) continue;
+          if (Math.hypot(o.x - enemy.x, o.y - enemy.y) > rad + 40) continue;
+          o.speed = o.baseSpeed * (sk.tapeRushMul || 1.16);
+          o.rushT = Math.max(o.rushT || 0, sk.tapeRush);
+        }
+      }
+      if (sk.coreDmg) {
+        state.coreHp -= sk.coreDmg;
+        state.coreHitFlash = 0.55;
+        state.shake = Math.max(state.shake || 0, 0.38);
+        pushFloat(state.floats, {
+          x: CORE.x,
+          y: CORE.y - 52,
+          text: '墨影 -' + sk.coreDmg,
+          color: '#8A9BB0',
+          size: 16,
+          vy: -32,
+          life: 1.15,
+          bounce: 1.2,
+        });
+      }
+      pushFloat(state.floats, {
+        x: enemy.x,
+        y: enemy.y - 40,
+        text: '墨 翻帳！',
+        color: '#8A9BB0',
+        size: 15,
+        vy: -26,
+        life: 1.0,
+        bounce: 1.1,
+      });
+      pushFx(state, { type: 'inkWarn', life: 1.4 });
+      pushFx(state, {
+        type: 'skill',
+        x: enemy.x,
+        y: enemy.y,
+        color: '#2A3040',
+        life: 0.55,
+        text: sk.name,
+        r: 30,
+      });
+      state._inkProcs = (state._inkProcs || 0) + 1;
     }
   }
 
@@ -1060,6 +1135,7 @@
         if (e.id === 'circuit_swan') state._circuitKills = (state._circuitKills || 0) + 1;
         if (e.id === 'halt_tide') state._haltTideKills = (state._haltTideKills || 0) + 1;
         if (e.id === 'black_swan') state._swanKills = (state._swanKills || 0) + 1;
+        if (e.id === 'ink_specter') state._inkKills = (state._inkKills || 0) + 1;
         if (e.elite) {
           state._eliteKills = (state._eliteKills || 0) + 1;
           pushFloat(state.floats, {
@@ -1181,6 +1257,7 @@
     const eid = enemy.id || (enemy.def && enemy.def.id);
     const isCircuit = eid === 'circuit_swan';
     const isTide = eid === 'halt_tide';
+    const isInk = eid === 'ink_specter';
     const isSwan = eid === 'black_swan';
     const aliveBossIds = new Set(
       (state.enemies || [])
@@ -1188,49 +1265,107 @@
         .map((e) => e.id)
         .concat([eid])
     );
+    const quad =
+      aliveBossIds.has('black_swan') &&
+      aliveBossIds.has('circuit_swan') &&
+      aliveBossIds.has('halt_tide') &&
+      aliveBossIds.has('ink_specter');
     const triple =
+      !quad &&
       aliveBossIds.has('black_swan') &&
       aliveBossIds.has('circuit_swan') &&
       aliveBossIds.has('halt_tide');
     const dual =
+      !quad &&
       !triple &&
       ((aliveBossIds.has('black_swan') && aliveBossIds.has('circuit_swan')) ||
         (aliveBossIds.has('black_swan') && aliveBossIds.has('halt_tide')) ||
-        (aliveBossIds.has('circuit_swan') && aliveBossIds.has('halt_tide')));
-    const life = triple ? 3.6 : isCircuit || isTide ? 3.2 : 2.9;
+        (aliveBossIds.has('circuit_swan') && aliveBossIds.has('halt_tide')) ||
+        (aliveBossIds.has('ink_specter') &&
+          (aliveBossIds.has('black_swan') ||
+            aliveBossIds.has('circuit_swan') ||
+            aliveBossIds.has('halt_tide'))));
+    const life = quad ? 3.8 : triple ? 3.6 : isCircuit || isTide || isInk ? 3.2 : 2.9;
+    const kind = quad
+      ? 'quad'
+      : triple
+        ? 'triple'
+        : isInk
+          ? 'ink'
+          : isTide
+            ? 'halt_tide'
+            : isCircuit
+              ? 'circuit'
+              : 'boss';
+    const blurb = quad
+      ? '四潮同場 — 黑羽＋金邊＋臨停＋墨影'
+      : triple
+        ? '三潮同場 — 黑羽＋金邊＋臨停'
+        : isInk
+          ? '墨影翻帳 — 降攻抽銀'
+          : isTide
+            ? '停牌潮湧入 — 範圍臨停'
+            : isCircuit
+              ? '熔斷鐘將響 — 俠客短暫停刀'
+              : (enemy.def.skill && enemy.def.skill.blurb) || '';
     state.bossBanner = {
       name: enemy.def.name,
       life: life,
       maxLife: life,
-      kind: triple ? 'triple' : isTide ? 'halt_tide' : isCircuit ? 'circuit' : 'boss',
-      blurb: triple
-        ? '三潮同場 — 黑羽＋金邊＋臨停'
-        : isTide
-          ? '停牌潮湧入 — 範圍臨停'
-          : isCircuit
-            ? '熔斷鐘將響 — 俠客短暫停刀'
-            : (enemy.def.skill && enemy.def.skill.blurb) || '',
+      kind: kind,
+      blurb: blurb,
     };
-    state.shake = Math.max(state.shake || 0, triple ? 0.52 : isCircuit || isTide ? 0.42 : 0.32);
-    state.coreHitFlash = Math.max(state.coreHitFlash || 0, triple ? 0.7 : isCircuit || isTide ? 0.55 : 0.35);
+    state.shake = Math.max(
+      state.shake || 0,
+      quad ? 0.58 : triple ? 0.52 : isCircuit || isTide || isInk ? 0.42 : 0.32
+    );
+    state.coreHitFlash = Math.max(
+      state.coreHitFlash || 0,
+      quad ? 0.75 : triple ? 0.7 : isCircuit || isTide || isInk ? 0.55 : 0.35
+    );
     state.fx.push({
-      type: triple ? 'tripleTideWarn' : isTide ? 'haltTideWarn' : isCircuit ? 'circuitWarn' : 'bossWarn',
-      life: triple ? 3.2 : isCircuit || isTide ? 2.8 : 2.5,
+      type: quad
+        ? 'quadTideWarn'
+        : triple
+          ? 'tripleTideWarn'
+          : isInk
+            ? 'inkWarn'
+            : isTide
+              ? 'haltTideWarn'
+              : isCircuit
+                ? 'circuitWarn'
+                : 'bossWarn',
+      life: quad ? 3.4 : triple ? 3.2 : isCircuit || isTide || isInk ? 2.8 : 2.5,
     });
     if (triple) state._tripleTideSeen = (state._tripleTideSeen || 0) + 1;
+    if (quad) state._quadTideSeen = (state._quadTideSeen || 0) + 1;
+    const title = quad
+      ? '四潮同場'
+      : triple
+        ? '三潮同場'
+        : enemy.def.name + ' 入場';
     pushFloat(state.floats, {
       x: 480,
       y: 190,
-      text:
-        (triple ? '🌊 ' : isTide ? '⛔ ' : isCircuit ? '🔔 ' : '⚠ ') +
-        (triple ? '三潮同場' : enemy.def.name + ' 入場'),
-      color: triple ? '#C45C4A' : isTide ? '#C4A070' : isCircuit ? '#E8C96A' : '#C9A227',
-      size: triple ? 26 : isCircuit || isTide ? 24 : 22,
+      text: (quad ? '📜 ' : triple ? '🌊 ' : isInk ? '墨 ' : isTide ? '⛔ ' : isCircuit ? '🔔 ' : '⚠ ') + title,
+      color: quad || triple ? '#C45C4A' : isInk ? '#8A9BB0' : isTide ? '#C4A070' : isCircuit ? '#E8C96A' : '#C9A227',
+      size: quad || triple ? 26 : isCircuit || isTide || isInk ? 24 : 22,
       vy: -10,
-      life: triple ? 2.9 : isCircuit || isTide ? 2.6 : 2.3,
+      life: quad || triple ? 2.9 : isCircuit || isTide || isInk ? 2.6 : 2.3,
       bounce: 0.45,
     });
-    if (triple) {
+    if (quad) {
+      pushFloat(state.floats, {
+        x: 480,
+        y: 230,
+        text: '先鎖倉清符 — 再收羽同墨',
+        color: '#C45C4A',
+        size: 15,
+        vy: -8,
+        life: 2.5,
+        bounce: 0,
+      });
+    } else if (triple) {
       pushFloat(state.floats, {
         x: 480,
         y: 230,
@@ -1241,6 +1376,21 @@
         life: 2.4,
         bounce: 0,
       });
+    } else if (isInk) {
+      pushFloat(state.floats, {
+        x: 480,
+        y: 230,
+        text: dual ? '墨影夾擊 — 護銀守核' : '墨影翻帳 — 護住銀袋',
+        color: '#8A9BB0',
+        size: 14,
+        vy: -8,
+        life: 2.2,
+        bounce: 0,
+      });
+      if (dual) {
+        state.bossBanner.kind = 'dual';
+        state.bossBanner.blurb = '雙潮夜 — 墨影＋另一潮同時在場';
+      }
     } else if (isCircuit) {
       pushFloat(state.floats, {
         x: 480,
@@ -1269,7 +1419,7 @@
       });
       if (dual) {
         state.bossBanner.kind = 'dual';
-        state.bossBanner.blurb = '雙潮夜 — 臨停＋另一羽同時在場';
+        state.bossBanner.blurb = '雙潮夜 — 臨停＋另一潮同時在場';
       }
     } else if (isSwan && dual) {
       pushFloat(state.floats, {

@@ -699,3 +699,9 @@ header.title {
 .stage-btn.endless.finale:not(:disabled) {
   background: linear-gradient(180deg, #3A2A18 0%, #2A2018 100%);
 }
+
+
+/* v2.3 牆時間軸／Boss 預覽 */
+.wall-timeline { display: flex; flex-direction: column; gap: 6px; }
+.wall-snap-row .wall-snap-code { display: block; font-size: 11px; opacity: 0.85; margin-top: 2px; }
+.boss-preview .card-skill { color: #C9A227; }

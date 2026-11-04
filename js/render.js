@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — Canvas 繪製 v2.2.0
+ * 銀樓防衛 — Canvas 繪製 v2.3.0
  * v1.5：場景四層 ground→mid→wall→props；halt_seal PNG；擊破／暴擊
  */
 (function (global) {
@@ -706,13 +706,16 @@
     }
     if (e.boss) {
       const circuit = e.id === 'circuit_swan';
-      ctx.strokeStyle = circuit ? '#E8C96A' : '#C9A227';
-      ctx.lineWidth = circuit ? 3 : 2;
+      const tide = e.id === 'halt_tide';
+      const ink = e.id === 'ink_specter';
+      const col = circuit ? '#E8C96A' : tide ? '#C4A070' : ink ? '#8A9BB0' : '#C9A227';
+      ctx.strokeStyle = col;
+      ctx.lineWidth = circuit || ink ? 3 : 2;
       ctx.strokeRect(e.x - r - 2, e.y - r - 2 + bob, r * 2 + 4, r * 2 + 4);
-      ctx.fillStyle = circuit ? '#E8C96A' : '#C9A227';
+      ctx.fillStyle = col;
       ctx.font = 'bold 9px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(circuit ? '熔斷天鵝' : '黑天鵝', e.x, e.y - r - 8 + bob);
+      ctx.fillText((e.def && e.def.name) || 'Boss', e.x, e.y - r - 8 + bob);
     } else if (e.elite) {
       ctx.fillStyle = '#C45C4A';
       ctx.font = 'bold 9px sans-serif';
@@ -945,6 +948,27 @@
         ctx.lineWidth = 2;
         ctx.strokeRect(48, 48, ctx.canvas.width - 96, ctx.canvas.height - 96);
         ctx.globalAlpha = 1;
+      } else if (fx.type === 'quadTideWarn') {
+        const pulse = 0.18 + 0.15 * Math.sin((fx.life || 0) * 18);
+        ctx.globalAlpha = Math.min(state.reduceFlash ? 0.16 : pulse + 0.24, 0.52);
+        drawPixelRect(ctx, 0, 0, ctx.canvas.width, ctx.canvas.height, '#1A2030');
+        ctx.globalAlpha = Math.min(0.7, fx.life);
+        ctx.strokeStyle = '#8A9BB0';
+        ctx.lineWidth = 5;
+        ctx.strokeRect(28, 28, ctx.canvas.width - 56, ctx.canvas.height - 56);
+        ctx.strokeStyle = '#C45C4A';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(44, 44, ctx.canvas.width - 88, ctx.canvas.height - 88);
+        ctx.globalAlpha = 1;
+      } else if (fx.type === 'inkWarn') {
+        const pulse = 0.12 + 0.1 * Math.sin((fx.life || 0) * 13);
+        ctx.globalAlpha = Math.min(state.reduceFlash ? 0.1 : pulse + 0.16, 0.38);
+        drawPixelRect(ctx, 0, 0, ctx.canvas.width, ctx.canvas.height, '#1A2438');
+        ctx.globalAlpha = Math.min(0.55, fx.life);
+        ctx.strokeStyle = '#8A9BB0';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(52, 52, ctx.canvas.width - 104, ctx.canvas.height - 104);
+        ctx.globalAlpha = 1;
       } else if (fx.type === 'eliteWarn') {
         ctx.globalAlpha = Math.min(state.reduceFlash ? 0.08 : 0.2, fx.life * 0.18);
         drawPixelRect(ctx, 0, 0, ctx.canvas.width, ctx.canvas.height, '#C45C4A');
@@ -1047,14 +1071,37 @@
     ctx.globalAlpha = Math.min(1, alpha);
     const elite = b.kind === 'elite';
     const circuit = b.kind === 'circuit' || b.kind === 'dual';
+    const ink = b.kind === 'ink';
+    const quad = b.kind === 'quad';
+    const tripleB = b.kind === 'triple';
     const dual = b.kind === 'dual';
     const tide = b.kind === 'halt_tide';
     const h = b.blurb ? 72 : 56;
     drawPixelRect(ctx, 140, 188, 680, h, '#1A1510');
-    ctx.strokeStyle = elite ? '#C45C4A' : dual || circuit ? '#E8C96A' : tide ? '#C4A070' : '#C9A227';
-    ctx.lineWidth = circuit || dual || tide ? 4 : 3;
+    ctx.strokeStyle = elite
+      ? '#C45C4A'
+      : quad || tripleB
+        ? '#C45C4A'
+        : ink
+          ? '#8A9BB0'
+          : dual || circuit
+            ? '#E8C96A'
+            : tide
+              ? '#C4A070'
+              : '#C9A227';
+    ctx.lineWidth = circuit || dual || tide || ink || quad || tripleB ? 4 : 3;
     ctx.strokeRect(142, 190, 676, h - 4);
-    ctx.fillStyle = elite ? '#C45C4A' : dual || circuit ? '#E8C96A' : tide ? '#C4A070' : '#C9A227';
+    ctx.fillStyle = elite
+      ? '#C45C4A'
+      : quad || tripleB
+        ? '#C45C4A'
+        : ink
+          ? '#8A9BB0'
+          : dual || circuit
+            ? '#E8C96A'
+            : tide
+              ? '#C4A070'
+              : '#C9A227';
     ctx.font = 'bold 22px sans-serif';
     ctx.textAlign = 'center';
     const prefix = elite

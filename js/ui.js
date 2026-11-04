@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v2.2.0
+ * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v2.3.0
  */
 (function (global) {
   const {
@@ -25,6 +25,8 @@
     parseWallShort,
     compareWallShort,
     recordWallSnapshot,
+    formatWallTimeline,
+    listBossPreviews,
     exportLocalWallShare,
     pickFailTip,
     UPGRADE_PATHS,
@@ -92,7 +94,7 @@
       ink +
       '"></i>' +
       gear;
-    const src = (window.YDSprites && window.YDSprites.urlFor) ? window.YDSprites.urlFor(def.id) : ('assets/sprites/' + def.id + '.png?v=2.2.0');
+    const src = (window.YDSprites && window.YDSprites.urlFor) ? window.YDSprites.urlFor(def.id) : ('assets/sprites/' + def.id + '.png?v=2.3.0');
     return (
       '<span class="hero-avatar" aria-hidden="true" data-hero="' +
       def.id +
@@ -492,6 +494,7 @@
       onCopyWallShare,
       onCompareWallShare,
       onSnapWall,
+      onWallTimeline,
     } = opts;
     const save = getSave();
     const ov = $('overlay');
@@ -659,6 +662,7 @@
     if (onCopyWallShare) mk('複製牆短碼', () => onCopyWallShare(), false, true);
     if (onCompareWallShare) mk('對照牆短碼', () => onCompareWallShare(), false, true);
     if (onSnapWall) mk('留下牆快照', () => onSnapWall(), false, true);
+    if (onWallTimeline) mk('牆快照時間軸', () => onWallTimeline(), false, true);
     section('本關');
     mk(
       '重開本關',
@@ -711,7 +715,7 @@
     const src = id && window.YDSprites && window.YDSprites.urlFor
       ? window.YDSprites.urlFor(id)
       : id
-        ? 'assets/sprites/' + id + '.png?v=2.2.0'
+        ? 'assets/sprites/' + id + '.png?v=2.3.0'
         : '';
     const fallback =
       '<span class="codex-thumb-fallback" style="background:' + c + '"></span>';
@@ -811,6 +815,45 @@
         parts.push('<div class="paper-entry dim card-thick"><strong>？？？</strong><span>尚未遭遇</span></div>');
       }
     }
+    parts.push('<div class="paper-sec">Boss 入場預覽</div>');
+    const bosses =
+      typeof listBossPreviews === 'function'
+        ? listBossPreviews()
+        : Object.keys(ENEMIES)
+            .map(function (id) {
+              return ENEMIES[id];
+            })
+            .filter(function (d) {
+              return d && d.boss;
+            });
+    for (const b of bosses) {
+      const seen = save.seenEnemies && save.seenEnemies[b.id];
+      if (seen) {
+        parts.push(
+          '<div class="paper-entry card-thick card-row boss-preview">' +
+            codexThumbHtml(b.id ? ENEMIES[b.id] || b : b, 'enemy') +
+            '<div class="card-body"><strong style="color:' +
+            (b.color || '#C9A227') +
+            '">' +
+            b.name +
+            ' · 入場</strong><span class="card-meta">' +
+            (b.entrance || '') +
+            '</span>' +
+            (b.skill ? '<div class="card-skill">' + b.skill + '</div>' : '') +
+            '<span class="card-meta">HP' +
+            (b.hp || '') +
+            '／攻' +
+            (b.atk || '') +
+            ' · 賞' +
+            (b.reward || '') +
+            '</span></div></div>'
+        );
+      } else {
+        parts.push(
+          '<div class="paper-entry dim card-thick"><strong>？？？ · Boss</strong><span>尚未遭遇 — 入場預覽未解鎖</span></div>'
+        );
+      }
+    }
     parts.push('<div class="paper-sec">羈絆（' + BONDS.length + '）</div>');
     for (const b of BONDS) {
       const names = b.need.map((id) => (HEROES[id] ? HEROES[id].name : id)).join('＋');
@@ -834,6 +877,52 @@
     };
     $('overlay-extra').innerHTML = '';
     ov.classList.add('show');
+  }
+
+
+  function showWallTimeline(getSave, onClose, onMark) {
+    const save = getSave();
+    const ov = $('overlay');
+    ov.classList.remove('settings-mode');
+    ov.classList.add('codex-mode', 'paper-panel');
+    $('overlay-title').textContent = '牆快照時間軸';
+    const rows = typeof formatWallTimeline === 'function' ? formatWallTimeline(save) : [];
+    const parts = ['<div class="paper-body">', '<p class="paper-note">本機牆影（新→舊）｜唔做線上排行</p>'];
+    if (!rows.length) {
+      parts.push('<div class="paper-entry dim card-thick"><strong>尚無快照</strong><span>通關週挑戰／刷新無盡最佳／或設定「留下牆快照」</span></div>');
+    } else {
+      parts.push('<div class="wall-timeline">');
+      for (const r of rows) {
+        parts.push(
+          '<div class="paper-entry card-thick wall-snap-row">' +
+            '<div class="card-body">' +
+            '<strong>' +
+            (r.localAt || r.at || '—') +
+            ' · ' +
+            (r.reasonLabel || r.reason) +
+            '</strong>' +
+            '<span class="card-meta">' +
+            (r.short || '') +
+            '</span>' +
+            '<span class="mono wall-snap-code">' +
+            (r.code || '') +
+            '</span>' +
+            '</div></div>'
+        );
+      }
+      parts.push('</div>');
+    }
+    parts.push('</div>');
+    $('overlay-msg').innerHTML = parts.join('');
+    const btn = $('btn-overlay');
+    btn.textContent = '關閉';
+    btn.onclick = () => {
+      hideOverlay();
+      if (onClose) onClose();
+    };
+    $('overlay-extra').innerHTML = '';
+    ov.classList.add('show');
+    if (onMark) onMark();
   }
 
   function showAchievements(getSave, onClose) {
@@ -1062,6 +1151,7 @@
     showSettings,
     showStory,
     showCodex,
+    showWallTimeline,
     showAchievements,
     setHint,
     refreshWeekProgress,

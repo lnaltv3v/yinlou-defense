@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 主循環 v2.2.0
+ * 銀樓防衛 — 主循環 v2.3.0
  * v1.9.0：第7關／鎖倉居士／週連續＋本地最佳牆／手感平衡
  */
 (function () {
@@ -23,6 +23,8 @@
     parseWallShort,
     compareWallShort,
     recordWallSnapshot,
+    formatWallTimeline,
+    listBossPreviews,
     exportLocalWallShare,
     importSaveJson,
     pickFailTip,
@@ -275,6 +277,8 @@
       lockKills: 0,
       _circuitKills: 0,
       _haltTideKills: 0,
+      _inkKills: 0,
+      _quadTideSeen: 0,
       _circuitProcs: 0,
       _swanKills: 0,
       _killStreak: 0,
@@ -357,6 +361,18 @@
     }
     if ((state._haltTideKills || 0) >= 1 && !save.ach.halt_tide_kill) {
       save.ach.halt_tide_kill = true;
+    }
+    if ((state._inkKills || 0) >= 1 && !save.ach.ink_kill) {
+      save.ach.ink_kill = true;
+    }
+    if (
+      (state._swanKills || 0) >= 1 &&
+      (state._circuitKills || 0) >= 1 &&
+      (state._haltTideKills || 0) >= 1 &&
+      (state._inkKills || 0) >= 1 &&
+      !save.ach.quad_tide_clear
+    ) {
+      save.ach.quad_tide_clear = true;
     }
     if (
       (state._swanKills || 0) >= 1 &&
@@ -737,6 +753,8 @@
     if (state.lockKills) bits.push('鎖倉擊殺 ' + state.lockKills);
     if (state._circuitKills) bits.push('熔斷天鵝擊破 ×' + state._circuitKills);
     if (state._haltTideKills) bits.push('停牌潮擊破 ×' + state._haltTideKills);
+    if (state._inkKills) bits.push('墨影帳擊破 ×' + state._inkKills);
+    if (state._quadTideSeen) bits.push('四潮入場 ×' + state._quadTideSeen);
     if (state._tripleTideEvent) bits.push('三潮市況 ×' + state._tripleTideEvent);
     if (state._tripleTideSeen) bits.push('三潮入場 ×' + state._tripleTideSeen);
     if (state._haltDrizzle) bits.push('臨停細雨 ×' + state._haltDrizzle);
@@ -1412,6 +1430,22 @@
         } catch (err) {
           UI.toast('快照失敗');
         }
+      },
+      onWallTimeline: () => {
+        if (!UI.showWallTimeline) {
+          UI.toast('時間軸不可用');
+          return;
+        }
+        UI.showWallTimeline(
+          () => save,
+          () => syncAll(),
+          () => {
+            if (!save.ach) save.ach = {};
+            save.ach.wall_timeline = true;
+            writeSave(save);
+            notifyAchievements();
+          }
+        );
       },
       onExportWallJson: () => {
         try {

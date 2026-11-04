@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 靜態資料 v2.2.0
+ * 銀樓防衛 — 靜態資料 v2.3.0
  * 角色為原創綽號，影射金融江湖氣氛；唔用真人真名／金庸名／Fortias IP。
  */
 (function (global) {
@@ -495,6 +495,7 @@
       id: 'black_swan',
       name: '黑天鵝',
       lore: '黑羽掠過街燈——Boss 級災變，專震核心同陣腳。帳本寫得再靚，羽一落，盤口照樣裂。',
+      entrance: '黑羽驚惶入場 — 全體短暫減速＋核心震盪',
       hp: 325,
       atk: 22,
       speed: 20,
@@ -520,6 +521,7 @@
       id: 'circuit_swan',
       name: '熔斷天鵝',
       lore: '開年第一聲熔斷鐘——黑羽披金邊，專停俠客刀口。唔係普通黑天鵝：佢一鳴，櫃檯燈光齊閃，內息一滯。正式像素後金邊更易辨——鐘響先鎖倉。',
+      entrance: '熔斷鐘入場 — 全場停刀＋核心震盪；鄰近敵短暫加速',
       hp: 430,
       atk: 25,
       speed: 18,
@@ -548,6 +550,7 @@
       id: 'halt_tide',
       name: '停牌潮',
       lore: '第三變體——唔係黑羽、唔係金邊，係整街臨停告示 simultaneous 貼上。刀客未出鞘已收手；潮頭過處，符紙飛舞。原創綽號，影射臨停潮，唔抄 IP。',
+      entrance: '停牌潮湧入 — 範圍臨停＋核心震盪；鄰近停牌符短暫加速',
       hp: 470,
       atk: 24,
       speed: 17,
@@ -572,6 +575,38 @@
         sealRushMul: 1.18,
       },
     },
+
+    ink_specter: {
+      id: 'ink_specter',
+      name: '墨影帳',
+      lore: '第四潮——帳本裂縫滲出墨影，唔係黑羽、金邊、臨停符，係假帳同時翻開。原創綽號，影射對帳幽靈，唔抄 IP、唔用真人名。',
+      entrance: '墨影翻帳入場 — 範圍降攻＋抽銀＋核心震盪；鄰近暗盤短暫加速',
+      hp: 520,
+      atk: 26,
+      speed: 16,
+      reward: 125,
+      color: '#2A3040',
+      radius: 22,
+      boss: true,
+      attackRange: 78,
+      attackCd: 1.3,
+      preferHero: 0.5,
+      skill: {
+        id: 'ink_blot',
+        name: '墨影翻帳',
+        every: 3,
+        blurb: '每第 3 擊：範圍降攻＋抽銀＋核心震盪；鄰近暗盤影短暫加速',
+        type: 'ink_specter',
+        atkDebuff: 0.22,
+        atkDebuffDur: 3.2,
+        silverDrain: 8,
+        coreDmg: 15,
+        blotRad: 170,
+        tapeRush: 0.65,
+        tapeRushMul: 1.16,
+      },
+    },
+
     margin_call: {
       id: 'margin_call',
       name: '追保令',
@@ -1441,6 +1476,8 @@
     { wave: 30, silver: 260, label: '三十浪傳說' },
     { wave: 40, silver: 340, label: '四十浪三潮' },
     { wave: 50, silver: 420, label: '五十浪潮守' },
+    { wave: 60, silver: 520, label: '六十浪四潮' },
+    { wave: 75, silver: 640, label: '七十五浪硬頂' },
   ];
 
   function endlessMilestone(waveIndex) {
@@ -1626,6 +1663,41 @@
           elite: false,
         });
         state._haltDrizzle = (state._haltDrizzle || 0) + 1;
+      },
+    },
+    {
+      id: 'ink_seep',
+      name: '墨影滲帳',
+      blurb: '墨影帳短時壓境（弱化）＋暗盤 ×2',
+      color: '#2A3040',
+      weight: 1,
+      apply: (state) => {
+        if (!state.spawner) return;
+        state.spawner.jobs.push({
+          enemy: 'ink_specter',
+          left: 1,
+          interval: 0,
+          delay: 2.0,
+          timer: 0,
+          started: false,
+          laneMode: 'fixed',
+          fixedLane: 2,
+          hpMul: 0.72,
+          elite: false,
+        });
+        state.spawner.jobs.push({
+          enemy: 'dark_tape',
+          left: 2,
+          interval: 0.55,
+          delay: 0.8,
+          timer: 0,
+          started: false,
+          laneMode: 'cycle',
+          fixedLane: null,
+          hpMul: 1,
+          elite: false,
+        });
+        state._inkSeep = (state._inkSeep || 0) + 1;
       },
     },
     {
@@ -2175,6 +2247,8 @@
       { name: '停牌潮週', focus: 'halt_tide', blurb: '停牌潮壓軸｜臨停潮' },
       { name: '十一關試煉週', focus: 'halt_seal', blurb: '停牌符潮｜鎖倉加練', tip: 'lock' },
       { name: '三潮同場週', focus: 'triple_tide', blurb: '黑羽＋金邊＋臨停｜三潮壓境' },
+      { name: '墨影帳週', focus: 'ink_specter', blurb: '墨影翻帳壓軸｜第四潮' },
+      { name: '四潮同場週', focus: 'quad_tide', blurb: '黑羽＋金邊＋臨停＋墨影｜四潮壓境' },
     ];
     const theme = themes[h % themes.length];
     const base = STAGES[2 + (h % Math.max(1, STAGES.length - 2))]; // 3–末關難度帶
@@ -2198,7 +2272,7 @@
       coreHp: 212 + (h % 5) * 9,
       seed: h,
       unlockHeroes: Object.keys(HEROES),
-      waveCount: 6 + (h % 3) + (theme.focus === 'dual_swan' || theme.focus === 'circuit_swan' || theme.focus === 'halt_tide' || theme.focus === 'triple_tide' ? 1 : 0), // 6–9
+      waveCount: 6 + (h % 3) + (theme.focus === 'dual_swan' || theme.focus === 'circuit_swan' || theme.focus === 'halt_tide' || theme.focus === 'triple_tide' || theme.focus === 'ink_specter' || theme.focus === 'quad_tide' ? 1 : 0), // 6–9
       baseStageId: base.id,
       modifiers: mods,
       hpScale: 1.08 + (h % 3) * 0.02,
@@ -2258,6 +2332,25 @@
         last.spawns.push({ enemy: 'circuit_swan', count: 1, lane: 2, interval: 0, delay: 4.2, hpMul: 1.1 * scale });
         last.spawns.push({ enemy: 'halt_tide', count: 1, lane: 3, interval: 0, delay: 5.8, hpMul: 1.1 * scale });
       }
+      if (meta.focus === 'ink_specter') {
+        const hasInk = last.spawns.some((s) => s.enemy === 'ink_specter');
+        if (!hasInk) {
+          last.spawns.push({
+            enemy: 'ink_specter',
+            count: 1,
+            lane: 2,
+            interval: 0,
+            delay: 4.6,
+            hpMul: 1.12 * scale,
+          });
+        }
+      }
+      if (meta.focus === 'quad_tide') {
+        last.spawns.push({ enemy: 'black_swan', count: 1, lane: 0, interval: 0, delay: 2.2, hpMul: 1.08 * scale });
+        last.spawns.push({ enemy: 'circuit_swan', count: 1, lane: 1, interval: 0, delay: 3.6, hpMul: 1.1 * scale });
+        last.spawns.push({ enemy: 'halt_tide', count: 1, lane: 2, interval: 0, delay: 5.0, hpMul: 1.1 * scale });
+        last.spawns.push({ enemy: 'ink_specter', count: 1, lane: 3, interval: 0, delay: 6.4, hpMul: 1.12 * scale });
+      }
     }
     return waves;
   }
@@ -2266,7 +2359,7 @@
     const n = meta.waveCount;
     const focus = meta.focus;
     const waves = [];
-    const bossish = focus === 'black_swan' || focus === 'circuit_swan' || focus === 'dual_swan' || focus === 'halt_tide' || focus === 'triple_tide';
+    const bossish = focus === 'black_swan' || focus === 'circuit_swan' || focus === 'dual_swan' || focus === 'halt_tide' || focus === 'triple_tide' || focus === 'ink_specter' || focus === 'quad_tide';
     const swarmish = focus === 'rumor_swarm' || focus === 'dark_tape';
     const focusEnemy = focus === 'dual_swan' ? 'black_swan' : focus === 'circuit_swan' ? 'circuit_swan' : focus;
     for (let i = 1; i <= n; i++) {
@@ -2553,6 +2646,12 @@
     { id: 'endless40', cat: 'combat', name: '四十浪潮城', blurb: '無盡最佳 ≥ 40 波', check: (s) => (s.bestEndlessWave || 0) >= 40 },
     { id: 'halt_drizzle', cat: 'combat', name: '臨停細雨', blurb: '觸發一次臨停細雨市況', check: (s) => !!s.ach && !!s.ach.halt_drizzle },
     { id: 'post12_endless', cat: 'meta', name: '全破入無盡', blurb: '十二關皆破後首次挑戰無盡', check: (s) => !!s.ach && !!s.ach.post12_endless },
+    { id: 'ink_seen', cat: 'combat', name: '墨影過招', blurb: '圖鑑見過墨影帳', check: (s) => !!(s.seenEnemies && s.seenEnemies.ink_specter) },
+    { id: 'ink_kill', cat: 'combat', name: '軋斷墨影', blurb: '擊敗一次墨影帳', check: (s) => !!s.ach && !!s.ach.ink_kill },
+    { id: 'endless50', cat: 'combat', name: '五十浪潮守', blurb: '無盡最佳 ≥ 50 波', check: (s) => (s.bestEndlessWave || 0) >= 50 },
+    { id: 'endless60', cat: 'combat', name: '六十浪四潮', blurb: '無盡最佳 ≥ 60 波', check: (s) => (s.bestEndlessWave || 0) >= 60 },
+    { id: 'quad_tide_clear', cat: 'combat', name: '四潮過招', blurb: '單局擊破四潮 Boss 各 ≥1', check: (s) => !!s.ach && !!s.ach.quad_tide_clear },
+    { id: 'wall_timeline', cat: 'meta', name: '牆影時間軸', blurb: '打開一次牆快照時間軸', check: (s) => !!s.ach && !!s.ach.wall_timeline },
   ];
 
   /** 首通銀兩獎勵（入累計帳） */
@@ -2595,8 +2694,8 @@
 
   function buildEndlessWave(n) {
     // v1.8：前期略軟、後期仍升；熔斷天鵝週期入場
-    const mul = 1 + (n - 1) * 0.105;
-    const count = (base) => Math.max(1, Math.round(base * (1 + (n - 1) * 0.072)));
+    const mul = 1 + (n - 1) * 0.105 + (n >= 50 ? (n - 50) * 0.018 : 0);
+    const count = (base) => Math.max(1, Math.round(base * (1 + (n - 1) * 0.072 + (n >= 50 ? (n - 50) * 0.01 : 0))));
     const spawns = [
       { enemy: 'retail_tide', count: count(6 + n), lane: 'cycle', interval: Math.max(0.26, 0.68 - n * 0.018) },
     ];
@@ -2664,8 +2763,39 @@
         hpMul: mul * 0.9,
       });
     }
-    // v2.0：每 5 波 milestone Boss 輪換；v2.2：每 30 波「三潮同場」
-    if (n >= 30 && n % 30 === 0) {
+    // v2.3：50+ 加厚；每 5 波四 Boss 輪換；每 30 三潮；每 60 四潮同場
+    if (n >= 50) {
+      spawns.push({
+        enemy: 'dark_tape',
+        count: count(2 + Math.floor((n - 50) / 3)),
+        lane: 'cycle',
+        interval: Math.max(0.28, 0.48 - (n - 50) * 0.008),
+        delay: 0.5,
+        hpMul: mul * 0.95,
+      });
+      spawns.push({
+        enemy: 'halt_seal',
+        count: count(2 + Math.floor((n - 50) / 4)),
+        lane: 'random',
+        interval: 0.48,
+        delay: 1.0,
+        hpMul: mul * 0.98,
+      });
+    }
+    if (n >= 60 && n % 60 === 0) {
+      spawns.push({ enemy: 'black_swan', count: 1, lane: 0, interval: 0, delay: 1.8, hpMul: mul });
+      spawns.push({ enemy: 'circuit_swan', count: 1, lane: 1, interval: 0, delay: 3.0, hpMul: mul * 1.05 });
+      spawns.push({ enemy: 'halt_tide', count: 1, lane: 2, interval: 0, delay: 4.2, hpMul: mul * 1.08 });
+      spawns.push({ enemy: 'ink_specter', count: 1, lane: 3, interval: 0, delay: 5.5, hpMul: mul * 1.1 });
+      spawns.push({
+        enemy: 'dark_tape',
+        count: count(4 + Math.floor(n / 12)),
+        lane: 'cycle',
+        interval: 0.4,
+        delay: 1.0,
+        hpMul: mul * 0.95,
+      });
+    } else if (n >= 30 && n % 30 === 0) {
       spawns.push({ enemy: 'black_swan', count: 1, lane: 0, interval: 0, delay: 2.0, hpMul: mul });
       spawns.push({ enemy: 'circuit_swan', count: 1, lane: 2, interval: 0, delay: 3.5, hpMul: mul * 1.05 });
       spawns.push({ enemy: 'halt_tide', count: 1, lane: 3, interval: 0, delay: 5.0, hpMul: mul * 1.08 });
@@ -2678,16 +2808,18 @@
         hpMul: mul * 0.95,
       });
     } else if (n >= 5 && n % 5 === 0) {
-      const rot = ['black_swan', 'circuit_swan', 'halt_tide'];
-      const bossId = rot[(Math.floor(n / 5) - 1) % 3];
+      const rot = ['black_swan', 'circuit_swan', 'halt_tide', 'ink_specter'];
+      const bossId = rot[(Math.floor(n / 5) - 1) % 4];
       const bossCount = bossId === 'black_swan' ? Math.max(1, Math.floor(n / 15) || 1) : 1;
+      const hpBoss =
+        bossId === 'circuit_swan' ? 1.05 : bossId === 'halt_tide' ? 1.08 : bossId === 'ink_specter' ? 1.1 : 1;
       spawns.push({
         enemy: bossId,
         count: bossCount,
         lane: n % 4,
         interval: bossId === 'black_swan' ? 2 : 0,
-        delay: bossId === 'halt_tide' ? 3.2 : 3.5,
-        hpMul: mul * (bossId === 'circuit_swan' ? 1.05 : bossId === 'halt_tide' ? 1.08 : 1),
+        delay: bossId === 'ink_specter' ? 3.0 : bossId === 'halt_tide' ? 3.2 : 3.5,
+        hpMul: mul * hpBoss,
       });
       if (bossId === 'halt_tide') {
         spawns.push({
@@ -2697,6 +2829,16 @@
           interval: 0.5,
           delay: 1.5,
           hpMul: mul * 0.95,
+        });
+      }
+      if (bossId === 'ink_specter') {
+        spawns.push({
+          enemy: 'dark_tape',
+          count: count(2 + Math.floor(n / 8)),
+          lane: 'cycle',
+          interval: 0.42,
+          delay: 1.2,
+          hpMul: mul * 0.92,
         });
       }
     }
@@ -2807,7 +2949,7 @@
   function mergeRebate(heroId, newStar) {
     const def = HEROES[heroId];
     if (!def) return 0;
-    return Math.round(def.cost * 0.174 * newStar);
+    return Math.round(def.cost * 0.176 * newStar);
   }
 
   function activeBonds(heroes) {
@@ -2847,7 +2989,7 @@
 
   function defaultSave() {
     return {
-      version: 22,
+      version: 23,
       totalSilver: 0,
       totalKills: 0,
       maxStageCleared: 0,
@@ -2925,6 +3067,72 @@
     };
   }
 
+  function listBossPreviews() {
+    return Object.keys(ENEMIES)
+      .map(function (id) {
+        return ENEMIES[id];
+      })
+      .filter(function (d) {
+        return d && d.boss;
+      })
+      .map(function (d) {
+        return {
+          id: d.id,
+          name: d.name,
+          color: d.color || '#C9A227',
+          entrance: d.entrance || (d.skill && d.skill.blurb) || d.lore || '',
+          skill: d.skill ? d.skill.name + ' — ' + (d.skill.blurb || '') : '',
+          hp: d.hp,
+          atk: d.atk,
+          reward: d.reward,
+        };
+      });
+  }
+
+  function formatWallTimeline(save) {
+    const snaps = Array.isArray(save && save.wallSnapshots) ? save.wallSnapshots.slice() : [];
+    // 新→舊
+    snaps.reverse();
+    return snaps.map(function (s, i) {
+      const at = s.at || '';
+      let local = at;
+      try {
+        const d = new Date(at);
+        if (!isNaN(d.getTime())) {
+          local = new Intl.DateTimeFormat('zh-HK', {
+            timeZone: 'Asia/Hong_Kong',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false,
+          }).format(d);
+        }
+      } catch (_) {}
+      const reasonMap = {
+        endless: '無盡刷新',
+        weekly: '週挑戰',
+        manual: '手動',
+        post12: '全破入無盡',
+        auto: '自動',
+        test: '測試',
+      };
+      return {
+        index: i,
+        at: at,
+        localAt: local,
+        reason: s.reason || 'auto',
+        reasonLabel: reasonMap[s.reason] || s.reason || '自動',
+        code: s.code || '',
+        short: s.short || s.code || '',
+        endless: s.endless || 0,
+        weekStreakBest: s.weekStreakBest || 0,
+        stages: s.stages || 0,
+      };
+    });
+  }
+
   function recordWallSnapshot(save, reason) {
     if (!save) return null;
     if (!Array.isArray(save.wallSnapshots)) save.wallSnapshots = [];
@@ -2974,7 +3182,7 @@
         game: 'yinlou-defense',
         kind: 'local-best-wall',
         exportedAt: new Date().toISOString(),
-        version: (save && save.version) || 22,
+        version: (save && save.version) || 23,
         note: '本機進度牆｜唔做線上排行',
       },
       wall: wall,
@@ -3029,7 +3237,7 @@
     const body = data && data.save ? data.save : data;
     if (!body || typeof body !== 'object') throw new Error('無效存檔');
     const merged = { ...defaultSave(), ...body };
-    merged.version = Math.max(22, merged.version || 22);
+    merged.version = Math.max(23, merged.version || 23);
     if (merged.weekStreak == null) merged.weekStreak = 0;
     if (merged.weekStreakBest == null) merged.weekStreakBest = 0;
     if (!merged.lastWeeklyClearKey) merged.lastWeeklyClearKey = '';
@@ -3225,6 +3433,8 @@
     parseWallShort,
     compareWallShort,
     recordWallSnapshot,
+    formatWallTimeline,
+    listBossPreviews,
     exportLocalWallShare,
     importSaveJson,
     pickFailTip,

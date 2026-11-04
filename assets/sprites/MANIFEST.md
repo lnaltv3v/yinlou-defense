@@ -63,3 +63,7 @@
 
 ## v2.2
 - `circuit_swan_attack`／`_sheet`、`lock_hermit_attack`／`_sheet` 覆寫；`CACHE_VER=2.2.0`。
+
+
+## v2.3
+- `ink_specter`：程式 id 已入 `KNOWN_IDS`；缺檔借 `dark_tape`；`CACHE_VER=2.3.0`。
