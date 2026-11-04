@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — Canvas 繪製 v3.3.0
+ * 銀樓防衛 — Canvas 繪製 v3.4.0
  * v1.5：場景四層 ground→mid→wall→props；halt_seal PNG；擊破／暴擊
  */
 (function (global) {
@@ -1006,6 +1006,69 @@
         ctx.lineWidth = 2;
         ctx.strokeRect(44, 44, ctx.canvas.width - 88, ctx.canvas.height - 88);
         ctx.globalAlpha = 1;
+      } else if (fx.type === 'pentaTideWarn') {
+        const pulse = 0.22 + 0.18 * Math.sin((fx.life || 0) * 20);
+        ctx.globalAlpha = Math.min(state.reduceFlash ? 0.18 : pulse + 0.28, 0.58);
+        drawPixelRect(ctx, 0, 0, ctx.canvas.width, ctx.canvas.height, '#141820');
+        ctx.globalAlpha = Math.min(0.85, fx.life);
+        ctx.strokeStyle = '#A8C0D8';
+        ctx.lineWidth = 7;
+        ctx.strokeRect(18, 18, ctx.canvas.width - 36, ctx.canvas.height - 36);
+        ctx.strokeStyle = '#C45C4A';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(36, 36, ctx.canvas.width - 72, ctx.canvas.height - 72);
+        ctx.strokeStyle = '#C9A227';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(52, 52, ctx.canvas.width - 104, ctx.canvas.height - 104);
+        // 五角標記
+        const cx = ctx.canvas.width / 2;
+        const cy = 64;
+        ctx.fillStyle = '#C9A227';
+        ctx.font = 'bold 14px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('五潮同場', cx, cy);
+        ctx.globalAlpha = 1;
+      } else if (fx.type === 'mirageWarn') {
+        const pulse = 0.16 + 0.14 * Math.sin((fx.life || 0) * 16);
+        ctx.globalAlpha = Math.min(state.reduceFlash ? 0.12 : pulse + 0.2, 0.45);
+        drawPixelRect(ctx, 0, 0, ctx.canvas.width, ctx.canvas.height, '#1A2430');
+        ctx.globalAlpha = Math.min(0.65, fx.life);
+        ctx.strokeStyle = '#A8C0D8';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(48, 48, ctx.canvas.width - 96, ctx.canvas.height - 96);
+        ctx.strokeStyle = '#C9A227';
+        ctx.lineWidth = 2;
+        const j = Math.sin((fx.life || 0) * 20) * 8;
+        ctx.beginPath();
+        ctx.ellipse(ctx.canvas.width / 2, ctx.canvas.height / 2, 120 + j, 70 + j * 0.4, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      } else if (fx.type === 'mirageTaxAura') {
+        const t = Math.max(0, fx.life || 0);
+        const x = fx.x || state._mirageTaxX || 640;
+        const y = fx.y || state._mirageTaxY || 270;
+        const rr = fx.r || state._mirageTaxR || 150;
+        const pulse = 1 + 0.04 * Math.sin(t * 14);
+        ctx.save();
+        ctx.globalAlpha = Math.min(state.reduceFlash ? 0.22 : 0.5, 0.15 + t * 0.35);
+        ctx.strokeStyle = '#A8C0D8';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.ellipse(x, y, rr * pulse, rr * 0.55 * pulse, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.strokeStyle = '#C9A227';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([6, 5]);
+        ctx.beginPath();
+        ctx.ellipse(x, y, rr * 0.92 * pulse, rr * 0.5 * pulse, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = '#A8C0D8';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.globalAlpha = Math.min(0.85, 0.4 + t * 0.4);
+        ctx.fillText('鏡稅範圍', x, y - rr * 0.55 * pulse - 8);
+        ctx.restore();
       } else if (fx.type === 'inkWarn') {
         const pulse = 0.14 + 0.12 * Math.sin((fx.life || 0) * 14);
         ctx.globalAlpha = Math.min(state.reduceFlash ? 0.12 : pulse + 0.18, 0.42);
@@ -1079,6 +1142,49 @@
         ctx.font = 'bold 11px sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText('墨帳', x, y - rr * 1.1 - 6);
+        ctx.restore();
+      } else if (fx.type === 'pentaCrack') {
+        const t = Math.max(0, fx.life || 0);
+        const x = fx.x || 480;
+        const y = fx.y || 270;
+        const rr = fx.r || 130;
+        ctx.save();
+        ctx.globalAlpha = Math.min(state.reduceFlash ? 0.4 : 0.9, t * 1.5);
+        ctx.strokeStyle = '#C9A227';
+        ctx.lineWidth = 3;
+        for (let k = -1; k <= 1; k++) {
+          ctx.beginPath();
+          ctx.moveTo(x - 6 + k * 18, y - rr);
+          ctx.lineTo(x + 8 + k * 12, y - rr * 0.35);
+          ctx.lineTo(x - 10 + k * 10, y + 4);
+          ctx.lineTo(x + 6 + k * 14, y + rr * 0.5);
+          ctx.stroke();
+        }
+        ctx.strokeStyle = '#A8C0D8';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.ellipse(x, y, rr * 0.85, rr * 0.45, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      } else if (fx.type === 'pentaCurtain') {
+        const t = Math.max(0, fx.life || 0);
+        const x = fx.x || 480;
+        const y = fx.y || 270;
+        const rr = fx.r || 118;
+        ctx.save();
+        ctx.globalAlpha = Math.min(state.reduceFlash ? 0.2 : 0.48, t * 0.6);
+        drawPixelRect(ctx, x - rr, y - rr * 1.15, rr * 2, rr * 2.3, '#121820');
+        ctx.globalAlpha = Math.min(0.7, t);
+        ctx.strokeStyle = '#C45C4A';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(x - rr, y - rr * 1.15, rr * 2, rr * 2.3);
+        ctx.strokeStyle = '#A8C0D8';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x - rr + 8, y - rr * 1.15 + 8, rr * 2 - 16, rr * 2.3 - 16);
+        ctx.fillStyle = '#C9A227';
+        ctx.font = 'bold 13px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('五潮帳幕', x, y - rr * 1.15 - 8);
         ctx.restore();
       } else if (fx.type === 'eliteWarn') {
         ctx.globalAlpha = Math.min(state.reduceFlash ? 0.08 : 0.2, fx.life * 0.18);
@@ -1252,6 +1358,36 @@
     ctx.globalAlpha = 1;
   }
 
+  function drawMirageTaxField(ctx, state) {
+    const taxT = state && state._mirageTaxT ? state._mirageTaxT : 0;
+    if (taxT <= 0.05) return;
+    const x = state._mirageTaxX || 640;
+    const y = state._mirageTaxY || 270;
+    const rr = state._mirageTaxR || 150;
+    const pulse = 1 + 0.035 * Math.sin(taxT * 12);
+    const mul = state._mirageTaxMul || 0.55;
+    ctx.save();
+    ctx.globalAlpha = Math.min(state.reduceFlash ? 0.28 : 0.55, 0.25 + Math.min(0.35, taxT * 0.08));
+    ctx.strokeStyle = '#A8C0D8';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.ellipse(x, y, rr * pulse, rr * 0.55 * pulse, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.strokeStyle = '#C9A227';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([5, 4]);
+    ctx.beginPath();
+    ctx.ellipse(x, y, rr * 0.9 * pulse, rr * 0.48 * pulse, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#E8DCC8';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.globalAlpha = Math.min(0.95, 0.55 + Math.min(0.35, taxT * 0.1));
+    ctx.fillText('鏡稅圈 ' + Math.ceil(taxT) + 's｜銀×' + Math.round(mul * 100) + '%', x, y - rr * 0.55 * pulse - 10);
+    ctx.restore();
+  }
+
   function drawBossBanner(ctx, state) {
     const b = state.bossBanner;
     if (!b || b.life <= 0) return;
@@ -1262,49 +1398,73 @@
     const circuit = b.kind === 'circuit' || b.kind === 'dual';
     const dualInk = b.kind === 'dual_ink';
     const ink = b.kind === 'ink' || dualInk;
+    const penta = b.kind === 'penta';
+    const mirage = b.kind === 'mirage';
     const quad = b.kind === 'quad';
     const tripleB = b.kind === 'triple';
     const dual = b.kind === 'dual';
     const tide = b.kind === 'halt_tide';
-    const h = b.blurb ? 72 : 56;
-    drawPixelRect(ctx, 140, 188, 680, h, '#1A1510');
+    const h = penta ? (b.blurb ? 88 : 70) : b.blurb ? 72 : 56;
+    const y0 = penta ? 178 : 188;
+    drawPixelRect(ctx, 120, y0, 720, h, '#1A1510');
     const accent = elite
       ? '#C45C4A'
-      : dualInk
-        ? '#B07AD4'
-        : quad || tripleB
-          ? '#C45C4A'
-          : ink
-            ? '#8A9BB0'
-            : dual || circuit
-              ? '#E8C96A'
-              : tide
-                ? '#C4A070'
-                : '#C9A227';
+      : penta
+        ? '#C45C4A'
+        : mirage
+          ? '#A8C0D8'
+          : dualInk
+            ? '#B07AD4'
+            : quad || tripleB
+              ? '#C45C4A'
+              : ink
+                ? '#8A9BB0'
+                : dual || circuit
+                  ? '#E8C96A'
+                  : tide
+                    ? '#C4A070'
+                    : '#C9A227';
     ctx.strokeStyle = accent;
-    ctx.lineWidth = circuit || dual || tide || ink || quad || tripleB || dualInk ? 4 : 3;
-    ctx.strokeRect(142, 190, 676, h - 4);
+    ctx.lineWidth = penta ? 5 : circuit || dual || tide || ink || quad || tripleB || dualInk || mirage ? 4 : 3;
+    ctx.strokeRect(122, y0 + 2, 716, h - 4);
+    if (penta) {
+      ctx.strokeStyle = '#A8C0D8';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(130, y0 + 8, 700, h - 16);
+      ctx.strokeStyle = '#C9A227';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(138, y0 + 14, 684, h - 28);
+    }
     ctx.fillStyle = accent;
-    ctx.font = 'bold 22px sans-serif';
+    ctx.font = penta ? 'bold 24px sans-serif' : 'bold 22px sans-serif';
     ctx.textAlign = 'center';
     const prefix = elite
       ? '⚔ 精英來襲 — '
-      : dualInk
-        ? '墨墨 雙墨同場 — '
-        : dual
-          ? '🦢🦢 雙天鵝 — '
-          : circuit
-            ? '🔔 熔斷 Boss — '
-            : tide
-              ? '⛔ 停牌潮 — '
-              : ink
-                ? '墨 墨影 — '
-                : '⚠ Boss 入場 — ';
-    ctx.fillText(prefix + b.name, 480, 222);
+      : penta
+        ? '🪞 五潮同場 — '
+        : mirage
+          ? '鏡 帳鏡蜃 — '
+          : dualInk
+            ? '墨墨 雙墨同場 — '
+            : dual
+              ? '🦢🦢 雙天鵝 — '
+              : circuit
+                ? '🔔 熔斷 Boss — '
+                : tide
+                  ? '⛔ 停牌潮 — '
+                  : ink
+                    ? '墨 墨影 — '
+                    : '⚠ Boss 入場 — ';
+    ctx.fillText(prefix + b.name, 480, y0 + 34);
     if (b.blurb) {
       ctx.fillStyle = '#E8DCC8';
-      ctx.font = '12px sans-serif';
-      ctx.fillText(b.blurb, 480, 246);
+      ctx.font = penta ? '13px sans-serif' : '12px sans-serif';
+      ctx.fillText(b.blurb, 480, y0 + 58);
+      if (penta) {
+        ctx.fillStyle = '#C9A227';
+        ctx.font = '11px sans-serif';
+        ctx.fillText('先鎖倉清符 — 再收羽墨鏡', 480, y0 + 76);
+      }
     }
     ctx.globalAlpha = 1;
   }
@@ -1460,6 +1620,7 @@
     drawGrid(ctx, state);
     for (const e of state.enemies) drawEnemy(ctx, e, state);
     drawDragGhost(ctx, state);
+    drawMirageTaxField(ctx, state);
     drawFx(ctx, state);
     drawSceneProps(ctx, w, h); // 前景 props（缺檔略過）
     drawModStrip(ctx, state);

@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v3.3.0
+ * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v3.4.0
  */
 (function (global) {
   const {
@@ -26,6 +26,8 @@
     compareWallShort,
     recordWallCompare,
     formatWallCompareHistory,
+    exportWallCompareHistory,
+    clearWallCompareHistory,
     recordWallSnapshot,
     formatWallTimeline,
     formatWallSparkline,
@@ -98,7 +100,7 @@
       ink +
       '"></i>' +
       gear;
-    const src = (window.YDSprites && window.YDSprites.urlFor) ? window.YDSprites.urlFor(def.id) : ('assets/sprites/' + def.id + '.png?v=3.3.0');
+    const src = (window.YDSprites && window.YDSprites.urlFor) ? window.YDSprites.urlFor(def.id) : ('assets/sprites/' + def.id + '.png?v=3.4.0');
     return (
       '<span class="hero-avatar" aria-hidden="true" data-hero="' +
       def.id +
@@ -551,12 +553,22 @@
       const secs = Math.ceil(taxT);
       const mul = state._mirageTaxMul || 0.55;
       const pct = Math.round(mul * 100);
-      taxEl.textContent = '鏡稅 ' + secs + 's｜擊破銀 ×' + pct + '%';
-      taxEl.title = '帳鏡蜃鏡稅剩餘 ' + secs + ' 秒；期間擊破銀兩打折';
+      const maxT = state._mirageTaxMax || 4.2;
+      const frac = Math.max(0, Math.min(1, taxT / maxT));
+      taxEl.innerHTML =
+        '<span class="mirage-tax-label">鏡稅 ' +
+        secs +
+        's｜銀×' +
+        pct +
+        '%</span>' +
+        '<span class="mirage-tax-bar" aria-hidden="true"><i style="width:' +
+        Math.round(frac * 100) +
+        '%"></i></span>';
+      taxEl.title = '帳鏡蜃鏡稅圈剩餘 ' + secs + ' 秒；場上橢圓為影響範圍';
       taxEl.classList.add('show');
       taxEl.setAttribute('aria-hidden', 'false');
     } else {
-      taxEl.textContent = '';
+      taxEl.innerHTML = '';
       taxEl.classList.remove('show');
       taxEl.setAttribute('aria-hidden', 'true');
     }
@@ -610,26 +622,67 @@
     if (!histEl) return;
     const rows =
       typeof formatWallCompareHistory === 'function' ? formatWallCompareHistory(save) : [];
+    const actions =
+      '<div class="wall-hist-actions">' +
+      '<button type="button" class="wall-mode-btn" id="wall-hist-export">匯出歷史</button>' +
+      '<button type="button" class="wall-mode-btn" id="wall-hist-clear"' +
+      (rows.length ? '' : ' disabled') +
+      '>清除歷史</button></div>';
     if (!rows.length) {
-      histEl.innerHTML = '<span class="card-meta">對照歷史：尚無本機留底</span>';
-      return;
+      histEl.innerHTML =
+        '<span class="card-meta">對照歷史：尚無本機留底</span>' + actions;
+    } else {
+      histEl.innerHTML =
+        '<strong style="color:#C9A227">對照歷史（本機）</strong><ul class="wall-hist-list">' +
+        rows
+          .slice(0, 6)
+          .map(function (r) {
+            return (
+              '<li><span class="mono">' +
+              (r.localAt || '') +
+              '</span> ' +
+              (r.summary || '') +
+              (r.otherCode ? ' <span class="mono dim">← ' + r.otherCode + '</span>' : '') +
+              '</li>'
+            );
+          })
+          .join('') +
+        '</ul>' +
+        actions;
     }
-    histEl.innerHTML =
-      '<strong style="color:#C9A227">對照歷史（本機）</strong><ul class="wall-hist-list">' +
-      rows
-        .slice(0, 6)
-        .map(function (r) {
-          return (
-            '<li><span class="mono">' +
-            (r.localAt || '') +
-            '</span> ' +
-            (r.summary || '') +
-            (r.otherCode ? ' <span class="mono dim">← ' + r.otherCode + '</span>' : '') +
-            '</li>'
-          );
-        })
-        .join('') +
-      '</ul>';
+    const expBtn = $('wall-hist-export');
+    if (expBtn) {
+      expBtn.onclick = () => {
+        const text =
+          typeof exportWallCompareHistory === 'function'
+            ? exportWallCompareHistory(save)
+            : '';
+        const done = () => {
+          if (window.__yinlouMarkWallHistExport) window.__yinlouMarkWallHistExport();
+          toast('已匯出牆對照歷史', 2000);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(done).catch(() => {
+            prompt('牆對照歷史', text);
+            done();
+          });
+        } else {
+          prompt('牆對照歷史', text);
+          done();
+        }
+      };
+    }
+    const clrBtn = $('wall-hist-clear');
+    if (clrBtn) {
+      clrBtn.onclick = () => {
+        if (!rows.length) return;
+        if (!confirm('清除本機牆對照歷史？（唔可復原）')) return;
+        if (typeof clearWallCompareHistory === 'function') clearWallCompareHistory(save);
+        if (window.__yinlouMarkWallHistClear) window.__yinlouMarkWallHistClear();
+        fillWallCompareHist(save);
+        toast('已清除牆對照歷史', 1800);
+      };
+    }
   }
 
   function updateTutorialHud(step) {
@@ -651,6 +704,13 @@
       return;
     }
     const cur = Math.min(5, Math.max(1, (n | 0) + 1));
+    const blurbs = [
+      '拖底欄俠客到空格',
+      '同種同星合併升星',
+      '點場上俠客強化',
+      '開波守銀樓',
+      '失敗可重開／推薦',
+    ];
     let dots = '';
     for (let i = 1; i <= 5; i++) {
       dots +=
@@ -658,19 +718,25 @@
         (i < cur ? ' done' : i === cur ? ' cur' : '') +
         '" data-tut-step="' +
         i +
-        '" title="跳到第' +
+        '" title="' +
+        blurbs[i - 1] +
+        '" aria-label="教學第' +
         i +
-        '步／復位" aria-label="教學第' +
-        i +
-        '步"></button>';
+        '步：' +
+        blurbs[i - 1] +
+        '"></button>';
     }
     el.innerHTML =
       '<strong>教學 ' +
       cur +
       '/5</strong>' +
+      '<span class="tut-blurb">' +
+      blurbs[cur - 1] +
+      '</span>' +
       '<div class="tut-dots">' +
       dots +
       '</div>' +
+      '<button type="button" class="tut-skip" id="tut-prev-step" title="上一步">←</button>' +
       '<button type="button" class="tut-skip" id="tut-skip-step">跳過本步</button>';
     el.classList.add('show');
     el.setAttribute('aria-hidden', 'false');
@@ -678,6 +744,13 @@
     if (btn) {
       btn.onclick = () => {
         if (window.__yinlouSkipTutorialStep) window.__yinlouSkipTutorialStep();
+      };
+    }
+    const prev = $('tut-prev-step');
+    if (prev) {
+      prev.disabled = cur <= 1;
+      prev.onclick = () => {
+        if (window.__yinlouSetTutorialStep) window.__yinlouSetTutorialStep(Math.max(0, cur - 2));
       };
     }
     el.querySelectorAll('.tut-dot[data-tut-step]').forEach((dot) => {
@@ -826,10 +899,10 @@
           })()
         : '—') +
       '</strong></div>' +
-      '<div class="paper-row"><span>版本</span><strong>v3.3.0｜存檔 v' +
-      (save.version || 33) +
+      '<div class="paper-row"><span>版本</span><strong>v3.4.0｜存檔 v' +
+      (save.version || 34) +
       '</strong></div>' +
-      '<p class="paper-note">v3.3：帳鏡正式圖、鏡稅秒數 HUD、無盡160／五潮同場、教學點步復位、牆對照歷史本機留底。點場上俠客可強化；本地牆本機｜唔做線上排行。</p>' +
+      '<p class="paper-note">v3.4：五潮 FX／鏡稅圈、無盡180／200＋第六池、牆史匯出清除、教學步箋。點場上俠客可強化；本地牆本機｜唔做線上排行。</p>' +
       '</div>';
     const btn = $('btn-overlay');
     btn.textContent = '關閉';
@@ -1025,7 +1098,7 @@
     const src = id && window.YDSprites && window.YDSprites.urlFor
       ? window.YDSprites.urlFor(id)
       : id
-        ? 'assets/sprites/' + id + '.png?v=3.3.0'
+        ? 'assets/sprites/' + id + '.png?v=3.4.0'
         : '';
     const fallback =
       '<span class="codex-thumb-fallback" style="background:' + c + '"></span>';

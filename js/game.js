@@ -24,6 +24,8 @@
     compareWallShort,
     recordWallCompare,
     formatWallCompareHistory,
+    exportWallCompareHistory,
+    clearWallCompareHistory,
     recordWallSnapshot,
     formatWallTimeline,
     formatWallSparkline,
@@ -458,6 +460,11 @@
       notifyAchievements();
       UI.toast('成就｜五潮過招', 2200);
     }
+    if ((state._pentaTideSeen || 0) >= 1 && !save.ach.penta_fx_seen) {
+      save.ach.penta_fx_seen = true;
+      writeSave(save);
+      notifyAchievements();
+    }
     if (
       (state._swanKills || 0) >= 1 &&
       (state._circuitKills || 0) >= 1 &&
@@ -536,7 +543,7 @@
       return;
     }
     if (state.tutorialStep === 0) {
-      UI.setHint('① 拖底欄俠客到綠色空格放置（同種愈召愈貴）｜可撳推薦陣容芯片');
+      UI.setHint('① 拖底欄俠客到綠色空格放置（同種愈召愈貴）｜頂欄可點步／← 上一步｜可撳推薦陣容');
       return;
     }
     if (state.tutorialStep === 1) {
@@ -552,7 +559,7 @@
       return;
     }
     if (state.tutorialStep === 4) {
-      UI.setHint('⑤ 失敗可重開／跟推薦；設定可跳過本步／復位／重播導引');
+      UI.setHint('⑤ 失敗可重開／跟推薦；頂欄點步復位；設定可跳過／重播導引');
       return;
     }
     if (state.drag && state.drag.active) {
@@ -821,22 +828,24 @@
       if (enterStage(0, true, false, false)) {
         const lab = modifierLabel(state.modifiers || []);
         const lateMods = (state.modifiers || []).filter(
-          (m) => m.late90 || m.late100 || m.late140 || m.late150 || m.late160
+          (m) => m.late90 || m.late100 || m.late140 || m.late150 || m.late160 || m.late180
         );
         state._lateModBadge = lateMods.length
           ? lateMods.map((m) => m.name).join(' · ')
           : '';
-        state._lateModTier = lateMods.some((m) => m.late160)
-          ? 160
-          : lateMods.some((m) => m.late150)
-            ? 150
-            : lateMods.some((m) => m.late140)
-              ? 140
-              : lateMods.some((m) => m.late100)
-                ? 100
-                : lateMods.some((m) => m.late90)
-                  ? 90
-                  : 0;
+        state._lateModTier = lateMods.some((m) => m.late180)
+          ? 180
+          : lateMods.some((m) => m.late160)
+            ? 160
+            : lateMods.some((m) => m.late150)
+              ? 150
+              : lateMods.some((m) => m.late140)
+                ? 140
+                : lateMods.some((m) => m.late100)
+                  ? 100
+                  : lateMods.some((m) => m.late90)
+                    ? 90
+                    : 0;
         if ((save.bestEndlessWave || 0) >= 140) {
           if (!save.ach) save.ach = {};
           save.ach.late140_run = true;
@@ -855,18 +864,26 @@
           writeSave(save);
           notifyAchievements();
         }
+        if ((save.bestEndlessWave || 0) >= 180) {
+          if (!save.ach) save.ach = {};
+          save.ach.late180_run = true;
+          writeSave(save);
+          notifyAchievements();
+        }
         if (state._lateModBadge) {
           setTimeout(() => {
             const tag =
-              state._lateModTier >= 160
-                ? '【160+】'
-                : state._lateModTier >= 150
-                  ? '【150+】'
-                  : state._lateModTier >= 140
-                    ? '【140+】'
-                    : state._lateModTier >= 100
-                      ? '【100+】'
-                      : '【90+】';
+              state._lateModTier >= 180
+                ? '【180+】'
+                : state._lateModTier >= 160
+                  ? '【160+】'
+                  : state._lateModTier >= 150
+                    ? '【150+】'
+                    : state._lateModTier >= 140
+                      ? '【140+】'
+                      : state._lateModTier >= 100
+                        ? '【100+】'
+                        : '【90+】';
             UI.toast(tag + state._lateModBadge, 3000);
           }, 200);
         }
@@ -1744,6 +1761,18 @@
           if (save.wallCompareHistory && save.wallCompareHistory.length) {
             save.ach.wall_compare_hist = true;
           }
+          writeSave(save);
+          notifyAchievements();
+        };
+        window.__yinlouMarkWallHistExport = () => {
+          if (!save.ach) save.ach = {};
+          save.ach.wall_compare_export = true;
+          writeSave(save);
+          notifyAchievements();
+        };
+        window.__yinlouMarkWallHistClear = () => {
+          if (!save.ach) save.ach = {};
+          save.ach.wall_compare_clear = true;
           writeSave(save);
           notifyAchievements();
         };

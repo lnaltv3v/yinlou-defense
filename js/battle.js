@@ -1042,6 +1042,7 @@
       }
       const taxT = sk.mirageTax || 4;
       state._mirageTaxT = Math.max(state._mirageTaxT || 0, taxT);
+      state._mirageTaxMax = Math.max(state._mirageTaxMax || 0, taxT);
       state._mirageTaxMul = sk.mirageTaxMul || 0.55;
       state._mergeFreezeT = Math.max(state._mergeFreezeT || 0, taxT * 0.85);
       pushFloat(state.floats, {
@@ -1079,7 +1080,18 @@
           bounce: 1.2,
         });
       }
-      pushFx(state, { type: 'inkWarn', life: 1.4 });
+      state._mirageTaxX = enemy.x || 640;
+      state._mirageTaxY = enemy.y || 270;
+      state._mirageTaxR = sk.mirageTaxR || 150;
+      pushFx(state, { type: 'mirageWarn', life: 1.55 });
+      pushFx(state, {
+        type: 'mirageTaxAura',
+        x: state._mirageTaxX,
+        y: state._mirageTaxY,
+        r: state._mirageTaxR,
+        life: Math.max(1.2, taxT * 0.35),
+        maxLife: Math.max(1.2, taxT * 0.35),
+      });
       pushFx(state, {
         type: 'skill',
         x: enemy.x,
@@ -1509,19 +1521,29 @@
     });
     if (isInk || isMirage || quad || penta) {
       state.fx.push({
-        type: 'inkCrack',
+        type: penta ? 'pentaCrack' : 'inkCrack',
         x: enemy.x || 640,
         y: enemy.y || 270,
-        life: isMirage || isInk ? 1.35 : 1.1,
-        r: isMirage || isInk ? 110 : 90,
+        life: penta ? 1.7 : isMirage || isInk ? 1.35 : 1.1,
+        r: penta ? 130 : isMirage || isInk ? 110 : 90,
       });
       state.fx.push({
-        type: 'inkCurtain',
+        type: penta ? 'pentaCurtain' : 'inkCurtain',
         x: enemy.x || 640,
         y: enemy.y || 270,
-        life: isMirage || isInk ? 1.55 : 1.2,
-        r: isMirage || isInk ? 95 : 80,
+        life: penta ? 1.85 : isMirage || isInk ? 1.55 : 1.2,
+        r: penta ? 118 : isMirage || isInk ? 95 : 80,
       });
+      if (penta) {
+        state.fx.push({
+          type: 'pentaTideWarn',
+          life: 4.0,
+        });
+        state.fx.push({
+          type: 'mirageWarn',
+          life: 2.2,
+        });
+      }
       pushFloat(state.floats, {
         x: (enemy.x || 640) - 18,
         y: (enemy.y || 270) - 70,

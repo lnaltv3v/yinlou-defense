@@ -1,5 +1,15 @@
 # Changelog
 
+## v3.4.0 — 2026-11-05
+
+- **五潮同場 FX／橫幅加厚**：`pentaTideWarn`／`pentaCrack`／`pentaCurtain`；Boss 橫幅雙框＋提示句
+- **鏡稅範圍可讀**：場上橢圓「鏡稅圈」＋ HUD 剩餘秒進度條；技能觸發 `mirageWarn`／`mirageTaxAura`
+- **無盡 180／200**：里程碑「百八十浪長城」「二百浪封城」；`RUN_MODIFIERS_180` 第六池（曾達 180 再開必帶）
+- **牆對照歷史**：匯出／清除本機留底；教學 HUD 步箋＋← 上一步
+- mid／props 無新檔（維持既有）；`lock_hermit` 已有正式 PNG 唔重做
+- 成就 **109**（+6）；存檔 **version 34**；`?v=3.4.0`／`CACHE_VER=3.4.0`；Pages 全樹一次；無正式音檔
+
+
 ## v3.3.0 — 2026-11-05
 
 - **帳鏡蜃正式 PNG**：`ledger_mirage.png`／`_attack`／`_sheet` 接入 sprites（同其他 Boss 路徑；缺檔仍 fallback 墨影）

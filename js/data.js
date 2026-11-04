@@ -1714,7 +1714,7 @@
   const ENDLESS = {
     id: 'endless',
     name: '無盡殺跌',
-    story: '殺跌無盡，浪高過浪。里程碑銀兩係你唯一嘅喘息；修飾詞會改寫盤口——守得愈久，江湖傳聞愈響，亦愈難轉身離場。\n\nv3.3：160 五潮城＋150+／160+ 池；每 80 浪五潮同場；鏡稅 HUD 明示秒數。',
+    story: '殺跌無盡，浪高過浪。里程碑銀兩係你唯一嘅喘息；修飾詞會改寫盤口——守得愈久，江湖傳聞愈響，亦愈難轉身離場。\n\nv3.4：180／200 里程碑＋第六池；五潮 FX／鏡稅圈；牆史匯出清除；教學步箋。',
     startSilver: 215,
     coreHp: 235,
     unlockHeroes: Object.keys(HEROES),
@@ -1730,6 +1730,8 @@
       if (waveIndex >= 140) b += 8;
       if (waveIndex >= 150) b += 10;
       if (waveIndex >= 160) b += 12;
+      if (waveIndex >= 180) b += 14;
+      if (waveIndex >= 200) b += 16;
       return Math.round(b);
     }
     return 26 + waveIndex * 8;
@@ -1754,6 +1756,8 @@
     { wave: 140, silver: 1800, label: '百四十浪長城' },
     { wave: 150, silver: 2100, label: '百五十浪鏡城' },
     { wave: 160, silver: 2400, label: '百六十浪五潮城' },
+    { wave: 180, silver: 2800, label: '百八十浪長城' },
+    { wave: 200, silver: 3200, label: '二百浪封城' },
   ];
 
   function endlessMilestone(waveIndex) {
@@ -2448,6 +2452,50 @@
     },
   ];
 
+  /** v3.4：曾達 180 再開無盡必帶其一（第六池／長城） */
+  const RUN_MODIFIERS_180 = [
+    {
+      id: 'long_wall_vault',
+      name: '長城銀庫',
+      blurb: '開局銀 +22%；核心 HP +10%',
+      late180: true,
+      apply: (ctx) => {
+        ctx.silverMul = (ctx.silverMul || 1) * 1.22;
+        ctx.coreMul = (ctx.coreMul || 1) * 1.1;
+      },
+    },
+    {
+      id: 'mirror_long_guard',
+      name: '長城鏡衛',
+      blurb: '鏡稅／墨影抽銀 ×0.25；鎖倉持續 ×1.12',
+      late180: true,
+      apply: (ctx) => {
+        ctx.silverDrainMul = (ctx.silverDrainMul || 1) * 0.25;
+        ctx.lockDurMul = (ctx.lockDurMul || 1) * 1.12;
+      },
+    },
+    {
+      id: 'star_long_wall',
+      name: '合星長城',
+      blurb: '合併回報 ×1.38；波次補銀 +10%',
+      late180: true,
+      apply: (ctx) => {
+        ctx.mergeRebateMul = (ctx.mergeRebateMul || 1) * 1.38;
+        ctx.waveBonusMul = (ctx.waveBonusMul || 1) * 1.1;
+      },
+    },
+    {
+      id: 'seal_long_wall',
+      name: '長城印陣',
+      blurb: '敵速 −6%；俠客冷卻 −5%',
+      late180: true,
+      apply: (ctx) => {
+        ctx.enemySpeedMul = (ctx.enemySpeedMul || 1) * 0.94;
+        ctx.heroCdMul = (ctx.heroCdMul || 1) * 0.95;
+      },
+    },
+  ];
+
   function hashStr(s) {
     let h = 0;
     for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
@@ -2738,6 +2786,14 @@
       if (!mods.some((m) => m.id === late5.id)) {
         if (mods.length >= 3) mods[mods.length - 1] = late5;
         else mods.push(late5);
+      }
+    }
+    if (best >= 180 && RUN_MODIFIERS_180.length) {
+      const h7 = (seed ^ 0x180cafe) >>> 0;
+      const late6 = RUN_MODIFIERS_180[h7 % RUN_MODIFIERS_180.length];
+      if (!mods.some((m) => m.id === late6.id)) {
+        if (mods.length >= 3) mods[0] = late6;
+        else mods.push(late6);
       }
     }
     return mods;
@@ -3377,6 +3433,12 @@
     { id: 'penta_tide_clear', cat: 'combat', name: '五潮過招', blurb: '單局擊破五潮 Boss 各 ≥1', check: (s) => !!s.ach && !!s.ach.penta_tide_clear },
     { id: 'wall_compare_hist', cat: 'meta', name: '牆影留底', blurb: '本機留下至少 1 筆牆對照歷史', check: (s) => !!(s.wallCompareHistory && s.wallCompareHistory.length) },
     { id: 'tutorial_step_jump', cat: 'meta', name: '教學跳步點', blurb: '用教學 HUD 點步復位一次', check: (s) => !!s.ach && !!s.ach.tutorial_step_jump },
+    { id: 'endless180', cat: 'combat', name: '百八十浪長城', blurb: '無盡最佳 ≥ 180 波', check: (s) => (s.bestEndlessWave || 0) >= 180 },
+    { id: 'endless200', cat: 'combat', name: '二百浪封城', blurb: '無盡最佳 ≥ 200 波', check: (s) => (s.bestEndlessWave || 0) >= 200 },
+    { id: 'late180_run', cat: 'meta', name: '長城開盤', blurb: '曾達 180 浪後再開無盡（抽第六池修飾）', check: (s) => !!s.ach && !!s.ach.late180_run },
+    { id: 'wall_compare_export', cat: 'meta', name: '牆史出冊', blurb: '匯出一次牆對照歷史', check: (s) => !!s.ach && !!s.ach.wall_compare_export },
+    { id: 'wall_compare_clear', cat: 'meta', name: '牆史清冊', blurb: '清除一次牆對照歷史', check: (s) => !!s.ach && !!s.ach.wall_compare_clear },
+    { id: 'penta_fx_seen', cat: 'combat', name: '五潮警訊', blurb: '見過五潮同場專屬橫幅／FX', check: (s) => !!s.ach && !!s.ach.penta_fx_seen },
   ];
 
   /** 首通銀兩獎勵（入累計帳） */
@@ -3430,7 +3492,9 @@
     const late140 = n >= 140 ? Math.min(0.1, (n - 140) * 0.0035) : 0;
     const late150 = n >= 150 ? Math.min(0.1, (n - 150) * 0.003) : 0;
     const late160 = n >= 160 ? Math.min(0.1, (n - 160) * 0.0028) : 0;
-    const mul = 1 + (n - 1) * 0.105 + late50 + late75 + late90 + late120 + late130 + late140 + late150 + late160;
+    const late180 = n >= 180 ? Math.min(0.1, (n - 180) * 0.0026) : 0;
+    const late200 = n >= 200 ? Math.min(0.08, (n - 200) * 0.0024) : 0;
+    const mul = 1 + (n - 1) * 0.105 + late50 + late75 + late90 + late120 + late130 + late140 + late150 + late160 + late180 + late200;
     const countLate = n >= 50 ? Math.min(n - 50, 25) * 0.01 + (n >= 75 ? (n - 75) * 0.006 : 0) : 0;
     const count = (base) => {
       let raw = Math.max(1, Math.round(base * (1 + (n - 1) * 0.072 + countLate)));
@@ -3650,7 +3714,7 @@
         hpMul: mul * 0.94,
       });
     }
-    if (n === 120 || n === 130 || n === 140 || n === 150 || n === 160) {
+    if (n === 120 || n === 130 || n === 140 || n === 150 || n === 160 || n === 180 || n === 200) {
       let haveInk = spawns.filter((s) => s.enemy === 'ink_specter').reduce((a, s) => a + (s.count || 1), 0);
       if (haveInk < 1) {
         spawns.push({
@@ -3861,7 +3925,10 @@
     if (from < 33) {
       s.ach.v33_migrated = true;
     }
-    s.version = Math.max(33, from, base.version || 33);
+    if (from < 34) {
+      s.ach.v34_migrated = true;
+    }
+    s.version = Math.max(34, from, base.version || 34);
     return s;
   }
 
@@ -3877,7 +3944,7 @@
 
   function defaultSave() {
     return {
-      version: 33,
+      version: 34,
       totalSilver: 0,
       totalKills: 0,
       maxStageCleared: 0,
@@ -4003,6 +4070,28 @@
         mineCode: e.mineCode || '',
       };
     });
+  }
+
+  function exportWallCompareHistory(save) {
+    const rows = formatWallCompareHistory(save);
+    const lines = ['銀樓防衛｜牆對照歷史（本機）｜v3.4'];
+    if (!rows.length) lines.push('（尚無留底）');
+    for (const r of rows) {
+      lines.push(
+        (r.localAt || '') +
+          '｜' +
+          (r.summary || '') +
+          (r.otherCode ? '｜← ' + r.otherCode : '') +
+          (r.mineCode ? '｜我方 ' + r.mineCode : '')
+      );
+    }
+    return lines.join('\n');
+  }
+
+  function clearWallCompareHistory(save) {
+    if (!save) return false;
+    save.wallCompareHistory = [];
+    return true;
   }
 
   function listBossPreviews() {
@@ -4463,6 +4552,7 @@
     RUN_MODIFIERS_140,
     RUN_MODIFIERS_150,
     RUN_MODIFIERS_160,
+    RUN_MODIFIERS_180,
     buildEndlessWave,
     buildDailyWaves,
     buildWeeklyWaves,
@@ -4507,6 +4597,8 @@
     compareWallShort,
     recordWallCompare,
     formatWallCompareHistory,
+    exportWallCompareHistory,
+    clearWallCompareHistory,
     recordWallSnapshot,
     formatWallTimeline,
     formatWallSparkline,
