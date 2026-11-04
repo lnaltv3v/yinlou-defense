@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v3.1.0
+ * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v3.2.0
  */
 (function (global) {
   const {
@@ -96,7 +96,7 @@
       ink +
       '"></i>' +
       gear;
-    const src = (window.YDSprites && window.YDSprites.urlFor) ? window.YDSprites.urlFor(def.id) : ('assets/sprites/' + def.id + '.png?v=3.1.0');
+    const src = (window.YDSprites && window.YDSprites.urlFor) ? window.YDSprites.urlFor(def.id) : ('assets/sprites/' + def.id + '.png?v=3.2.0');
     return (
       '<span class="hero-avatar" aria-hidden="true" data-hero="' +
       def.id +
@@ -578,6 +578,52 @@
     ov.classList.remove('paper-panel');
   }
 
+  function updateTutorialHud(step) {
+    let el = $('tutorial-hud');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'tutorial-hud';
+      el.className = 'tutorial-hud';
+      el.setAttribute('role', 'status');
+      el.setAttribute('aria-live', 'polite');
+      const host = $('wrap') || $('hud') || document.body;
+      host.appendChild(el);
+    }
+    const n = step == null ? 99 : step;
+    if (n >= 99) {
+      el.classList.remove('show');
+      el.setAttribute('aria-hidden', 'true');
+      el.innerHTML = '';
+      return;
+    }
+    const cur = Math.min(5, Math.max(1, (n | 0) + 1));
+    let dots = '';
+    for (let i = 1; i <= 5; i++) {
+      dots +=
+        '<span class="tut-dot' +
+        (i < cur ? ' done' : i === cur ? ' cur' : '') +
+        '" title="第' +
+        i +
+        '步"></span>';
+    }
+    el.innerHTML =
+      '<strong>教學 ' +
+      cur +
+      '/5</strong>' +
+      '<div class="tut-dots">' +
+      dots +
+      '</div>' +
+      '<button type="button" class="tut-skip" id="tut-skip-step">跳過本步</button>';
+    el.classList.add('show');
+    el.setAttribute('aria-hidden', 'false');
+    const btn = $('tut-skip-step');
+    if (btn) {
+      btn.onclick = () => {
+        if (window.__yinlouSkipTutorialStep) window.__yinlouSkipTutorialStep();
+      };
+    }
+  }
+
   function showFailPanel(opts) {
     opts = opts || {};
     const ov = $('overlay');
@@ -716,10 +762,10 @@
           })()
         : '—') +
       '</strong></div>' +
-      '<div class="paper-row"><span>版本</span><strong>v3.1.0｜存檔 v' +
+      '<div class="paper-row"><span>版本</span><strong>v3.2.0｜存檔 v' +
       (save.version || 30) +
       '</strong></div>' +
-      '<p class="paper-note">v3.1：第13／14入場橫幅、無盡140+第三池、牆對照簡化、成就進度條、教學跳步／復位。點場上俠客可強化；本地牆本機｜唔做線上排行。</p>' +
+      '<p class="paper-note">v3.2：第15帳鏡夜市＋帳鏡蜃、無盡150+第四池、牆對照可複製、教學進度HUD、成就分類直達。點場上俠客可強化；本地牆本機｜唔做線上排行。</p>' +
       '</div>';
     const btn = $('btn-overlay');
     btn.textContent = '關閉';
@@ -915,7 +961,7 @@
     const src = id && window.YDSprites && window.YDSprites.urlFor
       ? window.YDSprites.urlFor(id)
       : id
-        ? 'assets/sprites/' + id + '.png?v=3.1.0'
+        ? 'assets/sprites/' + id + '.png?v=3.2.0'
         : '';
     const fallback =
       '<span class="codex-thumb-fallback" style="background:' + c + '"></span>';
@@ -1156,16 +1202,16 @@
     const ov = $('overlay');
     ov.classList.remove('settings-mode');
     ov.classList.add('codex-mode', 'paper-panel');
-    const t = tier >= 140 ? '140+' : tier >= 100 ? '100+' : tier >= 90 ? '90+' : '本局';
+    const t = tier >= 150 ? '150+' : tier >= 140 ? '140+' : tier >= 100 ? '100+' : tier >= 90 ? '90+' : '本局';
     $('overlay-title').textContent = '修飾說明｜' + t;
     const parts = [
       '<div class="paper-body">',
-      '<p class="paper-note">點頂欄修飾條可重開｜晚盤專屬會標 late（90／100／140）</p>',
+      '<p class="paper-note">點頂欄修飾條可重開｜晚盤專屬會標 late（90／100／140／150）</p>',
     ];
     for (const m of mods || []) {
-      const tag = m.late140 ? '【140+】' : m.late100 ? '【100+】' : m.late90 ? '【90+】' : '';
-      const icon = m.late140 ? '▣ ' : m.late100 ? '⬡ ' : m.late90 ? '◇ ' : '◆ ';
-      const col = m.late140 ? '#F0E6C8' : m.late100 ? '#E8DCC8' : m.late90 ? '#8A9BB0' : '#C9A227';
+      const tag = m.late150 ? '【150+】' : m.late140 ? '【140+】' : m.late100 ? '【100+】' : m.late90 ? '【90+】' : '';
+      const icon = m.late150 ? '◈ ' : m.late140 ? '▣ ' : m.late100 ? '⬡ ' : m.late90 ? '◇ ' : '◆ ';
+      const col = m.late150 ? '#E8F0FF' : m.late140 ? '#F0E6C8' : m.late100 ? '#E8DCC8' : m.late90 ? '#8A9BB0' : '#C9A227';
       parts.push(
         '<div class="paper-entry card-thick mod-row">' +
           '<strong style="color:' +
@@ -1233,6 +1279,7 @@
           '<label class="wall-compare-label" for="wall-compare-input">對照短碼</label>' +
           '<input type="text" id="wall-compare-input" class="wall-compare-input" placeholder="貼上 YL-E…-S…-M…-H…" autocomplete="off" spellcheck="false" />' +
           '<button type="button" class="wall-mode-btn" id="wall-compare-btn">對照</button>' +
+          '<button type="button" class="wall-mode-btn" id="wall-compare-copy" disabled>複製摘要</button>' +
           '<div class="wall-compare-result card-meta" id="wall-compare-result">本機對照｜唔上線</div>' +
           '</div>' +
           '<span class="card-meta" id="wall-spark-meta">' +
@@ -1517,7 +1564,12 @@
       const done = list.filter((a) => save.unlockedAch && save.unlockedAch[a.id]).length;
       const pct = list.length ? Math.round((done / list.length) * 100) : 0;
       parts.push(
-        '<div class="ach-cat-bar"><span>' +
+        '<button type="button" class="ach-cat-bar" data-ach-jump="' +
+          cat.id +
+          '" title="直達 ' +
+          cat.name +
+          '">' +
+          '<span>' +
           cat.name +
           ' ' +
           done +
@@ -1525,7 +1577,7 @@
           list.length +
           '</span><div class="ach-overview-bar thin"><i style="width:' +
           pct +
-          '%"></i></div></div>'
+          '%"></i></div></button>'
       );
     }
     parts.push('</div></div>');
@@ -1587,6 +1639,14 @@
     document.querySelectorAll('.ach-tab').forEach((b) => {
       b.onclick = () => renderCat(b.getAttribute('data-ach-cat'));
     });
+    document.querySelectorAll('.ach-cat-bar[data-ach-jump]').forEach((b) => {
+      b.onclick = () => {
+        const id = b.getAttribute('data-ach-jump');
+        renderCat(id);
+        const mount = $('ach-list-mount');
+        if (mount) mount.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      };
+    });
 
     const cmpBtn = $('wall-compare-btn');
     const cmpIn = $('wall-compare-input');
@@ -1613,6 +1673,30 @@
             cmp.summary +
             '</strong><br/>' +
             (cmp.note || '本機對照');
+        }
+        const copyBtn = $('wall-compare-copy');
+        if (copyBtn) {
+          copyBtn.disabled = false;
+          copyBtn.onclick = () => {
+            const text =
+              '銀樓防衛牆對照｜' +
+              cmp.summary +
+              '｜' +
+              (cmp.note || '本機對照｜唔上線');
+            const done = () => {
+              if (window.__yinlouMarkWallCompareCopy) window.__yinlouMarkWallCompareCopy();
+              toast('已複製對照摘要', 2000);
+            };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(text).then(done).catch(() => {
+                prompt('複製對照摘要', text);
+                done();
+              });
+            } else {
+              prompt('複製對照摘要', text);
+              done();
+            }
+          };
         }
         if (window.__yinlouMarkWallCompare) window.__yinlouMarkWallCompare();
         toast(cmp.summary, 2800);
@@ -1739,6 +1823,7 @@
     hideOverlay,
     showSettings,
     showFailPanel,
+    updateTutorialHud,
     showStory,
     showCodex,
     showWallTimeline,

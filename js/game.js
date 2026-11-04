@@ -321,7 +321,8 @@
 
   function currentMergeRebate(heroId, newStar) {
     const base = mergeRebate(heroId, newStar);
-    const mul = (state.modCtx && state.modCtx.mergeRebateMul) || 1;
+    let mul = (state.modCtx && state.modCtx.mergeRebateMul) || 1;
+    if ((state._mergeFreezeT || 0) > 0) mul *= 0.15;
     return Math.max(0, Math.round(base * mul));
   }
 
@@ -489,6 +490,7 @@
     }
     if (upgradeApi) upgradeApi.refresh();
     UI.updateHud(state);
+    if (UI.updateTutorialHud) UI.updateTutorialHud(state.tutorialStep);
     updateHint();
   }
 
@@ -507,6 +509,7 @@
         UI.toast('成就｜五步入門', 2000);
       }
     }
+    if (UI.updateTutorialHud) UI.updateTutorialHud(state.tutorialStep);
   }
 
   function updateHint() {
@@ -801,32 +804,42 @@
       if (enterStage(0, true, false, false)) {
         const lab = modifierLabel(state.modifiers || []);
         const lateMods = (state.modifiers || []).filter(
-          (m) => m.late90 || m.late100 || m.late140
+          (m) => m.late90 || m.late100 || m.late140 || m.late150
         );
         state._lateModBadge = lateMods.length
           ? lateMods.map((m) => m.name).join(' · ')
           : '';
-        state._lateModTier = lateMods.some((m) => m.late140)
-          ? 140
-          : lateMods.some((m) => m.late100)
-            ? 100
-            : lateMods.some((m) => m.late90)
-              ? 90
-              : 0;
+        state._lateModTier = lateMods.some((m) => m.late150)
+          ? 150
+          : lateMods.some((m) => m.late140)
+            ? 140
+            : lateMods.some((m) => m.late100)
+              ? 100
+              : lateMods.some((m) => m.late90)
+                ? 90
+                : 0;
         if ((save.bestEndlessWave || 0) >= 140) {
           if (!save.ach) save.ach = {};
           save.ach.late140_run = true;
           writeSave(save);
           notifyAchievements();
         }
+        if ((save.bestEndlessWave || 0) >= 150) {
+          if (!save.ach) save.ach = {};
+          save.ach.late150_run = true;
+          writeSave(save);
+          notifyAchievements();
+        }
         if (state._lateModBadge) {
           setTimeout(() => {
             const tag =
-              state._lateModTier >= 140
-                ? '【140+】'
-                : state._lateModTier >= 100
-                  ? '【100+】'
-                  : '【90+】';
+              state._lateModTier >= 150
+                ? '【150+】'
+                : state._lateModTier >= 140
+                  ? '【140+】'
+                  : state._lateModTier >= 100
+                    ? '【100+】'
+                    : '【90+】';
             UI.toast(tag + state._lateModBadge, 3000);
           }, 200);
         }
@@ -1707,6 +1720,15 @@
             UI.toast('成就｜牆影對盤簡', 1800);
           }
         };
+        window.__yinlouMarkWallCompareCopy = () => {
+          if (!save.ach) save.ach = {};
+          if (!save.ach.wall_compare_copy) {
+            save.ach.wall_compare_copy = true;
+            writeSave(save);
+            notifyAchievements();
+            UI.toast('成就｜牆影抄盤', 1800);
+          }
+        };
         UI.showWallTimeline(
           () => save,
           () => syncAll(),
@@ -2555,6 +2577,21 @@
       UI.toast('已套用提示：' + lu.name + ' — 開始後跟住召', 2000);
     });
   }, 0);
+
+
+  window.__yinlouSkipTutorialStep = () => {
+    if (state.tutorialStep >= 99) {
+      UI.toast('教學已完成／已略過', 1600);
+      return;
+    }
+    if (!save.ach) save.ach = {};
+    save.ach.tutorial_skip_step = true;
+    writeSave(save);
+    notifyAchievements();
+    advanceTutorial();
+    UI.toast('已跳過本步', 1600);
+    syncAll();
+  };
 
   (function setupOrientHint() {
     const el = document.getElementById('orient-hint');

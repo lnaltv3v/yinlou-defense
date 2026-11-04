@@ -808,7 +808,7 @@ header.title {
 }
 
 
-/* v3.1.0 */
+/* v3.2.0 */
 .lane-tips {
   display: flex;
   gap: 8px;
@@ -1001,3 +1001,59 @@ header.title {
   line-height: 1.4;
 }
 .wall-spark-actions-v31 { gap: 6px; }
+
+
+/* v3.2.0 — tutorial HUD / ach jump / wall copy */
+.tutorial-hud {
+  display: none;
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(12,10,8,0.82);
+  border: 1px solid rgba(201,162,39,0.4);
+  color: #E8DCC8;
+  font-size: 12px;
+  pointer-events: auto;
+}
+.tutorial-hud.show { display: inline-flex; }
+.tut-dots { display: inline-flex; gap: 4px; }
+.tut-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(201,162,39,0.35);
+}
+.tut-dot.done { background: #8A6A20; }
+.tut-dot.cur { background: #C9A227; box-shadow: 0 0 6px rgba(201,162,39,0.6); }
+.tut-skip {
+  appearance: none;
+  border: 1px solid rgba(201,162,39,0.4);
+  background: rgba(201,162,39,0.12);
+  color: #F0E0B8;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 11px;
+  cursor: pointer;
+}
+button.ach-cat-bar {
+  appearance: none;
+  border: 1px solid transparent;
+  background: transparent;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+  padding: 2px 0;
+  width: 100%;
+}
+button.ach-cat-bar:hover,
+button.ach-cat-bar:focus {
+  border-color: rgba(201,162,39,0.35);
+  border-radius: 6px;
+  padding: 2px 4px;
+}
+#wall-compare-copy:disabled { opacity: 0.4; cursor: default; }

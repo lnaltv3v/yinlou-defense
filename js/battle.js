@@ -1006,10 +1006,106 @@
       });
       state._inkProcs = (state._inkProcs || 0) + 1;
       state._inkCurtain = (state._inkCurtain || 0) + 1;
+
+    } else if (sk.type === 'ledger_mirage') {
+      const rad = sk.blotRad || 175;
+      const deb = sk.atkDebuff || 0.2;
+      const dur = sk.atkDebuffDur || 3;
+      const pad = sk.heroCdPad || 0.55;
+      for (const h of state.heroes) {
+        if (h.hp <= 0) continue;
+        if (Math.hypot(h.x - enemy.x, h.y - enemy.y) > rad) continue;
+        h.atkDebuff = Math.max(h.atkDebuff || 0, deb);
+        h.atkDebuffT = Math.max(h.atkDebuffT || 0, dur);
+        h.cd = Math.max(h.cd || 0, pad);
+        h.hitFlash = Math.max(h.hitFlash || 0, 0.4);
+      }
+      if (sk.silverDrain) {
+        let drainAmt = sk.silverDrain;
+        if (state.modCtx && state.modCtx.silverDrainMul) {
+          drainAmt = Math.max(1, Math.round(drainAmt * state.modCtx.silverDrainMul));
+        }
+        const drain = Math.min(state.silver || 0, drainAmt);
+        state.silver = Math.max(0, (state.silver || 0) - drain);
+        if (drain > 0) {
+          pushFloat(state.floats, {
+            x: enemy.x - 8,
+            y: enemy.y - 56,
+            text: '鏡稅 −' + drain,
+            color: '#B8C8D8',
+            size: 15,
+            vy: -28,
+            life: 1.2,
+            bounce: 1.05,
+          });
+        }
+      }
+      const taxT = sk.mirageTax || 4;
+      state._mirageTaxT = Math.max(state._mirageTaxT || 0, taxT);
+      state._mirageTaxMul = sk.mirageTaxMul || 0.55;
+      state._mergeFreezeT = Math.max(state._mergeFreezeT || 0, taxT * 0.85);
+      pushFloat(state.floats, {
+        x: enemy.x,
+        y: enemy.y - 42,
+        text: '🪞 帳鏡封庫！',
+        color: '#A8C0D8',
+        size: 16,
+        vy: -28,
+        life: 1.2,
+        bounce: 1.15,
+      });
+      pushFloat(state.floats, {
+        x: enemy.x + 18,
+        y: enemy.y - 68,
+        text: '擊殺銀縮｜合星凍結',
+        color: '#7A90A8',
+        size: 12,
+        vy: -18,
+        life: 1.05,
+        bounce: 0.9,
+      });
+      if (sk.coreDmg) {
+        state.coreHp -= sk.coreDmg;
+        state.coreHitFlash = 0.6;
+        state.shake = Math.max(state.shake || 0, 0.42);
+        pushFloat(state.floats, {
+          x: CORE.x,
+          y: CORE.y - 52,
+          text: '鏡震 −' + sk.coreDmg,
+          color: '#A8C0D8',
+          size: 16,
+          vy: -32,
+          life: 1.2,
+          bounce: 1.2,
+        });
+      }
+      pushFx(state, { type: 'inkWarn', life: 1.4 });
+      pushFx(state, {
+        type: 'skill',
+        x: enemy.x,
+        y: enemy.y,
+        color: '#3A4858',
+        life: 0.65,
+        text: sk.name,
+        r: 36,
+      });
+      state._mirageProcs = (state._mirageProcs || 0) + 1;
+
     }
   }
 
   function tickEnemies(state, dt) {
+    if ((state._mirageTaxT || 0) > 0) {
+      state._mirageTaxT -= dt;
+      if (state._mirageTaxT <= 0) {
+        state._mirageTaxT = 0;
+        state._mirageTaxMul = 1;
+      }
+    }
+    if ((state._mergeFreezeT || 0) > 0) {
+      state._mergeFreezeT -= dt;
+      if (state._mergeFreezeT < 0) state._mergeFreezeT = 0;
+    }
     const arrived = [];
     for (const e of state.enemies) {
       if (e.hitFlash > 0) e.hitFlash -= dt;
@@ -1164,6 +1260,10 @@
             bounce: 1.1,
           });
         }
+        if ((state._mirageTaxT || 0) > 0) {
+          const mul = state._mirageTaxMul || 0.55;
+          reward = Math.max(1, Math.round(reward * mul));
+        }
         state.silver += reward;
         pushFloat(state.floats, {
           x: e.x,
@@ -1183,6 +1283,7 @@
         if (e.id === 'halt_tide') state._haltTideKills = (state._haltTideKills || 0) + 1;
         if (e.id === 'black_swan') state._swanKills = (state._swanKills || 0) + 1;
         if (e.id === 'ink_specter') state._inkKills = (state._inkKills || 0) + 1;
+        if (e.id === 'ledger_mirage') state._mirageKills = (state._mirageKills || 0) + 1;
         if (e.elite) {
           state._eliteKills = (state._eliteKills || 0) + 1;
           pushFloat(state.floats, {

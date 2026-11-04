@@ -607,6 +607,38 @@
       },
     },
 
+    ledger_mirage: {
+      id: 'ledger_mirage',
+      name: '帳鏡蜃',
+      lore: '第五潮——帳本對摺成鏡，蜃氣把銀樓倒映成假帳。唔係墨影抽銀，係鏡稅封庫：擊殺銀兩縮水、合星回報短暫凍結。原創綽號，影射對帳蜃景，唔抄 IP、唔用真人／金庸名。',
+      entrance: '帳鏡蜃入場 — 範圍降攻＋鏡稅封庫＋核心震盪｜對策：鐵衛頂前、鎖倉減抽、合星趁鏡稅空檔',
+      hp: 560,
+      atk: 27,
+      speed: 15,
+      reward: 140,
+      color: '#3A4858',
+      radius: 23,
+      boss: true,
+      attackRange: 80,
+      attackCd: 1.28,
+      preferHero: 0.52,
+      skill: {
+        id: 'mirage_tax',
+        name: '帳鏡封庫',
+        every: 3,
+        blurb: '每第 3 擊：範圍降攻＋鏡稅（擊殺銀縮／合星凍結）＋核心震盪',
+        type: 'ledger_mirage',
+        atkDebuff: 0.2,
+        atkDebuffDur: 3.0,
+        mirageTax: 4.2,
+        mirageTaxMul: 0.55,
+        silverDrain: 5,
+        coreDmg: 16,
+        blotRad: 175,
+        heroCdPad: 0.55,
+      },
+    },
+
     margin_call: {
       id: 'margin_call',
       name: '追保令',
@@ -1600,12 +1632,89 @@
       ],
     },
 
+    {
+      id: 15,
+      name: '帳鏡夜市',
+      story:
+        '雙墨未散，帳本對摺成鏡——帳鏡蜃倒映銀樓，假帳同真庫一齊晃。\n\n' +
+        '鏡稅封庫時，擊殺銀兩縮水、合星回報短暫凍結；趁空檔合星，鎖倉減抽、鐵衛頂前。\n\n' +
+        '中段墨影試探，末波帳鏡蜃壓軸；銀兩唔好堆住等人抽，亦唔好喺鏡稅窗硬合。',
+      banner: {
+        tag: '帳鏡潮',
+        threat: '鏡稅封庫',
+        beats: ['暗盤／墨影試探', '鏡稅空檔合星', '帳鏡蜃壓軸'],
+        tip: '鐵衛頂前 · 鎖倉減抽 · 鏡稅空檔合星',
+      },
+      challenge: true,
+      startSilver: 448,
+      coreHp: 478,
+      unlockHeroes: Object.keys(HEROES),
+      firstClearBonus: 520,
+      waves: [
+        wavePack([
+          { enemy: 'dark_tape', count: 12, lane: 'cycle', interval: 0.32 },
+          { enemy: 'retail_tide', count: 12, lane: 'random', interval: 0.28, delay: 0.2 },
+          { enemy: 'rumor_swarm', count: 10, lane: 'cycle', interval: 0.26, delay: 0.35 },
+        ]),
+        wavePack([
+          { enemy: 'dark_tape', count: 13, lane: 'cycle', interval: 0.28 },
+          { enemy: 'halt_seal', count: 8, lane: 'random', interval: 0.48, delay: 0.4 },
+          { enemy: 'margin_call', count: 8, lane: 'cycle', interval: 0.48, delay: 0.55 },
+        ]),
+        wavePack([
+          { enemy: 'panic_board', count: 5, lane: 'cycle', interval: 0.78, delay: 0.25, elite: true },
+          { enemy: 'dark_tape', count: 14, lane: 'random', interval: 0.24, delay: 0.16 },
+          { enemy: 'leverage_fiend', count: 3, lane: 'cycle', interval: 0.92, delay: 0.85 },
+        ]),
+        wavePack([
+          { enemy: 'rumor_swarm', count: 13, lane: 'cycle', interval: 0.22 },
+          { enemy: 'dark_tape', count: 14, lane: 'random', interval: 0.24, delay: 0.16 },
+          { enemy: 'halt_seal', count: 9, lane: 'cycle', interval: 0.44, delay: 0.45 },
+          { enemy: 'margin_call', count: 9, lane: 'random', interval: 0.44, delay: 0.32 },
+        ]),
+        wavePack([
+          { enemy: 'panic_board', count: 6, lane: 'cycle', interval: 0.7 },
+          { enemy: 'dark_tape', count: 15, lane: 'random', interval: 0.22, delay: 0.14 },
+          { enemy: 'ink_specter', count: 1, lane: 2, interval: 0, delay: 3.0, hpMul: 0.8 },
+          { enemy: 'leverage_fiend', count: 3, lane: 'cycle', interval: 0.86, delay: 0.7, elite: true },
+        ]),
+        wavePack([
+          { enemy: 'halt_seal', count: 10, lane: 'cycle', interval: 0.4 },
+          { enemy: 'dark_tape', count: 15, lane: 'random', interval: 0.22, delay: 0.16 },
+          { enemy: 'panic_board', count: 5, lane: 'cycle', interval: 0.72, delay: 0.4 },
+          { enemy: 'chase_zombie', count: 9, lane: 'random', interval: 0.38, delay: 0.28 },
+        ]),
+        wavePack([
+          { enemy: 'dark_tape', count: 16, lane: 'cycle', interval: 0.2 },
+          { enemy: 'rumor_swarm', count: 13, lane: 'random', interval: 0.22, delay: 0.14 },
+          { enemy: 'margin_call', count: 10, lane: 'cycle', interval: 0.4, delay: 0.26 },
+          { enemy: 'ink_specter', count: 1, lane: 1, interval: 0, delay: 2.5, hpMul: 0.9 },
+        ]),
+        wavePack([
+          { enemy: 'panic_board', count: 6, lane: 'cycle', interval: 0.66 },
+          { enemy: 'dark_tape', count: 16, lane: 'random', interval: 0.2, delay: 0.12 },
+          { enemy: 'halt_seal', count: 10, lane: 'cycle', interval: 0.36, delay: 0.28 },
+          { enemy: 'leverage_fiend', count: 4, lane: 'random', interval: 0.8, delay: 0.5, elite: true },
+        ]),
+        wavePack([
+          { enemy: 'dark_tape', count: 17, lane: 'cycle', interval: 0.18 },
+          { enemy: 'panic_board', count: 7, lane: 'random', interval: 0.56, delay: 0.16 },
+          { enemy: 'halt_seal', count: 11, lane: 'cycle', interval: 0.34, delay: 0.26 },
+          { enemy: 'margin_call', count: 10, lane: 'random', interval: 0.36, delay: 0.28 },
+          { enemy: 'ink_specter', count: 1, lane: 0, interval: 0, delay: 1.6, hpMul: 0.95, inkTag: '左帳' },
+          { enemy: 'ledger_mirage', count: 1, lane: 2, interval: 0, delay: 3.8, hpMul: 1.05 },
+          { enemy: 'leverage_fiend', count: 4, lane: 'cycle', interval: 0.74, delay: 0.48, elite: true },
+          { enemy: 'chase_zombie', count: 8, lane: 'random', interval: 0.4, delay: 0.42 },
+        ]),
+      ],
+    },
+
   ];
 
   const ENDLESS = {
     id: 'endless',
     name: '無盡殺跌',
-    story: '殺跌無盡，浪高過浪。里程碑銀兩係你唯一嘅喘息；修飾詞會改寫盤口——守得愈久，江湖傳聞愈響，亦愈難轉身離場。\n\nv3.1：140 長城＋140+ 第三池修飾；100+ 雙墨週期、130 長帳仍在；合星階梯同護銀係晚盤關鍵。',
+    story: '殺跌無盡，浪高過浪。里程碑銀兩係你唯一嘅喘息；修飾詞會改寫盤口——守得愈久，江湖傳聞愈響，亦愈難轉身離場。\n\nv3.2：150 鏡城＋150+ 第四池；帳鏡蜃第五潮；140 長城／100+ 雙墨仍在。',
     startSilver: 215,
     coreHp: 235,
     unlockHeroes: Object.keys(HEROES),
@@ -1619,6 +1728,7 @@
       if (waveIndex >= 100) b += 8 + Math.min(18, (waveIndex - 100) * 0.35);
       if (waveIndex >= 130) b += 6;
       if (waveIndex >= 140) b += 8;
+      if (waveIndex >= 150) b += 10;
       return Math.round(b);
     }
     return 26 + waveIndex * 8;
@@ -1641,6 +1751,7 @@
     { wave: 120, silver: 1350, label: '百廿浪雙墨' },
     { wave: 130, silver: 1550, label: '百卅浪長帳' },
     { wave: 140, silver: 1800, label: '百四十浪長城' },
+    { wave: 150, silver: 2100, label: '百五十浪鏡城' },
   ];
 
   function endlessMilestone(waveIndex) {
@@ -2247,6 +2358,50 @@
     },
   ];
 
+  /** v3.2：曾達 150 再開無盡必帶其一（第四池） */
+  const RUN_MODIFIERS_150 = [
+    {
+      id: 'mirror_vault',
+      name: '鏡城銀庫',
+      blurb: '開局銀 +18%；波次補銀 +12%',
+      late150: true,
+      apply: (ctx) => {
+        ctx.silverMul = (ctx.silverMul || 1) * 1.18;
+        ctx.waveBonusMul = (ctx.waveBonusMul || 1) * 1.12;
+      },
+    },
+    {
+      id: 'anti_mirage',
+      name: '破鏡護銀',
+      blurb: '墨影／鏡稅抽銀 ×0.32；核心 +5%',
+      late150: true,
+      apply: (ctx) => {
+        ctx.silverDrainMul = (ctx.silverDrainMul || 1) * 0.32;
+        ctx.coreMul = (ctx.coreMul || 1) * 1.05;
+      },
+    },
+    {
+      id: 'star_mirror',
+      name: '合星破蜃',
+      blurb: '合併回報 ×1.32；俠客冷卻 −5%',
+      late150: true,
+      apply: (ctx) => {
+        ctx.mergeRebateMul = (ctx.mergeRebateMul || 1) * 1.32;
+        ctx.heroCdMul = (ctx.heroCdMul || 1) * 0.95;
+      },
+    },
+    {
+      id: 'ledger_anchor',
+      name: '帳錨定鏡',
+      blurb: '敵速 −7%；鎖倉持續 ×1.14',
+      late150: true,
+      apply: (ctx) => {
+        ctx.enemySpeedMul = (ctx.enemySpeedMul || 1) * 0.93;
+        ctx.lockDurMul = (ctx.lockDurMul || 1) * 1.14;
+      },
+    },
+  ];
+
   function hashStr(s) {
     let h = 0;
     for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
@@ -2523,6 +2678,14 @@
         else mods.push(late3);
       }
     }
+    if (best >= 150 && RUN_MODIFIERS_150.length) {
+      const h5 = (seed ^ 0x150ace) >>> 0;
+      const late4 = RUN_MODIFIERS_150[h5 % RUN_MODIFIERS_150.length];
+      if (!mods.some((m) => m.id === late4.id)) {
+        if (mods.length >= 3) mods[0] = late4;
+        else mods.push(late4);
+      }
+    }
     return mods;
   }
 
@@ -2570,6 +2733,7 @@
       { name: '十一關試煉週', focus: 'halt_seal', blurb: '停牌符潮｜鎖倉加練', tip: 'lock' },
       { name: '三潮同場週', focus: 'triple_tide', blurb: '黑羽＋金邊＋臨停｜三潮壓境' },
       { name: '墨影帳週', focus: 'ink_specter', blurb: '墨影翻帳壓軸｜第四潮' },
+      { name: '帳鏡蜃週', focus: 'ledger_mirage', blurb: '帳鏡蜃壓軸｜第五潮鏡稅' },
       { name: '四潮同場週', focus: 'quad_tide', blurb: '黑羽＋金邊＋臨停＋墨影｜四潮壓境' },
       { name: '墨霧翻帳週', focus: 'ink_specter', blurb: '墨影＋暗盤霧｜護銀抗抽' },
       { name: '帳幔裂縫週', focus: 'ink_specter', blurb: '墨影壓軸｜裂縫抽銀' },
@@ -2598,7 +2762,7 @@
       coreHp: 212 + (h % 5) * 9,
       seed: h,
       unlockHeroes: Object.keys(HEROES),
-      waveCount: 6 + (h % 3) + (theme.focus === 'dual_swan' || theme.focus === 'circuit_swan' || theme.focus === 'halt_tide' || theme.focus === 'triple_tide' || theme.focus === 'ink_specter' || theme.focus === 'quad_tide' ? 1 : 0), // 6–9
+      waveCount: 6 + (h % 3) + (theme.focus === 'dual_swan' || theme.focus === 'circuit_swan' || theme.focus === 'halt_tide' || theme.focus === 'triple_tide' || theme.focus === 'ink_specter' || theme.focus === 'ledger_mirage' || theme.focus === 'quad_tide' ? 1 : 0), // 6–9
       baseStageId: base.id,
       modifiers: mods,
       hpScale: 1.08 + (h % 3) * 0.02,
@@ -2728,6 +2892,32 @@
         }
         last.blurb = (last.blurb || '') + '｜雙墨同場';
       }
+
+      if (meta.focus === 'ledger_mirage') {
+        const last = waves[waves.length - 1];
+        const scale = 1 + (meta.waveCount || 7) * 0.02;
+        if (!last.spawns.some((s) => s.enemy === 'ledger_mirage')) {
+          last.spawns.push({
+            enemy: 'ledger_mirage',
+            count: 1,
+            lane: 2,
+            interval: 0,
+            delay: 3.2,
+            hpMul: 1.08 * scale,
+          });
+        }
+        if (!last.spawns.some((s) => s.enemy === 'ink_specter')) {
+          last.spawns.push({
+            enemy: 'ink_specter',
+            count: 1,
+            lane: 1,
+            interval: 0,
+            delay: 5.5,
+            hpMul: 0.92 * scale,
+          });
+        }
+        last.blurb = (last.blurb || '') + '｜帳鏡蜃壓軸';
+      }
       if (meta.focus === 'quad_tide') {
         last.spawns.push({ enemy: 'black_swan', count: 1, lane: 0, interval: 0, delay: 2.2, hpMul: 1.08 * scale });
         last.spawns.push({ enemy: 'circuit_swan', count: 1, lane: 1, interval: 0, delay: 3.6, hpMul: 1.1 * scale });
@@ -2742,7 +2932,7 @@
     const n = meta.waveCount;
     const focus = meta.focus;
     const waves = [];
-    const bossish = focus === 'black_swan' || focus === 'circuit_swan' || focus === 'dual_swan' || focus === 'halt_tide' || focus === 'triple_tide' || focus === 'ink_specter' || focus === 'quad_tide';
+    const bossish = focus === 'black_swan' || focus === 'circuit_swan' || focus === 'dual_swan' || focus === 'halt_tide' || focus === 'triple_tide' || focus === 'ink_specter' || focus === 'ledger_mirage' || focus === 'quad_tide';
     const swarmish = focus === 'rumor_swarm' || focus === 'dark_tape';
     const focusEnemy = focus === 'dual_swan' ? 'black_swan' : focus === 'circuit_swan' ? 'circuit_swan' : focus;
     for (let i = 1; i <= n; i++) {
@@ -3095,6 +3285,12 @@
     { id: 'late140_run', cat: 'meta', name: '長城開盤', blurb: '曾達 140 浪後再開無盡（抽第三池修飾）', check: (s) => !!s.ach && !!s.ach.late140_run },
     { id: 'tutorial_skip_step', cat: 'meta', name: '跳步入門', blurb: '教學中跳過一步', check: (s) => !!s.ach && !!s.ach.tutorial_skip_step },
     { id: 'wall_compare_ui', cat: 'meta', name: '牆影對盤簡', blurb: '用牆面板內嵌對照一次短碼', check: (s) => !!s.ach && !!s.ach.wall_compare_ui },
+    { id: 'stage15', cat: 'stage', name: '帳鏡夜破', blurb: '通關第 15 關「帳鏡夜市」', check: (s) => (s.maxStageCleared || 0) >= 15 },
+    { id: 'all15', cat: 'stage', name: '十五關皆破', blurb: '通關全部主線關卡（含帳鏡）', check: (s) => (s.maxStageCleared || 0) >= STAGES.length },
+    { id: 'mirage_seen', cat: 'combat', name: '帳鏡過招', blurb: '圖鑑見過帳鏡蜃', check: (s) => !!(s.seenEnemies && s.seenEnemies.ledger_mirage) },
+    { id: 'endless150', cat: 'combat', name: '百五十浪鏡城', blurb: '無盡最佳 ≥ 150 波', check: (s) => (s.bestEndlessWave || 0) >= 150 },
+    { id: 'late150_run', cat: 'meta', name: '鏡城開盤', blurb: '曾達 150 浪後再開無盡（抽第四池修飾）', check: (s) => !!s.ach && !!s.ach.late150_run },
+    { id: 'wall_compare_copy', cat: 'meta', name: '牆影抄盤', blurb: '複製一次牆對照摘要', check: (s) => !!s.ach && !!s.ach.wall_compare_copy },
   ];
 
   /** 首通銀兩獎勵（入累計帳） */
@@ -3146,7 +3342,8 @@
     const late120 = n >= 120 ? (n - 120) * 0.006 : 0;
     const late130 = n >= 130 ? Math.min(0.12, (n - 130) * 0.004) : 0;
     const late140 = n >= 140 ? Math.min(0.1, (n - 140) * 0.0035) : 0;
-    const mul = 1 + (n - 1) * 0.105 + late50 + late75 + late90 + late120 + late130 + late140;
+    const late150 = n >= 150 ? Math.min(0.1, (n - 150) * 0.003) : 0;
+    const mul = 1 + (n - 1) * 0.105 + late50 + late75 + late90 + late120 + late130 + late140 + late150;
     const countLate = n >= 50 ? Math.min(n - 50, 25) * 0.01 + (n >= 75 ? (n - 75) * 0.006 : 0) : 0;
     const count = (base) => {
       let raw = Math.max(1, Math.round(base * (1 + (n - 1) * 0.072 + countLate)));
@@ -3291,7 +3488,7 @@
         hpMul: mul * 0.95,
       });
     } else if (n >= 5 && n % 5 === 0) {
-      const rot = ['black_swan', 'circuit_swan', 'halt_tide', 'ink_specter'];
+      const rot = ['black_swan', 'circuit_swan', 'halt_tide', 'ink_specter', 'ledger_mirage'];
       const bossId = rot[(Math.floor(n / 5) - 1) % 4];
       const bossCount = bossId === 'black_swan' ? Math.max(1, Math.floor(n / 15) || 1) : 1;
       const hpBoss =
@@ -3351,7 +3548,7 @@
         hpMul: mul * 0.94,
       });
     }
-    if (n === 120 || n === 130 || n === 140) {
+    if (n === 120 || n === 130 || n === 140 || n === 150) {
       let haveInk = spawns.filter((s) => s.enemy === 'ink_specter').reduce((a, s) => a + (s.count || 1), 0);
       if (haveInk < 1) {
         spawns.push({
@@ -3555,7 +3752,10 @@
     if (from < 31) {
       s.ach.v31_migrated = true;
     }
-    s.version = Math.max(31, from, base.version || 31);
+    if (from < 32) {
+      s.ach.v32_migrated = true;
+    }
+    s.version = Math.max(32, from, base.version || 32);
     return s;
   }
 
@@ -3571,7 +3771,7 @@
 
   function defaultSave() {
     return {
-      version: 31,
+      version: 32,
       totalSilver: 0,
       totalKills: 0,
       maxStageCleared: 0,
@@ -3659,6 +3859,7 @@
       circuit_swan: { threat: '停刀鐘響', counter: '甲厚內息撐窗 · 鎖倉減攻' },
       halt_tide: { threat: '臨停潮湧', counter: '先清符 · 鎖倉鐵壁 · 再軋潮心' },
       ink_specter: { threat: '抽銀降攻', counter: '護銀分路 · 鎖倉減抽 · 清暗盤' },
+      ledger_mirage: { threat: '鏡稅封庫', counter: '鐵衛頂前 · 鎖倉減抽 · 鏡稅空檔合星' },
     };
     return Object.keys(ENEMIES)
       .map(function (id) {
@@ -3929,6 +4130,18 @@
         lanes: { left: '左帳｜上線 lane0–1', right: '右帳｜下線 lane2–3' },
       };
     }
+    if (stage && stage.id === 15) {
+      const lu = LINEUPS.find((x) => x && x.id === 'ink_guard') || LINEUPS[0];
+      return {
+        lineup: lu,
+        reason: '帳鏡夜市——護銀抗鏡：鐵衛＋鎖倉，鏡稅空檔合星',
+        tips: [
+          '鏡稅封庫時唔好硬合星——等空檔再合',
+          '鐵衛頂前、鎖倉減抽；墨影試探先清暗盤',
+          '末波帳鏡蜃壓軸——合星階梯回補被縮銀兩',
+        ],
+      };
+    }
     const counts = {};
     const waves = (stage && stage.waves) || [];
     for (const w of waves) {
@@ -4096,6 +4309,7 @@
     RUN_MODIFIERS_90,
     RUN_MODIFIERS_100,
     RUN_MODIFIERS_140,
+    RUN_MODIFIERS_150,
     buildEndlessWave,
     buildDailyWaves,
     buildWeeklyWaves,

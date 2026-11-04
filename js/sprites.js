@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 正式 PNG 精靈載入（有就用、無就幾何 fallback）v3.1.0
+ * 銀樓防衛 — 正式 PNG 精靈載入（有就用、無就幾何 fallback）v3.2.0
  * sheet 96×48：frame0 idle／frame1 attack；亦可 *_attack.png
  * v1.5：場景 mid／props；halt_seal PNG；cache-bust／尺寸校驗／missing 重試／動態 id
  */
@@ -7,7 +7,7 @@
   const BASE = 'assets/sprites/';
   const SCENE_BASE = 'assets/scenes/';
   const FRAME = 48;
-  const CACHE_VER = '3.1.0';
+  const CACHE_VER = '3.2.0';
   const KNOWN_IDS = [
     'long_bull',
     'short_blade',
@@ -33,6 +33,7 @@
     'circuit_swan',
     'halt_tide',
     'ink_specter',
+    'ledger_mirage',
   ];
 
   /** @type {Record<string, {idle: CanvasImageSource|null, attack: CanvasImageSource|null, status: string, tried: boolean, promise: Promise|null, retries: number}>} */
@@ -211,6 +212,19 @@
       }
     }
     // ink_specter：正式 PNG（idle／attack／sheet）已由 ensure() 載入；此處僅缺檔 fallback
+    if (id === 'ledger_mirage') {
+      // 缺正式 PNG：借墨影帳幀，再暗盤影
+      let alt = cache['ink_specter'];
+      if (!alt || alt.status !== 'ready') ensure('ink_specter');
+      if (alt && alt.status === 'ready' && alt.idle) {
+        return attacking && alt.attack ? alt.attack : alt.idle;
+      }
+      alt = cache['dark_tape'];
+      if (!alt || alt.status !== 'ready') ensure('dark_tape');
+      if (alt && alt.status === 'ready' && alt.idle) {
+        return attacking && alt.attack ? alt.attack : alt.idle;
+      }
+    }
     if (id === 'ink_specter') {
       const alt = cache['dark_tape'];
       if (!alt || alt.status !== 'ready') ensure('dark_tape');

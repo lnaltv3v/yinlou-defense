@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — Canvas 繪製 v3.1.0
+ * 銀樓防衛 — Canvas 繪製 v3.2.0
  * v1.5：場景四層 ground→mid→wall→props；halt_seal PNG；擊破／暴擊
  */
 (function (global) {
@@ -707,7 +707,7 @@
     if (e.boss) {
       const circuit = e.id === 'circuit_swan';
       const tide = e.id === 'halt_tide';
-      const ink = e.id === 'ink_specter';
+      const ink = e.id === 'ink_specter' || e.id === 'ledger_mirage';
       const col = circuit ? '#E8C96A' : tide ? '#C4A070' : ink ? '#8A9BB0' : '#C9A227';
       ctx.strokeStyle = col;
       ctx.lineWidth = circuit || ink ? 3 : 2;
@@ -733,7 +733,9 @@
     const bw = r * 2;
     drawPixelRect(ctx, e.x - r, e.y - r - 8 + bob, bw, 3, '#1A1510');
     let hpCol = '#C45C4A';
-    if (e.id === 'ink_specter') {
+    if (e.id === 'ledger_mirage') {
+      hpCol = '#A8C0D8';
+    } else if (e.id === 'ink_specter') {
       const dual = !!(state && state._dualInkActive);
       hpCol = dual ? '#B07AD4' : '#8A9BB0';
     } else if (e.id === 'circuit_swan') hpCol = '#E8C96A';
