@@ -1,5 +1,6 @@
 /**
- * 銀樓防衛 — 戰鬥／生成／合併邏輯 v1.3.0
+ * 銀樓防衛 — 戰鬥／生成／合併邏輯 v1.4.0
+ * v1.4：擊退／超殺／擊破爆點／陣亡墨塵
  */
 (function (global) {
   const { HEROES, ENEMIES, GRID, CORE, heroStats, activeBonds, bondModsFor, MAX_STAR, UPGRADE_PATHS, upgradeCost } = global.YD;
@@ -225,9 +226,15 @@
     state.fx.push(fx);
   }
 
-  function applyDamage(enemy, amount, floats, kind) {
+  function applyDamage(enemy, amount, floats, kind, state) {
+    const before = enemy.hp;
+    const dealt = Math.min(before, amount);
+    const over = Math.max(0, amount - before);
     enemy.hp -= amount;
-    enemy.hitFlash = 0.12;
+    enemy.hitFlash = kind === 'crit' ? 0.18 : 0.12;
+    // 輕量擊退（唔推過遠；Boss 減半）
+    const kb = (kind === 'crit' ? 7 : 4) * (enemy.boss ? 0.45 : enemy.elite ? 0.7 : 1);
+    enemy.x = Math.min(980, (enemy.x || 0) + kb);
     if (global.YDAudio) global.YDAudio.play(kind === 'crit' ? 'crit' : 'hit');
     const crit = kind === 'crit' || amount >= 28;
     pushFloat(floats, {
@@ -235,10 +242,33 @@
       y: enemy.y - 16,
       text: '-' + Math.round(amount),
       color: crit ? '#C9A227' : kind === 'splash' ? '#A080C0' : '#E8DCC8',
-      size: crit ? 18 : 15,
-      vy: -42,
-      life: 0.85,
+      size: crit ? 19 : 15,
+      vy: crit ? -48 : -42,
+      life: crit ? 0.95 : 0.85,
+      bounce: crit ? 1.25 : 1,
     });
+    if (over >= 8 && before > 0) {
+      pushFloat(floats, {
+        x: enemy.x + 10,
+        y: enemy.y - 28,
+        text: '超殺',
+        color: '#C9A227',
+        size: 11,
+        vy: -26,
+        life: 0.55,
+      });
+    }
+    if (state && kind === 'crit') {
+      pushFx(state, {
+        type: 'slash',
+        x: enemy.x,
+        y: enemy.y,
+        color: enemy.def && enemy.def.color ? enemy.def.color : '#C9A227',
+        life: 0.22,
+        r: 16,
+      });
+    }
+    return { dealt: dealt, over: over, killed: enemy.hp <= 0 && before > 0 };
   }
 
   function applyHeroDamage(hero, amount, floats, state) {
@@ -425,7 +455,7 @@
       // 標記當下唔叠加標記加傷，避免雙乘
     }
 
-    applyDamage(target, dmg, floats, kind);
+    applyDamage(target, dmg, floats, kind, state);
 
     if (hero.def.slow && target.hp > 0 && !(skillProc && sk && sk.deepSlow)) {
       target.slowT = Math.max(target.slowT, hero.def.slowDur);
@@ -437,7 +467,7 @@
       for (const e of enemies) {
         if (e.uid === target.uid || e.hp <= 0) continue;
         if (Math.hypot(e.x - target.x, e.y - target.y) <= rad) {
-          applyDamage(e, Math.round(dmg * 0.55 * (splashMul > 1 ? 1.1 : 1)), floats, 'splash');
+          applyDamage(e, Math.round(dmg * 0.55 * (splashMul > 1 ? 1.1 : 1)), floats, 'splash', state);
         }
       }
       if (hero.def.selfRisk && Math.random() < hero.def.selfRisk) {
@@ -471,7 +501,7 @@
       life: 0.18,
       r: 10 + (kind === 'crit' ? 6 : 0),
     });
-    if (!state.shake || state.shake < 0.08) state.shake = kind === 'crit' ? 0.12 : 0.06;
+    if (!state.shake || state.shake < 0.08) state.shake = kind === 'crit' ? 0.15 : 0.07;
   }
 
   function tickSupport(hero, heroes, state, dt) {
@@ -564,6 +594,14 @@
       if (h.swingT > 0) h.swingT = Math.max(0, h.swingT - dt);
       if (h.stunT > 0) h.stunT = Math.max(0, h.stunT - dt);
       if (h.guardProcT > 0) h.guardProcT = Math.max(0, h.guardProcT - dt);
+      if (h._bladeOilLeft > 0) {
+        h._bladeOilLeft -= dt;
+        if (h._bladeOilLeft <= 0) {
+          h._bladeOilLeft = 0;
+          h._bladeOilBaseCd = null;
+          applyHeroUpgrades(h, false);
+        }
+      }
       if (h.atkBuffT > 0) {
         h.atkBuffT -= dt;
         if (h.atkBuffT <= 0) {
@@ -857,6 +895,10 @@
           life: 0.75,
         });
         state.kills += 1;
+        state._killStreak = (state._killStreak || 0) + 1;
+        state._killStreakT = 1.4;
+        if (e.id === 'rumor_swarm') state._rumorKills = (state._rumorKills || 0) + 1;
+        if (e.id === 'dark_tape') state._darkKills = (state._darkKills || 0) + 1;
         if (e.elite) {
           state._eliteKills = (state._eliteKills || 0) + 1;
           pushFloat(state.floats, {
@@ -869,7 +911,40 @@
             life: 1.0,
           });
         }
-        state.fx.push({ type: 'hit', x: e.x, y: e.y, color: '#C9A227', life: 0.2, r: 14 });
+        if (e.boss) {
+          pushFloat(state.floats, {
+            x: e.x,
+            y: e.y - 36,
+            text: 'Boss 擊破！',
+            color: '#C9A227',
+            size: 16,
+            vy: -34,
+            life: 1.2,
+          });
+          state.shake = Math.max(state.shake || 0, 0.28);
+        }
+        const streak = state._killStreak || 0;
+        if (streak >= 5 && streak % 5 === 0) {
+          pushFloat(state.floats, {
+            x: e.x,
+            y: e.y - 40,
+            text: '連斬 ×' + streak,
+            color: '#C45C4A',
+            size: 13,
+            vy: -30,
+            life: 0.85,
+          });
+        }
+        state.fx.push({
+          type: 'death',
+          x: e.x,
+          y: e.y,
+          color: (e.def && e.def.color) || '#C9A227',
+          life: 0.42,
+          r: 12 + (e.elite ? 6 : 0) + (e.boss ? 10 : 0),
+          boss: !!e.boss,
+        });
+        state.fx.push({ type: 'hit', x: e.x, y: e.y, color: '#C9A227', life: 0.22, r: 14 });
       }
     }
     state.enemies = state.enemies.filter((e) => e.hp > 0);
@@ -883,6 +958,15 @@
         size: 12,
         vy: -16,
         life: 0.9,
+      });
+      state.fx.push({
+        type: 'death',
+        x: h.x,
+        y: h.y,
+        color: (h.def && h.def.color) || '#8A7E6E',
+        life: 0.5,
+        r: 16,
+        hero: true,
       });
     }
     state.heroes = state.heroes.filter((h) => h.hp > 0);
@@ -912,6 +996,13 @@
     compactAlive(state.fx, 36);
     if (state.shake > 0) state.shake = Math.max(0, state.shake - dt);
     if (state.coreHitFlash > 0) state.coreHitFlash = Math.max(0, state.coreHitFlash - dt);
+    if (state._killStreakT > 0) {
+      state._killStreakT -= dt;
+      if (state._killStreakT <= 0) {
+        state._killStreakT = 0;
+        state._killStreak = 0;
+      }
+    }
     if (state.bossBanner && state.bossBanner.life > 0) {
       state.bossBanner.life -= dt;
       if (state.bossBanner.life <= 0) state.bossBanner = null;

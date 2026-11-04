@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.4.0 — 2026-11-05
+- **精靈**：接入 **傳聞蚊** `rumor_swarm`、**暗盤影** `dark_tape` 正式 PNG（idle／attack／sheet）；敵方正式精靈而家齊（停牌符 `halt_seal` 仍幾何 fallback）；商店頭像跟 `YDSprites.urlFor` cache-bust
+- **場景分層**：接入 `assets/scenes/battle_ground.png`＋`core_wall.png`（960×540）；有齊就取代程式像素底，火把／受擊／單位／FX 仍由程式畫；缺檔回退舊底
+- **精靈載入邊角**：`?v=1.4.0` bust、naturalWidth 校驗、sheet 切幀防壞圖、loading 共用 promise、missing 自動重試、動態收齊 HEROES／ENEMIES id；場景 `ensureScene` 分層預載
+- **戰鬥手感**：命中輕擊退；暴擊斬線＋更大飄字；超殺提示；擊破墨塵（Boss／英雄陣亡加強）；連斬 ×5／×10…；Boss 擊破字＋震屏
+- **內容**：市況事件＋「暗盤滲入」「刀口抹油」；成就＋暗盤入眼／風聲收割／連斬開市（28→**31**）；失敗提示加精靈辨識句
+- **平衡**：第 1 關開局銀 200／核心 210；第 2 關銀 182；合併回報 0.145→**0.15**；傳聞蚊 HP 24／速 56／賞 5；暗盤影 HP 40／速 50；停牌符 stun 1.05s
+- 存檔 **version 14**；DESIGN／ART／README／MANIFEST 同步；Pages title／`?v=1.4.0` → v1.4.0（`pages-clean`）
+
+
 ## v1.3.0 — 2026-11-05
 - **正式精靈接入（墨點銀樓首輪）**：`assets/sprites/` 載入 idle／attack（或 sheet 96×48 frame0／1）；場上俠／敵有 PNG 就畫精靈，無檔維持幾何色塊 fallback；商店頭像優先 idle PNG
 - **覆蓋**：俠 **11**（含套利行者／夜盤掮客／抄底居士）＋敵 **6**（散戶潮／追高殭屍／槓桿妖／黑天鵝／追保令／恐慌盤）；傳聞蚊／暗盤影／停牌符暫無 PNG → 幾何 fallback

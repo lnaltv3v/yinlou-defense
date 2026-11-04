@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 靜態資料 v1.3.0
+ * 銀樓防衛 — 靜態資料 v1.4.0
  * 角色為原創綽號，影射金融江湖氣氛；唔用真人真名／金庸名／Fortias IP。
  */
 (function (global) {
@@ -479,11 +479,11 @@
     rumor_swarm: {
       id: 'rumor_swarm',
       name: '傳聞蚊',
-      lore: '巷口風聲成群，細而快，專拖慢你節奏。',
-      hp: 22,
+      lore: '巷口風聲成群，細而快，專拖慢你節奏。正式像素後更易辨識——唔好放佢哋咬穿前排。',
+      hp: 24,
       atk: 4,
-      speed: 58,
-      reward: 4,
+      speed: 56,
+      reward: 5,
       color: '#7A6A50',
       radius: 8,
       attackRange: 36,
@@ -517,10 +517,10 @@
     dark_tape: {
       id: 'dark_tape',
       name: '暗盤影',
-      lore: '盤後暗影，半透明高速；影遁時更難捉。',
-      hp: 38,
+      lore: '盤後暗影，半透明高速；影遁時更難捉。正式精靈帶提燈影，隱身時仍有輪廓。',
+      hp: 40,
       atk: 9,
-      speed: 52,
+      speed: 50,
       reward: 9,
       color: '#2A2840',
       radius: 10,
@@ -553,14 +553,14 @@
       attackRange: 38,
       attackCd: 0.82,
       preferHero: 0.88,
-      stunSec: 1.15,
+      stunSec: 1.05,
       skill: {
         id: 'trading_halt',
         name: '臨停',
         every: 1,
         blurb: '普攻附帶短暫停牌（俠客無法出手）',
         type: 'stun',
-        dur: 1.15,
+        dur: 1.05,
       },
     },
   };
@@ -574,8 +574,8 @@
       id: 1,
       name: '錢莊初夜',
       story: '夜雨初歇，錢莊門楣掛起「銀樓」燈籠。櫃檯後頭算盤未停，門外已有腳步聲——散戶潮聞風而至。掌櫃話：開市前唔擺好第一盤棋，天亮只剩空倉同空城。',
-      startSilver: 195,
-      coreHp: 205,
+      startSilver: 200,
+      coreHp: 210,
       unlockHeroes: Object.keys(HEROES),
       waves: [
         wavePack([{ enemy: 'retail_tide', count: 3, lane: 'cycle', interval: 1.2 }]),
@@ -604,7 +604,7 @@
       id: 2,
       name: '午市殺跌',
       story: '午市鐘響，追保令滿天飛，茶館裡頭嘈到拆天。多頭刀客同空頭劍客隔檯對望——多空對決開倉。掌櫃拍門：誰守得住盤口，誰就係今日莊家；守唔住，銀樓燈籠今晚熄。',
-      startSilver: 175,
+      startSilver: 182,
       coreHp: 195,
       unlockHeroes: Object.keys(HEROES),
       waves: [
@@ -983,6 +983,51 @@
           hpMul: 1,
           elite: false,
         });
+      },
+    },
+    {
+      id: 'dark_seep',
+      name: '暗盤滲入',
+      blurb: '暗盤影潛入本波 ×3',
+      color: '#2A2840',
+      weight: 2,
+      apply: (state) => {
+        if (!state.spawner) return;
+        state.spawner.jobs.push({
+          enemy: 'dark_tape',
+          left: 3,
+          interval: 0.7,
+          delay: 1.2,
+          timer: 0,
+          started: false,
+          laneMode: 'cycle',
+          fixedLane: null,
+          hpMul: 1,
+          elite: false,
+        });
+      },
+    },
+    {
+      id: 'blade_oil',
+      name: '刀口抹油',
+      blurb: '全體俠客攻擊間隔短暫加快（6 秒）',
+      color: '#C45C4A',
+      weight: 2,
+      apply: (state) => {
+        for (const h of state.heroes) {
+          if (h.hp <= 0) continue;
+          h.cd = Math.min(h.cd, 0.05);
+          h.upHasteGhost = 6; // 視覺標記用；實際用 atkBuffT 加速感：縮短當下 cd
+          h.cd = Math.max(0, h.cd - 0.25);
+          // 臨時：降低 cooldown 6 秒
+          if (!h._bladeOilLeft) {
+            h._bladeOilBaseCd = h.cooldown;
+            h.cooldown = Math.max(0.18, h.cooldown * 0.82);
+            h._bladeOilLeft = 6;
+          } else {
+            h._bladeOilLeft = Math.max(h._bladeOilLeft, 6);
+          }
+        }
       },
     },
   ];
@@ -1482,6 +1527,7 @@
     '週挑戰雙修飾＋血量加厚——優先合到 2–3 星再硬頂；齊人羈絆先開波。',
     '抄底居士＋股息隱士 →「細水抄底」：殘血急救更強；坦＋雙奶好捱。',
     '睇關卡列下方「本週進度」：每日 n/7＋週挑戰首清獎。',
+    '傳聞蚊／暗盤影已有正式像素——認形快啲，優先清風聲再硬頂。',
   ];
 
 
@@ -1547,6 +1593,9 @@
     },
     { id: 'market_event', cat: 'combat', name: '市況警報', blurb: '首次觸發開波市況事件', check: (s) => !!s.ach && s.ach.market_event },
     { id: 'halt_seen', cat: 'combat', name: '臨停過招', blurb: '圖鑑見過停牌符', check: (s) => !!(s.seenEnemies && s.seenEnemies.halt_seal) },
+    { id: 'dark_seen', cat: 'combat', name: '暗盤入眼', blurb: '圖鑑見過暗盤影', check: (s) => !!(s.seenEnemies && s.seenEnemies.dark_tape) },
+    { id: 'rumor_sweep', cat: 'combat', name: '風聲收割', blurb: '單局擊殺傳聞蚊 ≥ 20', check: (s) => !!s.ach && !!s.ach.rumor_sweep },
+    { id: 'streak5', cat: 'combat', name: '連斬開市', blurb: '單局達成一次連斬 ×5', check: (s) => !!s.ach && !!s.ach.streak5 },
   ];
 
   /** 首通銀兩獎勵（入累計帳） */
@@ -1765,7 +1814,7 @@
   function mergeRebate(heroId, newStar) {
     const def = HEROES[heroId];
     if (!def) return 0;
-    return Math.round(def.cost * 0.145 * newStar);
+    return Math.round(def.cost * 0.15 * newStar);
   }
 
   function activeBonds(heroes) {
@@ -1803,7 +1852,7 @@
 
   function defaultSave() {
     return {
-      version: 13,
+      version: 14,
       totalSilver: 0,
       totalKills: 0,
       maxStageCleared: 0,
@@ -1835,7 +1884,7 @@
 
   function exportSaveJson(save) {
     const payload = {
-      meta: { game: 'yinlou-defense', exportedAt: new Date().toISOString(), version: save.version || 13 },
+      meta: { game: 'yinlou-defense', exportedAt: new Date().toISOString(), version: save.version || 14 },
       save: { ...defaultSave(), ...save },
     };
     return JSON.stringify(payload, null, 2);
@@ -1846,7 +1895,7 @@
     const body = data && data.save ? data.save : data;
     if (!body || typeof body !== 'object') throw new Error('無效存檔');
     const merged = { ...defaultSave(), ...body };
-    merged.version = Math.max(13, merged.version || 13);
+    merged.version = Math.max(14, merged.version || 14);
     if (!merged.weekDailyMap) merged.weekDailyMap = {};
     if (!merged.firstClears) merged.firstClears = {};
     if (!merged.seenHeroes) merged.seenHeroes = {};

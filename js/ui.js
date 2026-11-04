@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v1.3.0
+ * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v1.4.0
  */
 (function (global) {
   const {
@@ -84,7 +84,7 @@
       ink +
       '"></i>' +
       gear;
-    const src = 'assets/sprites/' + def.id + '.png';
+    const src = (window.YDSprites && window.YDSprites.urlFor) ? window.YDSprites.urlFor(def.id) : ('assets/sprites/' + def.id + '.png?v=1.4.0');
     return (
       '<span class="hero-avatar" aria-hidden="true" data-hero="' +
       def.id +

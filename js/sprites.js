@@ -1,10 +1,13 @@
 /**
- * 銀樓防衛 — 正式 PNG 精靈載入（有就用、無就幾何 fallback）v1.3.0
+ * 銀樓防衛 — 正式 PNG 精靈載入（有就用、無就幾何 fallback）v1.4.0
  * sheet 96×48：frame0 idle／frame1 attack；亦可 *_attack.png
+ * v1.4：cache-bust、尺寸校驗、loading 等待、missing 可重試、動態收齊 HEROES/ENEMIES id
  */
 (function (global) {
   const BASE = 'assets/sprites/';
+  const SCENE_BASE = 'assets/scenes/';
   const FRAME = 48;
+  const CACHE_VER = '1.4.0';
   const KNOWN_IDS = [
     'long_bull',
     'short_blade',
@@ -28,14 +31,32 @@
     'halt_seal',
   ];
 
-  /** @type {Record<string, {idle: CanvasImageSource|null, attack: CanvasImageSource|null, status: string, tried: boolean}>} */
+  /** @type {Record<string, {idle: CanvasImageSource|null, attack: CanvasImageSource|null, status: string, tried: boolean, promise: Promise|null, retries: number}>} */
   const cache = Object.create(null);
+  /** @type {Record<string, {img: CanvasImageSource|null, status: string, promise: Promise|null}>} */
+  const scenes = Object.create(null);
 
   function entry(id) {
     if (!cache[id]) {
-      cache[id] = { idle: null, attack: null, status: 'pending', tried: false };
+      cache[id] = {
+        idle: null,
+        attack: null,
+        status: 'pending',
+        tried: false,
+        promise: null,
+        retries: 0,
+      };
     }
     return cache[id];
+  }
+
+  function bust(src) {
+    const sep = src.indexOf('?') >= 0 ? '&' : '?';
+    return src + sep + 'v=' + CACHE_VER;
+  }
+
+  function validImage(img) {
+    return !!(img && img.naturalWidth > 0 && img.naturalHeight > 0);
   }
 
   function loadImage(src) {
@@ -43,54 +64,110 @@
       const img = new Image();
       img.decoding = 'async';
       img.onload = function () {
-        resolve(img);
+        resolve(validImage(img) ? img : null);
       };
       img.onerror = function () {
         resolve(null);
       };
-      img.src = src;
+      try {
+        img.src = bust(src);
+      } catch (_) {
+        resolve(null);
+      }
     });
   }
 
   function sliceFrame(sheet, frameIndex) {
+    if (!validImage(sheet) && !(sheet && sheet.width)) return null;
+    const sw = sheet.naturalWidth || sheet.width || 0;
+    const sh = sheet.naturalHeight || sheet.height || 0;
+    if (sw < FRAME || sh < FRAME) return null;
+    const maxFrames = Math.max(1, Math.floor(sw / FRAME));
+    const idx = Math.min(Math.max(0, frameIndex), maxFrames - 1);
     const c = document.createElement('canvas');
     c.width = FRAME;
     c.height = FRAME;
     const g = c.getContext('2d');
+    if (!g) return null;
     g.imageSmoothingEnabled = false;
     try {
-      g.drawImage(sheet, frameIndex * FRAME, 0, FRAME, FRAME, 0, 0, FRAME, FRAME);
+      g.drawImage(sheet, idx * FRAME, 0, FRAME, FRAME, 0, 0, FRAME, FRAME);
     } catch (_) {
       return null;
     }
     return c;
   }
 
-  function ensure(id) {
+  function collectIds(extra) {
+    const set = {};
+    for (let i = 0; i < KNOWN_IDS.length; i++) set[KNOWN_IDS[i]] = true;
+    const YD = global.YD;
+    if (YD) {
+      if (YD.HEROES) Object.keys(YD.HEROES).forEach(function (id) { set[id] = true; });
+      if (YD.ENEMIES) Object.keys(YD.ENEMIES).forEach(function (id) { set[id] = true; });
+    }
+    if (extra && extra.length) {
+      for (let i = 0; i < extra.length; i++) if (extra[i]) set[extra[i]] = true;
+    }
+    return Object.keys(set);
+  }
+
+  function ensure(id, opts) {
+    if (!id) return Promise.resolve(null);
     const e = entry(id);
-    if (e.tried) return Promise.resolve(e);
+    const force = !!(opts && opts.force);
+    if (force) {
+      e.tried = false;
+      e.promise = null;
+      e.status = 'pending';
+      e.idle = null;
+      e.attack = null;
+    }
+    if (e.status === 'ready') return Promise.resolve(e);
+    if (e.promise) return e.promise;
+    // missing 可再試（最多 2 次；force 重置）
+    if (e.status === 'missing' && !force && (e.retries || 0) >= 2) return Promise.resolve(e);
+
+    e.status = 'loading';
     e.tried = true;
-    return Promise.all([
+
+    e.promise = Promise.all([
       loadImage(BASE + id + '.png'),
       loadImage(BASE + id + '_attack.png'),
       loadImage(BASE + id + '_sheet.png'),
-    ]).then(function (pair) {
-      const idle = pair[0];
-      const attack = pair[1];
-      const sheet = pair[2];
-      if (idle) e.idle = idle;
-      else if (sheet) e.idle = sliceFrame(sheet, 0);
-      if (attack) e.attack = attack;
-      else if (sheet) e.attack = sliceFrame(sheet, 1);
-      if (!e.attack) e.attack = e.idle;
-      e.status = e.idle ? 'ready' : 'missing';
-      return e;
-    });
+    ])
+      .then(function (pair) {
+        const idle = pair[0];
+        const attack = pair[1];
+        const sheet = pair[2];
+        e.idle = null;
+        e.attack = null;
+        if (idle) e.idle = idle;
+        else if (sheet) e.idle = sliceFrame(sheet, 0);
+        if (attack) e.attack = attack;
+        else if (sheet) e.attack = sliceFrame(sheet, 1);
+        if (!e.attack) e.attack = e.idle;
+        if (e.idle && e.idle.tagName === 'CANVAS' && (!e.idle.width || !e.idle.height)) {
+          e.idle = null;
+          e.attack = null;
+        }
+        e.status = e.idle ? 'ready' : 'missing';
+        if (e.status === 'missing') e.retries = (e.retries || 0) + 1;
+        e.promise = null;
+        return e;
+      })
+      .catch(function () {
+        e.status = 'missing';
+        e.retries = (e.retries || 0) + 1;
+        e.promise = null;
+        return e;
+      });
+    return e.promise;
   }
 
   function preloadAll(ids) {
-    const list = ids && ids.length ? ids : KNOWN_IDS;
-    return Promise.all(list.map(ensure));
+    const list = ids && ids.length ? ids : collectIds();
+    return Promise.all(list.map(function (id) { return ensure(id); }));
   }
 
   function ready(id) {
@@ -100,13 +177,19 @@
 
   function getFrame(id, attacking) {
     const e = cache[id];
-    if (!e || e.status !== 'ready' || !e.idle) return null;
+    if (!e) return null;
+    if (e.status === 'pending' || e.status === 'loading') {
+      // 懶觸發；繪製暫時走幾何
+      ensure(id);
+      return null;
+    }
+    if (e.status !== 'ready' || !e.idle) return null;
     if (attacking && e.attack) return e.attack;
     return e.idle;
   }
 
   function urlFor(id) {
-    return BASE + id + '.png';
+    return bust(BASE + id + '.png');
   }
 
   function statusMap() {
@@ -115,10 +198,46 @@
     return out;
   }
 
-  // 盡早預載（唔阻塞；缺檔 → missing，繪製走幾何）
-  function boot() {
-    preloadAll().catch(function () {});
+  function retryMissing() {
+    const ids = Object.keys(cache).filter(function (id) {
+      return cache[id].status === 'missing' && cache[id].retries < 3;
+    });
+    return Promise.all(ids.map(function (id) { return ensure(id, { force: true }); }));
   }
+
+  function ensureScene(name) {
+    const key = name || 'battlefield';
+    if (!scenes[key]) scenes[key] = { img: null, status: 'pending', promise: null };
+    const s = scenes[key];
+    if (s.status === 'ready') return Promise.resolve(s);
+    if (s.promise) return s.promise;
+    s.status = 'loading';
+    s.promise = loadImage(SCENE_BASE + key + '.png').then(function (img) {
+      s.img = img;
+      s.status = img ? 'ready' : 'missing';
+      s.promise = null;
+      return s;
+    });
+    return s.promise;
+  }
+
+  function getScene(name) {
+    const s = scenes[name || 'battlefield'];
+    return s && s.status === 'ready' ? s.img : null;
+  }
+
+  function boot() {
+    preloadAll().then(function () {
+      // 缺檔稍後再試一次（CDN／Pages 偶發）
+      setTimeout(function () {
+        retryMissing().catch(function () {});
+      }, 2500);
+    }).catch(function () {});
+    // 場景分層可選；缺檔唔嘈
+    ensureScene('battle_ground').catch(function () {});
+    ensureScene('core_wall').catch(function () {});
+  }
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', boot);
   } else {
@@ -127,7 +246,9 @@
 
   global.YDSprites = {
     BASE: BASE,
+    SCENE_BASE: SCENE_BASE,
     FRAME: FRAME,
+    CACHE_VER: CACHE_VER,
     KNOWN_IDS: KNOWN_IDS,
     ensure: ensure,
     preloadAll: preloadAll,
@@ -135,5 +256,9 @@
     getFrame: getFrame,
     urlFor: urlFor,
     statusMap: statusMap,
+    retryMissing: retryMissing,
+    collectIds: collectIds,
+    ensureScene: ensureScene,
+    getScene: getScene,
   };
 })(window);

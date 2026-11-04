@@ -1,6 +1,6 @@
 /**
- * 銀樓防衛 — 主循環 v1.3.0
- * v1.3.0：正式 PNG 精靈／市況事件／停牌符／小平衡
+ * 銀樓防衛 — 主循環 v1.4.0
+ * v1.4.0：戰鬥手感／敵方精靈齊（傳聞蚊＋暗盤影）／市況加厚／精靈載入邊角
  */
 (function () {
   const {
@@ -88,6 +88,10 @@
     save.version = 13;
     writeSave(save);
   }
+  if (save.version < 14) {
+    save.version = 14;
+    writeSave(save);
+  }
   if (!save.weekDailyMap) save.weekDailyMap = {};
   // 若今日已清每日但未入週圖，補一筆（唔重複加獎）
   try {
@@ -110,6 +114,13 @@
     }
   } catch (_) {}
   if (AudioSfx) AudioSfx.setEnabled(save.sfxEnabled !== false);
+
+  // v1.4：跟資料表再預載一次（含後補 id）；缺檔會自動重試
+  try {
+    if (window.YDSprites && window.YDSprites.preloadAll) {
+      window.YDSprites.preloadAll().catch(function () {});
+    }
+  } catch (_) {}
 
   let shopApi = null;
   let speedApi = null;
@@ -212,6 +223,10 @@
       bossBanner: null,
       bondBanner: null,
       _eliteKills: 0,
+      _rumorKills: 0,
+      _darkKills: 0,
+      _killStreak: 0,
+      _killStreakT: 0,
       _eliteAnnounced: false,
       eventBanner: null,
       _milestonesClaimed: {},
@@ -1646,9 +1661,23 @@
       Battle.tickHeroes(state, dt);
       Battle.tickEnemies(state, dt);
       const eliteBefore = state._eliteKills || 0;
+      const rumorBefore = state._rumorKills || 0;
+      const streakBefore = state._killStreak || 0;
       Battle.collectDead(state);
+      let achDirty = false;
       if ((state._eliteKills || 0) > eliteBefore && !save.ach.elite) {
         save.ach.elite = true;
+        achDirty = true;
+      }
+      if ((state._rumorKills || 0) >= 20 && !save.ach.rumor_sweep) {
+        save.ach.rumor_sweep = true;
+        achDirty = true;
+      }
+      if ((state._killStreak || 0) >= 5 && streakBefore < 5 && !save.ach.streak5) {
+        save.ach.streak5 = true;
+        achDirty = true;
+      }
+      if (achDirty) {
         writeSave(save);
         notifyAchievements();
       }

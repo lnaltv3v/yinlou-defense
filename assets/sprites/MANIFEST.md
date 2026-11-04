@@ -21,9 +21,9 @@
 | arb_walker | 套利行者 | 銅錢／價差刀 |
 | night_broker | 夜盤掮客 | 捲軸＋提燈 |
 
-未做（敵下輪）：—
+未做：halt_seal（停牌符）幾何 fallback；場景第二輪
 
-## 敵人（6）
+## 敵人（8）
 | id | 名 |
 |----|----|
 | retail_tide | 散戶潮 |
@@ -32,8 +32,10 @@
 | black_swan | 黑天鵝 |
 | margin_call | 追保令 |
 | panic_board | 恐慌盤 |
+| rumor_swarm | 傳聞蚊 |
+| dark_tape | 暗盤影 |
 
-未做：`rumor_swarm` 傳聞蚊、`dark_tape` 暗盤影
+敵人正式 PNG 已齊（含 rumor_swarm／dark_tape）；halt_seal 仍幾何 fallback；下輪場景分層
 
 ## 接入提示
 - `*.png` = idle；`*_attack.png`；`*_sheet.png` frame0=idle frame1=attack

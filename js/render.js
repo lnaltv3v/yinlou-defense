@@ -1,6 +1,6 @@
 /**
- * 銀樓防衛 — Canvas 繪製 v1.3.0
- * v1.3.0：正式 PNG 精靈（有就用／無幾何 fallback）＋市況事件橫幅
+ * 銀樓防衛 — Canvas 繪製 v1.4.0
+ * v1.4：擊破墨塵／暴擊斬線；場景 PNG 可選；敵方正式精靈齊
  */
 (function (global) {
   const { COLORS, GRID, CORE, HEROES, ENEMIES, MAX_STAR, upgradeLabel } = global.YD;
@@ -152,7 +152,21 @@
 
   function drawBackground(ctx, w, h, state) {
     const t = (state && state._animT) || 0;
-    ctx.drawImage(ensureBgCache(w, h), 0, 0);
+    // 場景分層：battle_ground → core_wall；缺任一則回退程式像素底
+    (function drawSceneOrProc() {
+      try {
+        const Spr = global.YDSprites;
+        const ground = Spr && Spr.getScene && Spr.getScene('battle_ground');
+        const wall = Spr && Spr.getScene && Spr.getScene('core_wall');
+        if (ground && wall) {
+          ctx.imageSmoothingEnabled = false;
+          ctx.drawImage(ground, 0, 0, w, h);
+          ctx.drawImage(wall, 0, 0, w, h);
+          return;
+        }
+      } catch (_) {}
+      ctx.drawImage(ensureBgCache(w, h), 0, 0);
+    })();
     // 動態火把閃爍（輕量）
     const floorTop = GRID.originY - 14;
     const floorBot = GRID.originY + GRID.lanes * (GRID.cellH + GRID.gapY) + 10;
@@ -763,6 +777,54 @@
         ctx.lineWidth = 4;
         ctx.strokeText('滿星！', fx.x, fx.y - 48);
         ctx.fillText('滿星！', fx.x, fx.y - 48);
+        ctx.globalAlpha = 1;
+      } else if (fx.type === 'slash') {
+        const t = Math.max(0, fx.life);
+        const p = 1 - t / 0.22;
+        ctx.globalAlpha = Math.min(0.95, t * 4);
+        ctx.strokeStyle = fx.color || '#C9A227';
+        ctx.lineWidth = 3;
+        const len = 10 + p * 28;
+        ctx.beginPath();
+        ctx.moveTo(fx.x - len, fx.y - len * 0.35);
+        ctx.lineTo(fx.x + len, fx.y + len * 0.35);
+        ctx.stroke();
+        ctx.strokeStyle = '#E8DCC8';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(fx.x - len * 0.7, fx.y - len * 0.55);
+        ctx.lineTo(fx.x + len * 0.5, fx.y + len * 0.15);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      } else if (fx.type === 'death') {
+        const t = Math.max(0, fx.life);
+        const maxL = fx.hero ? 0.5 : 0.42;
+        const p = 1 - t / maxL;
+        const rr = (fx.r || 12) + p * 22;
+        ctx.globalAlpha = Math.min(0.9, t * 2.4);
+        ctx.strokeStyle = fx.color || '#C9A227';
+        ctx.lineWidth = fx.boss ? 3 : 2;
+        ctx.beginPath();
+        ctx.arc(fx.x, fx.y, rr, 0, Math.PI * 2);
+        ctx.stroke();
+        const n = fx.boss ? 10 : fx.hero ? 8 : 6;
+        for (let i = 0; i < n; i++) {
+          const ang = (i / n) * Math.PI * 2 + p * 1.8;
+          const dist = rr * (0.55 + p * 0.55);
+          const px = fx.x + Math.cos(ang) * dist;
+          const py = fx.y + Math.sin(ang) * dist;
+          const col = i % 2 ? (fx.color || '#C9A227') : '#1A1510';
+          drawPixelRect(ctx, px - 2, py - 2, 4, 4, col);
+        }
+        if (fx.boss) {
+          ctx.font = 'bold 12px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.strokeStyle = '#1A1510';
+          ctx.lineWidth = 3;
+          ctx.strokeText('破', fx.x, fx.y - rr - 4);
+          ctx.fillStyle = '#C9A227';
+          ctx.fillText('破', fx.x, fx.y - rr - 4);
+        }
         ctx.globalAlpha = 1;
       } else if (fx.type === 'coreHit') {
         if (!state.reduceFlash) {

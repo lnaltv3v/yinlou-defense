@@ -8,3 +8,6 @@ assets/_ref/
 
 # QA roster 預覽（唔入遊戲／可唔 commit）
 assets/sprites/_round1_roster*
+
+# 場景 QA 預覽（唔入遊戲）
+assets/scenes/_preview*
