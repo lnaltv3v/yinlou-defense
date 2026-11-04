@@ -1,4 +1,3 @@
-# Legacy Pages：即使有 .nojekyll，亦排除文件，避免偶發 Jekyll 掃描踩雷
 exclude:
   - DESIGN.md
   - ART.md
