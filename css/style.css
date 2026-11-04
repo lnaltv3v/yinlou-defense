@@ -750,3 +750,24 @@ header.title {
 .late-mod-badge.cent {
   background: #C9A227;
 }
+
+
+/* v2.7 牆走勢 mini canvas／第13關推薦卡 */
+.wall-spark-canvas {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  height: 56px;
+  margin: 6px 0;
+  image-rendering: pixelated;
+  background: #1A1510;
+  border: 1px solid #5A4030;
+}
+.stage-rec-card {
+  margin-top: 8px;
+}
+.story-body {
+  line-height: 1.55;
+  color: #E8DCC8;
+  font-size: 14px;
+}

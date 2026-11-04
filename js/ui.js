@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v2.6.0
+ * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v2.7.0
  */
 (function (global) {
   const {
@@ -96,7 +96,7 @@
       ink +
       '"></i>' +
       gear;
-    const src = (window.YDSprites && window.YDSprites.urlFor) ? window.YDSprites.urlFor(def.id) : ('assets/sprites/' + def.id + '.png?v=2.6.0');
+    const src = (window.YDSprites && window.YDSprites.urlFor) ? window.YDSprites.urlFor(def.id) : ('assets/sprites/' + def.id + '.png?v=2.7.0');
     return (
       '<span class="hero-avatar" aria-hidden="true" data-hero="' +
       def.id +
@@ -282,7 +282,50 @@
     };
   }
 
-  function showStory(title, body, onContinue) {
+  function showStory(title, body, onContinue, opts) {
+    opts = opts || {};
+    if (opts.rich) {
+      const ov = $('overlay');
+      ov.classList.remove('settings-mode');
+      ov.classList.add('codex-mode', 'paper-panel');
+      $('overlay-title').textContent = title;
+      const rec = opts.rec;
+      let html =
+        '<div class="paper-body"><p class="story-body">' +
+        String(body || '').replace(/\n/g, '<br/>') +
+        '</p>';
+      if (rec && rec.lineup) {
+        html +=
+          '<div class="paper-entry card-thick stage-rec-card">' +
+          '<strong style="color:#C9A227">本關推薦｜' +
+          rec.lineup.name +
+          '</strong><span class="card-meta">' +
+          (rec.reason || '') +
+          '</span>' +
+          (rec.lineup.heroes
+            ? '<span class="card-meta">' +
+              rec.lineup.heroes
+                .map(function (id) {
+                  return HEROES[id] ? HEROES[id].name : id;
+                })
+                .join('＋') +
+              '</span>'
+            : '') +
+          (rec.lineup.blurb ? '<em class="lore">' + rec.lineup.blurb + '</em>' : '') +
+          '</div>';
+      }
+      html += '<p class="paper-note">鎖倉減抽、鐵衛頂前；合 2–3 星再開波。</p></div>';
+      $('overlay-msg').innerHTML = html;
+      const btn = $('btn-overlay');
+      btn.textContent = '繼續';
+      btn.onclick = () => {
+        hideOverlay();
+        if (onContinue) onContinue();
+      };
+      $('overlay-extra').innerHTML = '';
+      ov.classList.add('show');
+      return;
+    }
     showOverlay(title, body, '繼續', () => {
       hideOverlay();
       if (onContinue) onContinue();
@@ -719,7 +762,7 @@
     const src = id && window.YDSprites && window.YDSprites.urlFor
       ? window.YDSprites.urlFor(id)
       : id
-        ? 'assets/sprites/' + id + '.png?v=2.6.0'
+        ? 'assets/sprites/' + id + '.png?v=2.7.0'
         : '';
     const fallback =
       '<span class="codex-thumb-fallback" style="background:' + c + '"></span>';
@@ -948,6 +991,44 @@
     ov.classList.add('show');
   }
 
+
+  function showModifierSheet(mods, tier, onClose) {
+    const ov = $('overlay');
+    ov.classList.remove('settings-mode');
+    ov.classList.add('codex-mode', 'paper-panel');
+    const t = tier >= 100 ? '100+' : tier >= 90 ? '90+' : '本局';
+    $('overlay-title').textContent = '修飾說明｜' + t;
+    const parts = [
+      '<div class="paper-body">',
+      '<p class="paper-note">點頂欄修飾條可重開｜晚盤專屬會標 late</p>',
+    ];
+    for (const m of mods || []) {
+      const tag = m.late100 ? '【100+】' : m.late90 ? '【90+】' : '';
+      parts.push(
+        '<div class="paper-entry card-thick">' +
+          '<strong style="color:#C9A227">' +
+          tag +
+          (m.name || '') +
+          '</strong><span>' +
+          (m.blurb || '') +
+          '</span></div>'
+      );
+    }
+    if (!(mods || []).length) {
+      parts.push('<div class="paper-entry dim card-thick"><strong>無修飾</strong><span>本局平盤</span></div>');
+    }
+    parts.push('</div>');
+    $('overlay-msg').innerHTML = parts.join('');
+    const btn = $('btn-overlay');
+    btn.textContent = '關閉';
+    btn.onclick = () => {
+      hideOverlay();
+      if (onClose) onClose();
+    };
+    $('overlay-extra').innerHTML = '';
+    ov.classList.add('show');
+  }
+
   function showWallTimeline(getSave, onClose, onMark) {
     const save = getSave();
     const ov = $('overlay');
@@ -970,6 +1051,7 @@
           '<span class="wall-spark-bars mono">' +
           (spark.bars || '') +
           '</span>' +
+          '<canvas id="wall-spark-canvas" class="wall-spark-canvas" width="320" height="56" aria-label="牆走勢"></canvas>' +
           '<span class="card-meta">' +
           (spark.label || '') +
           '</span></div>'
@@ -1015,6 +1097,10 @@
     }
     parts.push('</div>');
     $('overlay-msg').innerHTML = parts.join('');
+    const sparkCv = $('wall-spark-canvas');
+    if (sparkCv && spark && spark.endless && spark.endless.length) {
+      drawWallSparkCanvas(sparkCv, spark);
+    }
     const btn = $('btn-overlay');
     btn.textContent = '關閉';
     btn.onclick = () => {
@@ -1024,6 +1110,35 @@
     $('overlay-extra').innerHTML = '';
     ov.classList.add('show');
     if (onMark) onMark(sawDelta, sawSpark);
+  }
+
+  function drawWallSparkCanvas(canvas, spark) {
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const w = canvas.width;
+    const h = canvas.height;
+    const vals = spark.endless || [];
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = '#1A1510';
+    ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = '#5A4030';
+    ctx.strokeRect(0.5, 0.5, w - 1, h - 1);
+    if (vals.length < 1) return;
+    const max = Math.max.apply(null, vals.concat([1]));
+    const pad = 8;
+    const n = vals.length;
+    const gap = (w - pad * 2) / Math.max(1, n);
+    for (let i = 0; i < n; i++) {
+      const bh = Math.max(2, Math.round(((vals[i] || 0) / max) * (h - pad * 2 - 4)));
+      const x = pad + i * gap + 2;
+      const bw = Math.max(4, gap - 6);
+      ctx.fillStyle = i === n - 1 ? '#C9A227' : '#3A7A6A';
+      ctx.fillRect(x, h - pad - bh, bw, bh);
+    }
+    ctx.fillStyle = '#A09070';
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('無盡波次（舊→新）', pad, 12);
   }
 
   function showAchievements(getSave, onClose) {
@@ -1254,6 +1369,7 @@
     showCodex,
     showWallTimeline,
     showQuadTideLesson,
+    showModifierSheet,
     showAchievements,
     setHint,
     refreshWeekProgress,

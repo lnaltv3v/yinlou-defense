@@ -122,3 +122,6 @@
 
 ## v2.6
 - 四潮教學步驟接 Boss PNG 縮圖；合星環火花純程式；mid／props 無新檔；`CACHE_VER=2.6.0`。
+
+## v2.7
+- 牆走勢 mini canvas；mid／props 無新檔；`CACHE_VER=2.7.0`。

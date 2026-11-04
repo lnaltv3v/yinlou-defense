@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 主循環 v2.6.0
+ * 銀樓防衛 — 主循環 v2.7.0
  * v1.9.0：第7關／鎖倉居士／週連續＋本地最佳牆／手感平衡
  */
 (function () {
@@ -383,6 +383,20 @@
         notifyAchievements();
       }
     }
+        {
+      const inkAlive = (state.enemies || []).filter(
+        (e) => e.hp > 0 && (e.id === 'ink_specter' || (e.def && e.def.id === 'ink_specter'))
+      ).length;
+      if (inkAlive >= 2 || (state._dualInkSeen || 0) >= 1) {
+        if (!save.ach) save.ach = {};
+        if (!save.ach.dual_ink) {
+          save.ach.dual_ink = true;
+          writeSave(save);
+          notifyAchievements();
+          UI.toast('成就｜雙墨同場', 2200);
+        }
+      }
+    }
     if ((state._inkKills || 0) >= 1 && !save.ach.ink_kill) {
       save.ach.ink_kill = true;
     }
@@ -676,10 +690,20 @@
         : state.daily
           ? st.name || '每日'
           : '第 ' + st.id + ' 關・' + st.name;
-    UI.showStory(title, story, () => {
-      if (thenToast) UI.toast(thenToast);
-      syncAll();
-    });
+    const rec =
+      !state.endless && !state.daily && !state.weekly && st && st.id === 13 && recommendForStage
+        ? recommendForStage(st, false, false, false)
+        : null;
+    const rich = !!(rec && rec.lineup) || (st && st.id === 13 && !state.endless);
+    UI.showStory(
+      title,
+      story,
+      () => {
+        if (thenToast) UI.toast(thenToast);
+        syncAll();
+      },
+      rich ? { rich: true, rec: rec } : null
+    );
   }
 
   function stageRecommendToast() {
@@ -687,7 +711,16 @@
     const rec = recommendForStage(state.stage, state.endless, state.daily, state.weekly);
     if (!rec || !rec.lineup) return;
     state._stageRec = rec;
-    UI.toast('本關推薦｜' + rec.lineup.name + ' — ' + rec.reason, 2800);
+    const heroes =
+      rec.lineup.heroes &&
+      rec.lineup.heroes
+        .map((id) => (HEROES[id] ? HEROES[id].name : id))
+        .join('＋');
+    const long =
+      state.stage && state.stage.id === 13 && !state.endless
+        ? '本關推薦｜' + rec.lineup.name + '（' + (heroes || '') + '）— ' + rec.reason
+        : '本關推薦｜' + rec.lineup.name + ' — ' + rec.reason;
+    UI.toast(long, state.stage && state.stage.id === 13 ? 3400 : 2800);
   }
 
   function enterStage(idx, endless, daily, weekly) {
@@ -1728,6 +1761,31 @@
     }
     Battle.spawnMergeFx(state, now);
     if (AudioSfx) AudioSfx.play('merge');
+    const nowMs = performance.now();
+    if (state._mergeComboT && nowMs - state._mergeComboT < 3800) {
+      state._mergeCombo = (state._mergeCombo || 0) + 1;
+    } else {
+      state._mergeCombo = 1;
+    }
+    state._mergeComboT = nowMs;
+    if (state._mergeCombo >= 2) {
+      Battle.pushFloat(state.floats, {
+        x: now.x,
+        y: now.y - 96,
+        text: '合星連擊 ×' + state._mergeCombo,
+        color: '#E8DCC8',
+        size: 15 + Math.min(4, state._mergeCombo),
+        vy: -30,
+        life: 1.1,
+        bounce: 1.1,
+      });
+      if (state._mergeCombo >= 3) {
+        if (!save.ach) save.ach = {};
+        save.ach.merge_combo3 = true;
+        writeSave(save);
+        notifyAchievements();
+      }
+    }
     if (now.star >= 3 && !save.ach.star3) {
       save.ach.star3 = true;
       writeSave(save);
@@ -1740,9 +1798,16 @@
     }
     noteAction();
     const starTxt = '★' + prevStar + '→★' + now.star;
+    const comboTxt =
+      state._mergeCombo >= 2 ? '｜連擊×' + state._mergeCombo : '';
     UI.toast(
-      '合併成功｜' + HEROES[now.id].name + ' ' + starTxt + (rebate ? '｜回報 +' + rebate + '兩' : ''),
-      2000
+      '合併成功｜' +
+        HEROES[now.id].name +
+        ' ' +
+        starTxt +
+        (rebate ? '｜回報 +' + rebate + '兩' : '') +
+        comboTxt,
+      state._mergeCombo >= 2 ? 2200 : 2000
     );
     advanceTutorial(2);
     state.mergeFromUid = null;
@@ -1784,6 +1849,18 @@
       return;
     }
     const { x, y } = canvasPos(ev);
+    // 頂欄修飾條：點開說明（尤其 90+/100+）
+    if (
+      y <= 36 &&
+      x >= 220 &&
+      x <= 740 &&
+      state.modifiers &&
+      state.modifiers.length &&
+      UI.showModifierSheet
+    ) {
+      UI.showModifierSheet(state.modifiers, state._lateModTier || 0, () => syncAll());
+      return;
+    }
     const cell = Battle.hitTestCell(x, y);
     if (!cell) return;
 

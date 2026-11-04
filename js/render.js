@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — Canvas 繪製 v2.6.0
+ * 銀樓防衛 — Canvas 繪製 v2.7.0
  * v1.5：場景四層 ground→mid→wall→props；halt_seal PNG；擊破／暴擊
  */
 (function (global) {
@@ -1118,6 +1118,11 @@
     ctx.textAlign = 'center';
     ctx.fillStyle = late.some((m) => m.late100) ? '#E8DCC8' : '#C9A227';
     ctx.fillText('修飾｜' + label, 480, 23);
+    if (late.length) {
+      ctx.font = '9px sans-serif';
+      ctx.fillStyle = '#A09070';
+      ctx.fillText('點此睇說明', 480, 34);
+    }
     ctx.globalAlpha = 1;
   }
 

@@ -1444,17 +1444,39 @@
         bounce: 0,
       });
     } else if (isInk) {
+      const inkN = Array.from(aliveBossIds).filter((id) => id === 'ink_specter').length;
+      // aliveBossIds is a Set of ids - counting unique only gives 1. Count living enemies instead.
+      const inkAlive = (state.enemies || []).filter(
+        (e) => e.hp > 0 && (e.id === 'ink_specter' || (e.def && e.def.id === 'ink_specter'))
+      ).length + (isInk ? 0 : 0);
+      // include the entering one if not yet in enemies list
+      let inkTotal = (state.enemies || []).filter(
+        (e) => e.hp > 0 && e.id === 'ink_specter'
+      ).length;
+      if (isInk && !((state.enemies || []).some((e) => e.uid === enemy.uid && e.id === 'ink_specter'))) {
+        inkTotal += 1;
+      }
+      const dualInk = inkTotal >= 2;
       pushFloat(state.floats, {
         x: 480,
         y: 230,
-        text: dual ? '墨影夾擊 — 護銀守核' : '墨影翻帳 — 護住銀袋',
+        text: dualInk
+          ? '雙墨同場 — 護銀分路'
+          : dual
+            ? '墨影夾擊 — 護銀守核'
+            : '墨影翻帳 — 護住銀袋',
         color: '#8A9BB0',
         size: 14,
         vy: -8,
         life: 2.2,
         bounce: 0,
       });
-      if (dual) {
+      if (dualInk) {
+        state._dualInkSeen = (state._dualInkSeen || 0) + 1;
+        state.bossBanner.kind = 'dual_ink';
+        state.bossBanner.blurb = '雙墨同場 — 兩帳同時翻開，護銀分路清影';
+        state.bossBanner.name = '雙墨同場';
+      } else if (dual) {
         state.bossBanner.kind = 'dual';
         state.bossBanner.blurb = '雙潮夜 — 墨影＋另一潮同時在場';
       }

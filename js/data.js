@@ -1450,12 +1450,15 @@
     {
       id: 13,
       name: '墨影翻帳',
-      story: '三潮之後帳本未合——墨影從裂縫滲出，暗盤影成群護帳。今夜只打一潮：護住銀袋，先清影再軋帳心；鎖倉減抽，合星護核。',
+      story:
+        '三潮之後帳本未合——墨影從裂縫滲出，暗盤影成群護帳。\n\n' +
+        '今夜只打一潮：護住銀袋，先清影再軋帳心。鎖倉居士減抽、鐵衛頂前；合到 2–3 星再開波。\n\n' +
+        '中段會見弱化墨影試探，末波正式翻帳——銀兩唔好堆住等人抽。',
       challenge: true,
-      startSilver: 390,
-      coreHp: 420,
+      startSilver: 412,
+      coreHp: 438,
       unlockHeroes: Object.keys(HEROES),
-      firstClearBonus: 420,
+      firstClearBonus: 440,
       waves: [
         wavePack([
           { enemy: 'dark_tape', count: 10, lane: 'cycle', interval: 0.36 },
@@ -2569,6 +2572,19 @@
           elite: true,
           hpMul: 1.1 * scale,
         });
+        // v2.7：墨影週末波雙墨影（第二帳較遲入場）
+        const inkCount = last.spawns.filter((s) => s.enemy === 'ink_specter').length;
+        if (inkCount < 2) {
+          last.spawns.push({
+            enemy: 'ink_specter',
+            count: 1,
+            lane: 0,
+            interval: 0,
+            delay: 7.2,
+            hpMul: 1.05 * scale,
+          });
+        }
+        last.blurb = (last.blurb || '') + '｜雙墨同場';
       }
       if (meta.focus === 'quad_tide') {
         last.spawns.push({ enemy: 'black_swan', count: 1, lane: 0, interval: 0, delay: 2.2, hpMul: 1.08 * scale });
@@ -2801,6 +2817,8 @@
     '牆時間軸有差值走勢條——本機對盤，唔做線上排行。',
     '第 13 關「墨影翻帳」專打墨影：暗盤影先清，銀兩唔好堆。',
     '無盡 100+ 再開有第二池修飾（百浪銀庫／墨鏡反照等）。',
+    '墨影週末波或會雙墨同場——護銀優先，分路清影。',
+    '短時間連續合星有連擊提示；點頂欄修飾條可睇說明。',
     '無盡 75+：潮變密但血量增速略收；合 3–4 星＋鎖倉鐵壁優先於亂召。',
     '牆快照時間軸可對照上一筆差值（本機｜唔做線上排行）。',
   ];
@@ -2917,6 +2935,8 @@
     { id: 'all13', cat: 'stage', name: '十三關皆破', blurb: '通關全部主線關卡（含墨影）', check: (s) => (s.maxStageCleared || 0) >= STAGES.length },
     { id: 'late100_run', cat: 'meta', name: '百浪開盤', blurb: '曾達 100 浪後再開無盡（抽第二池修飾）', check: (s) => !!s.ach && !!s.ach.late100_run },
     { id: 'endless110', cat: 'combat', name: '百十浪帳守', blurb: '無盡最佳 ≥ 110 波', check: (s) => (s.bestEndlessWave || 0) >= 110 },
+    { id: 'dual_ink', cat: 'combat', name: '雙墨同場', blurb: '單局同時面對兩隻墨影帳', check: (s) => !!s.ach && !!s.ach.dual_ink },
+    { id: 'merge_combo3', cat: 'merge', name: '合星三連', blurb: '短時間內連續合星 ≥ 3 次', check: (s) => !!s.ach && !!s.ach.merge_combo3 },
   ];
 
   /** 首通銀兩獎勵（入累計帳） */
@@ -2933,8 +2953,8 @@
     10: 300,
     11: 340,
     12: 380,
-    13: 420,
-    all: 520,
+    13: 440,
+    all: 540,
   };
 
   function stageFirstClearBonus(stageId) {
@@ -3250,7 +3270,7 @@
   function mergeRebate(heroId, newStar) {
     const def = HEROES[heroId];
     if (!def) return 0;
-    return Math.round(def.cost * 0.182 * newStar);
+    return Math.round(def.cost * 0.184 * newStar);
   }
 
   function activeBonds(heroes) {
@@ -3290,7 +3310,7 @@
 
   function defaultSave() {
     return {
-      version: 26,
+      version: 27,
       totalSilver: 0,
       totalKills: 0,
       maxStageCleared: 0,
@@ -3544,7 +3564,7 @@
         game: 'yinlou-defense',
         kind: 'local-best-wall',
         exportedAt: new Date().toISOString(),
-        version: (save && save.version) || 26,
+        version: (save && save.version) || 27,
         note: '本機進度牆｜唔做線上排行',
       },
       wall: wall,
