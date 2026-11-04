@@ -138,6 +138,19 @@
       tone(165, 0.1, 'triangle', 0.03, 0.18);
     },
     // v3.8：符咒裝備／十池／回放 buzz
+    wall_code: function () {
+      buzz(520, 0.035, 'square', 0.03);
+      setTimeout(function () { buzz(780, 0.05, 'triangle', 0.035); }, 40);
+    },
+    replay_scrub: function () {
+      buzz(400, 0.025, 'sine', 0.025);
+      setTimeout(function () { buzz(560, 0.03, 'triangle', 0.028); }, 30);
+    },
+    charm_set: function () {
+      buzz(660, 0.04, 'square', 0.035);
+      setTimeout(function () { buzz(880, 0.05, 'sine', 0.04); }, 50);
+      setTimeout(function () { buzz(1100, 0.07, 'triangle', 0.035); }, 110);
+    },
     charm_star: function () {
       buzz(720, 0.05, 'square', 0.045);
       setTimeout(function () { buzz(960, 0.07, 'triangle', 0.05); }, 55);

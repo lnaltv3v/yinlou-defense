@@ -1771,6 +1771,8 @@
     { wave: 400, silver: 6600, label: '四百浪十池城' },
     { wave: 450, silver: 7400, label: '四百五十浪十一池' },
     { wave: 500, silver: 8200, label: '五百浪封池城' },
+    { wave: 550, silver: 9000, label: '五百五十浪十二池' },
+    { wave: 600, silver: 9800, label: '六百浪不朽池' },
   ];
 
   function endlessMilestone(waveIndex) {
@@ -1786,7 +1788,7 @@
       color: '#C9A227',
       weight: 3,
       apply: (state) => {
-        state.silver += 28;
+        state.silver += 30;
       },
     },
     {
@@ -2648,6 +2650,7 @@
       name: '雙鏡符咒',
       blurb: '鏡稅地板 −0.05（更兇）｜叠層延長',
       kind: 'debuff',
+      set: 'mirror',
       apply: (state) => {
         state._dualCharmTaxFloor = (state._dualCharmTaxFloor || 0) - 0.05;
         state._dualCharmTaxExtend = Math.max(state._dualCharmTaxExtend || 1, 1.18);
@@ -2658,6 +2661,7 @@
       name: '叠帳飾品',
       blurb: '雙五期間敵速 +7%（壓力）',
       kind: 'debuff',
+      set: 'mirror',
       apply: (state) => {
         state._dualCharmEnemySpeed = (state._dualCharmEnemySpeed || 1) * 1.07;
       },
@@ -2667,6 +2671,7 @@
       name: '護銀符',
       blurb: '抽銀 ×0.72｜短暫護庫',
       kind: 'buff',
+      set: 'ward',
       apply: (state) => {
         state._dualCharmDrainMul = (state._dualCharmDrainMul || 1) * 0.72;
       },
@@ -2676,6 +2681,7 @@
       name: '合星印飾',
       blurb: '合星回報 ×1.25（本潮）',
       kind: 'buff',
+      set: 'ward',
       apply: (state) => {
         state._dualCharmMergeMul = (state._dualCharmMergeMul || 1) * 1.25;
       },
@@ -2777,10 +2783,52 @@
     },
   ];
 
+  const RUN_MODIFIERS_550 = [
+    {
+      id: 'twelve_vault',
+      name: '十二池銀庫',
+      blurb: '開局銀 +34%；核心 HP +18%',
+      late550: true,
+      apply: (ctx) => {
+        ctx.silverMul = (ctx.silverMul || 1) * 1.34;
+        ctx.coreMul = (ctx.coreMul || 1) * 1.18;
+      },
+    },
+    {
+      id: 'twelve_mirror',
+      name: '十二池鏡冕',
+      blurb: '鏡稅地板 +0.16；抽銀 ×0.12',
+      late550: true,
+      apply: (ctx) => {
+        ctx.mirageTaxFloorBonus = (ctx.mirageTaxFloorBonus || 0) + 0.16;
+        ctx.silverDrainMul = (ctx.silverDrainMul || 1) * 0.12;
+      },
+    },
+    {
+      id: 'twelve_set_echo',
+      name: '十二池套鳴',
+      blurb: '符咒套裝共鳴 ×1.2；合星 ×1.12',
+      late550: true,
+      apply: (ctx) => {
+        ctx.charmSetMul = (ctx.charmSetMul || 1) * 1.2;
+        ctx.mergeRebateMul = (ctx.mergeRebateMul || 1) * 1.12;
+      },
+    },
+    {
+      id: 'twelve_seal',
+      name: '十二池印陣',
+      blurb: '敵速 −12%；俠客冷卻 −10%',
+      late550: true,
+      apply: (ctx) => {
+        ctx.enemySpeedMul = (ctx.enemySpeedMul || 1) * 0.88;
+        ctx.heroCdMul = (ctx.heroCdMul || 1) * 0.9;
+      },
+    },
+  ];
 
   /** 符咒 → 本局修飾欄項目（可裝備） */
   const CHARM_MAX_STAR = 3;
-  const CHARM_EQUIP_SLOTS = 2;
+  const CHARM_EQUIP_SLOTS = 3;
 
   function charmStarOf(save, charmId) {
     const o = (save && save.ownedCharms) || {};
@@ -2903,6 +2951,73 @@
     }).filter(Boolean);
   }
 
+  /** 套裝共鳴：同 set ≥2 觸發 */
+  const CHARM_SET_DEFS = {
+    mirror: {
+      id: 'set_mirror',
+      name: '鏡叠共鳴',
+      blurb: '雙鏡＋叠帳：鏡稅地板 −0.04；敵速壓力 +4%',
+      need: 2,
+      apply: function (ctx, mul) {
+        const m = mul || 1;
+        ctx.mirageTaxFloorBonus = (ctx.mirageTaxFloorBonus || 0) - 0.04 * m;
+        ctx.enemySpeedMul = (ctx.enemySpeedMul || 1) * (1 + 0.04 * m);
+      },
+    },
+    ward: {
+      id: 'set_ward',
+      name: '護合共鳴',
+      blurb: '護銀＋合星：抽銀 ×0.9；合星 ×1.12',
+      need: 2,
+      apply: function (ctx, mul) {
+        const m = mul || 1;
+        ctx.silverDrainMul = (ctx.silverDrainMul || 1) * Math.max(0.5, 1 - 0.1 * m);
+        ctx.mergeRebateMul = (ctx.mergeRebateMul || 1) * (1 + 0.12 * m);
+      },
+    },
+  };
+
+  function charmSetResonance(save) {
+    const pairs = getEquippedCharms(save);
+    const counts = {};
+    pairs.forEach(function (p) {
+      const set = (p.charm && p.charm.set) || '';
+      if (!set) return;
+      counts[set] = (counts[set] || 0) + 1;
+    });
+    const active = [];
+    Object.keys(counts).forEach(function (set) {
+      const def = CHARM_SET_DEFS[set];
+      if (def && counts[set] >= (def.need || 2)) {
+        active.push({
+          set: set,
+          count: counts[set],
+          name: def.name,
+          blurb: def.blurb,
+          id: def.id,
+          apply: def.apply,
+        });
+      }
+    });
+    return active;
+  }
+
+  function charmSetAsModifiers(save) {
+    return charmSetResonance(save).map(function (r) {
+      return {
+        id: 'equip_' + r.id,
+        name: '套·' + r.name,
+        blurb: r.blurb,
+        charmSet: true,
+        setId: r.set,
+        apply: function (ctx) {
+          const mul = ctx.charmSetMul || 1;
+          r.apply(ctx, mul);
+        },
+      };
+    });
+  }
+
   function listOwnedCharms(save) {
     normalizeOwnedCharms(save);
     const equipped = save.equippedCharmIds || [];
@@ -2914,6 +3029,7 @@
         name: c.name,
         blurb: c.blurb,
         kind: c.kind,
+        set: c.set || '',
         owned: star > 0,
         star: star,
         equipped: slot >= 0,
@@ -3264,6 +3380,14 @@
       if (!mods.some((m) => m.id === late11.id)) {
         if (mods.length >= 3) mods[mods.length - 1] = late11;
         else mods.push(late11);
+      }
+    }
+    if (best >= 550 && RUN_MODIFIERS_550.length) {
+      const h13 = (seed ^ 0x550beef) >>> 0;
+      const late12 = RUN_MODIFIERS_550[h13 % RUN_MODIFIERS_550.length];
+      if (!mods.some((m) => m.id === late12.id)) {
+        if (mods.length >= 3) mods[0] = late12;
+        else mods.push(late12);
       }
     }
     return mods;
@@ -3722,6 +3846,7 @@
 
   /** 失敗後隨機提示 */
   const FAIL_TIPS = [
+    '十二池在望：符咒三欄＋套裝共鳴可穩核心。',
     '前排放莊家鐵衛擋路，後排放空頭劍客／細價股刺客。',
     '同種合併升星通常比亂召一堆 1 星更強；最高可合到 4 星，合併有銀兩回報。',
     '股息隱士＋莊家鐵衛 → 羈絆「銀樓鐵壁」（減傷＋光環）。',
@@ -3942,6 +4067,12 @@
     { id: 'endless450', cat: 'combat', name: '四百五十浪十一池', blurb: '無盡最佳 ≥ 450 波', check: (s) => (s.bestEndlessWave || 0) >= 450 },
     { id: 'endless500', cat: 'combat', name: '五百浪封池城', blurb: '無盡最佳 ≥ 500 波', check: (s) => (s.bestEndlessWave || 0) >= 500 },
     { id: 'late450_run', cat: 'meta', name: '十一池開盤', blurb: '曾達 450 浪後再開無盡（抽第十一池修飾）', check: (s) => !!s.ach && !!s.ach.late450_run },
+    { id: 'late550_run', cat: 'meta', name: '十二池開盤', blurb: '曾達 550 浪後再開無盡（抽第十二池修飾）', check: (s) => !!s.ach && !!s.ach.late550_run },
+    { id: 'charm_triple', cat: 'meta', name: '三欄符咒', blurb: '同時裝備 3 枚符咒', check: (s) => !!(s.equippedCharmIds && s.equippedCharmIds.filter(Boolean).length >= 3) },
+    { id: 'charm_set', cat: 'meta', name: '套裝共鳴', blurb: '觸發一次符咒套裝共鳴', check: (s) => !!s.ach && !!s.ach.charm_set },
+    { id: 'wall_code_copy', cat: 'meta', name: '短碼一鍵', blurb: '從分享卡一鍵複製牆短碼', check: (s) => !!s.ach && !!s.ach.wall_code_copy },
+    { id: 'replay_timeline', cat: 'meta', name: '回放時間線', blurb: '用過回放時間線 scrub 或折線對照', check: (s) => !!s.ach && !!s.ach.replay_timeline },
+    { id: 'tut_gesture', cat: 'meta', name: '手勢軌跡', blurb: '見過行動端教學合併手勢軌跡', check: (s) => !!s.ach && !!s.ach.tut_gesture },
     { id: 'charm_star', cat: 'meta', name: '符咒升星', blurb: '任一符咒升至 ★2 或以上', check: (s) => { const o=s.ownedCharms||{}; return Object.keys(o).some(k => (o[k]===true?1:Number(o[k])||0) >= 2); } },
     { id: 'charm_multi', cat: 'meta', name: '雙欄符咒', blurb: '同時裝備 2 枚符咒', check: (s) => !!(s.equippedCharmIds && s.equippedCharmIds.filter(Boolean).length >= 2) },
     { id: 'wall_chart_png', cat: 'meta', name: '牆圖 PNG', blurb: '匯出牆對照圖／分享卡 PNG', check: (s) => !!s.ach && !!s.ach.wall_chart_png },
@@ -4011,7 +4142,9 @@
     const late400 = n >= 400 ? Math.min(0.08, (n - 400) * 0.0015) : 0;
     const late450 = n >= 450 ? Math.min(0.08, (n - 450) * 0.0014) : 0;
     const late500 = n >= 500 ? Math.min(0.06, (n - 500) * 0.0012) : 0;
-    const mul = 1 + (n - 1) * 0.105 + late50 + late75 + late90 + late120 + late130 + late140 + late150 + late160 + late180 + late200 + late220 + late250 + late300 + late350 + late400 + late450 + late500;
+    const late550 = n >= 550 ? Math.min(0.06, (n - 550) * 0.0011) : 0;
+    const late600 = n >= 600 ? Math.min(0.05, (n - 600) * 0.001) : 0;
+    const mul = 1 + (n - 1) * 0.105 + late50 + late75 + late90 + late120 + late130 + late140 + late150 + late160 + late180 + late200 + late220 + late250 + late300 + late350 + late400 + late450 + late500 + late550 + late600;
     const countLate = n >= 50 ? Math.min(n - 50, 25) * 0.01 + (n >= 75 ? (n - 75) * 0.006 : 0) : 0;
     const count = (base) => {
       let raw = Math.max(1, Math.round(base * (1 + (n - 1) * 0.072 + countLate)));
@@ -4484,7 +4617,7 @@
       s.equippedCharmIds = s.equippedCharmId ? [s.equippedCharmId] : [];
     }
     if (!s.endlessReplayFav || typeof s.endlessReplayFav !== 'object') s.endlessReplayFav = {};
-    s.version = Math.max(39, from, base.version || 39);
+    s.version = Math.max(40, from, base.version || 40);
     return s;
   }
 
@@ -4500,7 +4633,7 @@
 
   function defaultSave() {
     return {
-      version: 39,
+      version: 40,
       totalSilver: 0,
       totalKills: 0,
       maxStageCleared: 0,
@@ -4735,6 +4868,55 @@
     });
     const maxV = Math.max(1, ...bars.map(function (x) { return Math.max(x.curr, x.prev); }));
     return { bars: bars, max: maxV };
+  }
+
+  /** 多局折線對照（浪次／擊殺） */
+  function formatEndlessReplayMultiChart(save, opts) {
+    opts = opts || {};
+    const metric = opts.metric || 'wave';
+    const rows = formatEndlessReplay(save, { favOnly: !!opts.favOnly });
+    const series = rows.slice(0, 8).reverse(); // oldest→newest for line
+    const values = series.map(function (r) { return Number(r[metric]) || 0; });
+    const maxV = Math.max(1, ...values, 1);
+    return {
+      metric: metric,
+      max: maxV,
+      points: series.map(function (r, i) {
+        return {
+          i: i,
+          at: r.at,
+          label: r.label,
+          wave: r.wave,
+          kills: r.kills,
+          dualPenta: r.dualPenta,
+          taxStacks: r.taxStacks,
+          fav: r.fav,
+          v: Number(r[metric]) || 0,
+        };
+      }),
+    };
+  }
+
+  function formatEndlessReplayTimeline(save) {
+    const rows = formatEndlessReplay(save, {});
+    return {
+      count: rows.length,
+      entries: rows.map(function (r, i) {
+        return {
+          index: i,
+          at: r.at,
+          label: r.label,
+          wave: r.wave,
+          kills: r.kills,
+          dualPenta: r.dualPenta,
+          taxStacks: r.taxStacks,
+          fav: r.fav,
+          mods: r.mods,
+          bosses: r.bosses,
+          charm: r.charm,
+        };
+      }),
+    };
   }
 
   function toggleEndlessReplayFav(save, at) {
@@ -5440,6 +5622,7 @@
     RUN_MODIFIERS_350,
     RUN_MODIFIERS_400,
     RUN_MODIFIERS_450,
+    RUN_MODIFIERS_550,
     DUAL_PENTA_CHARMS,
     pickDualPentaCharm,
     charmAsModifier,
@@ -5455,6 +5638,9 @@
     normalizeOwnedCharms,
     CHARM_MAX_STAR,
     CHARM_EQUIP_SLOTS,
+    CHARM_SET_DEFS,
+    charmSetResonance,
+    charmSetAsModifiers,
     buildEndlessWave,
     buildDailyWaves,
     buildWeeklyWaves,
@@ -5510,6 +5696,8 @@
     formatEndlessReplay,
     compareEndlessReplay,
     formatEndlessReplayChart,
+    formatEndlessReplayMultiChart,
+    formatEndlessReplayTimeline,
     toggleEndlessReplayFav,
     recordWallSnapshot,
     formatWallTimeline,

@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 主循環 v3.9.0
+ * 銀樓防衛 — 主循環 v4.0.0
  * v1.9.0：第7關／鎖倉居士／週連續＋本地最佳牆／手感平衡
  */
 (function () {
@@ -83,8 +83,12 @@
     charmStarOf,
     charmAsModifier,
     formatEndlessReplayChart,
+    formatEndlessReplayMultiChart,
+    formatEndlessReplayTimeline,
     compareEndlessReplay,
     toggleEndlessReplayFav,
+    charmSetAsModifiers,
+    charmSetResonance,
   } = YD;
   const AudioSfx = window.YDAudio;
   const Battle = YDBattle;
@@ -246,7 +250,7 @@
       mods = endlessModifiers((save.bestEndlessWave || 0) + (save.totalKills || 0), {
         bestWave: save.bestEndlessWave || 0,
       });
-      // v3.9：已裝備符咒（最多雙欄）落地本局修飾欄，帶星級
+      // v4.0：已裝備符咒（最多三欄）＋套裝共鳴落地本局修飾欄
       try {
         const pairs =
           typeof getEquippedCharms === 'function' ? getEquippedCharms(save) : [];
@@ -259,6 +263,20 @@
           if (asMod && !mods.some((m) => m.charmId === asMod.charmId)) {
             mods.push(asMod);
             names.push(asMod.name);
+          }
+        }
+        const sets =
+          typeof charmSetAsModifiers === 'function' ? charmSetAsModifiers(save) : [];
+        for (const sm of sets) {
+          if (sm && !mods.some((m) => m.id === sm.id)) {
+            mods.push(sm);
+            names.push(sm.name);
+            if (!save.ach) save.ach = {};
+            save.ach.charm_set = true;
+            try {
+              const A = window.YDAudio;
+              if (A && A.play) A.play('charm_set');
+            } catch (_) {}
           }
         }
         if (names.length) save._equipCharmToast = names.join(' · ');
@@ -921,16 +939,19 @@
             m.late300 ||
             m.late350 ||
             m.late400 ||
-            m.late450
+            m.late450 ||
+            m.late550
         );
         state._lateModBadge = lateMods.length
           ? lateMods.map((m) => m.name).join(' · ')
           : '';
-        state._lateModTier = lateMods.some((m) => m.late450)
-          ? 450
-          : lateMods.some((m) => m.late400)
-            ? 400
-            : lateMods.some((m) => m.late350)
+        state._lateModTier = lateMods.some((m) => m.late550)
+          ? 550
+          : lateMods.some((m) => m.late450)
+            ? 450
+            : lateMods.some((m) => m.late400)
+              ? 400
+              : lateMods.some((m) => m.late350)
             ? 350
             : lateMods.some((m) => m.late300)
             ? 300
@@ -1003,6 +1024,12 @@
           writeSave(save);
           notifyAchievements();
         }
+        if ((save.bestEndlessWave || 0) >= 550) {
+          if (!save.ach) save.ach = {};
+          save.ach.late550_run = true;
+          writeSave(save);
+          notifyAchievements();
+        }
         if (save._equipCharmToast) {
           const nm = save._equipCharmToast;
           save._equipCharmToast = '';
@@ -1013,11 +1040,13 @@
         if (state._lateModBadge) {
           setTimeout(() => {
             const tag =
-              state._lateModTier >= 450
-                ? '【450+】'
-                : state._lateModTier >= 400
-                  ? '【400+】'
-                  : state._lateModTier >= 350
+              state._lateModTier >= 550
+                ? '【550+】'
+                : state._lateModTier >= 450
+                  ? '【450+】'
+                  : state._lateModTier >= 400
+                    ? '【400+】'
+                    : state._lateModTier >= 350
                   ? '【350+】'
                   : state._lateModTier >= 300
                   ? '【300+】'
@@ -1811,6 +1840,7 @@
       if (!save.ach) save.ach = {};
       if (id) save.ach.charm_equip = true;
       if (res.equipped && res.equipped.length >= 2) save.ach.charm_multi = true;
+      if (res.equipped && res.equipped.length >= 3) save.ach.charm_triple = true;
       writeSave(save);
       notifyAchievements();
       try {
@@ -1818,7 +1848,7 @@
         if (A && A.play && id) A.play('charm_equip');
       } catch (_) {}
       const n = (res.equipped && res.equipped.length) || 0;
-      UI.toast(id ? '已裝備｜欄位 ' + n + '/' + 2 : '已卸下符咒', 2200);
+      UI.toast(id ? '已裝備｜欄位 ' + n + '/' + 3 : '已卸下符咒', 2200);
     };
     window.__yinlouUpgradeCharm = (id) => {
       const res = typeof upgradeCharmStar === 'function' ? upgradeCharmStar(save, id) : { ok: false };
@@ -2087,6 +2117,41 @@
     } catch (_) {}
     return on;
   };
+
+  window.__yinlouMarkWallCodeCopy = function () {
+    if (!save.ach) save.ach = {};
+    if (!save.ach.wall_code_copy) {
+      save.ach.wall_code_copy = true;
+      writeSave(save);
+      notifyAchievements();
+      UI.toast('成就｜短碼一鍵', 1800);
+    }
+    try {
+      const A = window.YDAudio;
+      if (A && A.play) A.play('wall_code');
+    } catch (_) {}
+  };
+  window.__yinlouMarkReplayTimeline = function () {
+    if (!save.ach) save.ach = {};
+    if (!save.ach.replay_timeline) {
+      save.ach.replay_timeline = true;
+      writeSave(save);
+      notifyAchievements();
+    }
+    try {
+      const A = window.YDAudio;
+      if (A && A.play) A.play('replay_scrub');
+    } catch (_) {}
+  };
+  window.__yinlouMarkTutGesture = function () {
+    if (!save.ach) save.ach = {};
+    if (!save.ach.tut_gesture) {
+      save.ach.tut_gesture = true;
+      writeSave(save);
+      notifyAchievements();
+    }
+  };
+
   window.__yinlouMarkWallChartPng = function () {
     if (!save.ach) save.ach = {};
     if (!save.ach.wall_chart_png) {
