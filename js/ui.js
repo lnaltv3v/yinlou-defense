@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v1.5.0
+ * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v1.6.0
  */
 (function (global) {
   const {
@@ -18,6 +18,7 @@
     weeklyStageMeta,
     hkWeekKey,
     formatWeekProgress,
+    formatLocalBestWall,
     pickFailTip,
     UPGRADE_PATHS,
     upgradeCost,
@@ -84,7 +85,7 @@
       ink +
       '"></i>' +
       gear;
-    const src = (window.YDSprites && window.YDSprites.urlFor) ? window.YDSprites.urlFor(def.id) : ('assets/sprites/' + def.id + '.png?v=1.5.0');
+    const src = (window.YDSprites && window.YDSprites.urlFor) ? window.YDSprites.urlFor(def.id) : ('assets/sprites/' + def.id + '.png?v=1.6.0');
     return (
       '<span class="hero-avatar" aria-hidden="true" data-hero="' +
       def.id +
@@ -291,7 +292,7 @@
       btn.className = 'stage-btn' + (st.challenge ? ' challenge' : '');
       btn.dataset.stage = String(st.id);
       btn.textContent = st.id + '. ' + st.name;
-      if (st.challenge) btn.title = '挑戰關：盤後暗盤';
+      if (st.challenge) btn.title = st.id === 7 ? '挑戰關：斷索開市' : '挑戰關：盤後暗盤';
       btn.addEventListener('click', () => onPickStage(st.id - 1));
       bar.appendChild(btn);
     }
@@ -736,6 +737,14 @@
         '<div class="paper-row"><span>本週</span><strong>' +
         (st.weekProgress || (typeof formatWeekProgress === 'function' ? formatWeekProgress(save).label : '—')) +
         '</strong></div>' +
+        '<div class="paper-row"><span>連週</span><strong>' +
+        (st.weekStreak || 0) +
+        '（最佳 ' +
+        (st.weekStreakBest || 0) +
+        '）</strong></div>' +
+        '<div class="paper-row"><span>本地牆</span><strong>' +
+        (st.localBest || (typeof formatLocalBestWall === 'function' ? formatLocalBestWall(save).label : '—')) +
+        '</strong></div>' +
         '</div>'
     );
     const cats = ACHIEVEMENT_CATS || [{ id: 'all', name: '全部' }];
@@ -795,6 +804,8 @@
     if (!el || typeof formatWeekProgress !== 'function') return;
     const wp = formatWeekProgress(save || {});
     const dailyPct = Math.min(100, Math.round((wp.dailyN / wp.dailyGoal) * 100));
+    const wall = wp.localBest || (typeof formatLocalBestWall === 'function' ? formatLocalBestWall(save || {}) : null);
+    const streakPct = Math.min(100, Math.round(((wp.weekStreak || 0) / Math.max(3, wp.weekStreakBest || 3)) * 100));
     el.innerHTML =
       '<div class="wp-row">' +
       '<span class="wp-label">本週進度</span>' +
@@ -805,6 +816,8 @@
       wp.weekKey +
       (wp.dailyDoneToday ? ' · 今日✓' : '') +
       (wp.weeklyDone ? ' · 週✓' : ' · 週未清') +
+      ' · 連週' +
+      (wp.weekStreak || 0) +
       '</span>' +
       '</div>' +
       '<div class="wp-bar" title="' +
@@ -814,11 +827,27 @@
       dailyPct +
       '%"></i>' +
       '</div>' +
-      '<div class="wp-hint">每日首清計入本週 ' +
+      '<div class="wp-bar wp-bar-streak" title="連續週挑戰">' +
+      '<i class="wp-fill streak" style="width:' +
+      streakPct +
+      '%"></i>' +
+      '</div>' +
+      '<div class="wp-hint">每日 ' +
       wp.dailyN +
-      '/7｜週挑戰首清另計｜' +
+      '/7｜週挑戰' +
+      (wp.weeklyDone ? '✓' : '未清') +
+      '｜連週 ' +
+      (wp.weekStreak || 0) +
+      '（最佳 ' +
+      (wp.weekStreakBest || 0) +
+      '）｜' +
       wp.resetHint +
-      '</div>';
+      '</div>' +
+      (wall
+        ? '<div class="wp-wall" title="僅本機紀錄，唔做線上排行"><span class="wp-wall-label">本地最佳牆</span> ' +
+          wall.short +
+          '</div>'
+        : '');
   }
 
   function setHint(text) {

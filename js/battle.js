@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 戰鬥／生成／合併邏輯 v1.5.0
+ * 銀樓防衛 — 戰鬥／生成／合併邏輯 v1.6.0
  * v1.4：擊退／超殺／擊破爆點／陣亡墨塵
  */
 (function (global) {
@@ -445,6 +445,23 @@
         });
         state.fx.push({ type: 'skill', x: target.x, y: target.y, color: '#3A4060', life: 0.4, text: sk.name });
       }
+      if (sk.id === 'lock_seal') {
+        const dur = (sk.lockDur || 3.6) + (mods.lockDurBonus || 0);
+        let mul = sk.lockMul != null ? sk.lockMul : 0.62;
+        if (mods.lockBonus) mul = Math.max(0.35, mul - mods.lockBonus);
+        target.lockT = Math.max(target.lockT || 0, dur);
+        target.lockAtkMul = Math.min(target.lockAtkMul != null ? target.lockAtkMul : 1, mul);
+        pushFloat(floats, {
+          x: target.x,
+          y: target.y - 28,
+          text: '鎖倉！',
+          color: '#406858',
+          size: 13,
+          vy: -24,
+          life: 0.8,
+        });
+        state.fx.push({ type: 'skill', x: target.x, y: target.y, color: '#406858', life: 0.45, text: sk.name, r: 18 });
+      }
     }
 
     // 標記加傷（掮客以外隊友／自己後續普攻）
@@ -768,6 +785,13 @@
           e.darkMarkBonus = 0;
         }
       }
+      if (e.lockT > 0) {
+        e.lockT -= dt;
+        if (e.lockT <= 0) {
+          e.lockT = 0;
+          e.lockAtkMul = 1;
+        }
+      }
 
       e.cd -= dt;
       const hero = nearestHeroOnLane(e, state.heroes);
@@ -801,7 +825,7 @@
         if (e.cd <= 0) {
           e.cd = e.attackCd;
           e.atkCount = (e.atkCount || 0) + 1;
-          let dmg = Math.round(e.atk * (e.atkBuffMul || 1) * (e.rushDmgMul || 1));
+          let dmg = Math.round(e.atk * (e.atkBuffMul || 1) * (e.rushDmgMul || 1) * (e.lockAtkMul != null ? e.lockAtkMul : 1));
           const sk = e.def.skill;
           const canSkill = sk && (e.boss || e.elite) && sk.every && e.atkCount % sk.every === 0;
           if (canSkill) {
@@ -862,13 +886,14 @@
     }
 
     for (const e of arrived) {
-      state.coreHp -= e.atk;
+      const gateDmg = Math.max(1, Math.round(e.atk * (e.lockAtkMul != null ? e.lockAtkMul : 1)));
+      state.coreHp -= gateDmg;
       state.coreHitFlash = 0.35;
       state.shake = 0.22;
       pushFloat(state.floats, {
         x: CORE.x,
         y: CORE.y - 40,
-        text: '破門 -' + e.atk,
+        text: '破門 -' + gateDmg,
         color: '#C45C4A',
         size: 18,
         vy: -34,
@@ -884,11 +909,25 @@
     const dead = state.enemies.filter((e) => e.hp <= 0);
     for (const e of dead) {
       if (e.x > CORE.x + 20) {
-        state.silver += e.reward;
+        let reward = e.reward;
+        if (e.lockT > 0 || (e.lockAtkMul != null && e.lockAtkMul < 0.99)) {
+          const bonus = Math.max(1, Math.round(e.reward * 0.15));
+          reward += bonus;
+          pushFloat(state.floats, {
+            x: e.x + 12,
+            y: e.y - 14,
+            text: '鎖倉+' + bonus,
+            color: '#406858',
+            size: 11,
+            vy: -26,
+            life: 0.7,
+          });
+        }
+        state.silver += reward;
         pushFloat(state.floats, {
           x: e.x,
           y: e.y,
-          text: '+' + e.reward,
+          text: '+' + reward,
           color: '#D4AF37',
           size: 14,
           vy: -28,
@@ -1156,7 +1195,7 @@
       y: hero.y - 52,
       text: '升星 ★' + prev + '→★' + hero.star,
       color: '#C9A227',
-      size: 16,
+      size: 17,
       vy: -34,
       life: 1.05,
       bounce: 1.15,

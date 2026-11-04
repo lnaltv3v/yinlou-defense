@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — Canvas 繪製 v1.5.0
+ * 銀樓防衛 — Canvas 繪製 v1.6.0
  * v1.5：場景四層 ground→mid→wall→props；halt_seal PNG；擊破／暴擊
  */
 (function (global) {
@@ -406,6 +406,15 @@
       drawPixelRect(ctx, hx - s - 8, hy + 4, 5, 5, '#C9A227');
       drawPixelRect(ctx, hx - 12, hy - s - 20, 24, 5, '#508070');
       drawPixelRect(ctx, hx - 6, hy - s - 26, 12, 6, paper);
+    } else if (kind === 'brush' || kind === 'locker') {
+      // 鎖倉居士：鐵筆＋印匣
+      drawPixelRect(ctx, hx + s - 4 + wx, hy - 16 + wy, 3, 24, ink);
+      drawPixelRect(ctx, hx + s - 6 + wx, hy - 18 + wy, 7, 4, '#406858');
+      drawPixelRect(ctx, hx + s - 2 + wx, hy + 6 + wy, 5, 3, '#C9A227');
+      drawPixelRect(ctx, hx - s - 10, hy + 0, 9, 8, '#5A4030');
+      drawPixelRect(ctx, hx - s - 8, hy + 2, 5, 4, '#C45C4A');
+      drawPixelRect(ctx, hx - 12, hy - s - 20, 24, 5, '#406858');
+      drawPixelRect(ctx, hx - 6, hy - s - 26, 12, 6, paper);
     }
   }
 
@@ -644,6 +653,13 @@
       ctx.lineWidth = 2;
       ctx.strokeRect(e.x - r - 4, e.y - r - 4 + bob, r * 2 + 8, r * 2 + 8);
       drawPixelRect(ctx, e.x - 5, e.y - r - 12 + bob, 10, 4, '#C9A227');
+    }
+    if (e.lockT > 0) {
+      ctx.strokeStyle = '#406858';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(e.x - r - 5, e.y - r - 5 + bob, r * 2 + 10, r * 2 + 10);
+      drawPixelRect(ctx, e.x - 6, e.y - r - 14 + bob, 12, 4, '#406858');
+      drawPixelRect(ctx, e.x - 3, e.y - r - 13 + bob, 6, 2, '#C9A227');
     }
     if (e.boss) {
       // 羽翼感

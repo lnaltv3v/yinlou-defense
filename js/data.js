@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 靜態資料 v1.5.0
+ * 銀樓防衛 — 靜態資料 v1.6.0
  * 角色為原創綽號，影射金融江湖氣氛；唔用真人真名／金庸名／Fortias IP。
  */
 (function (global) {
@@ -291,6 +291,32 @@
         silverBurst: 1,
       },
     },
+    lock_hermit: {
+      id: 'lock_hermit',
+      name: '鎖倉居士',
+      blurb: '鎖倉減攻 · 鐵筆點穴',
+      lore: '鎖倉唔等於認輸——鐵筆一點，敵刀收三分。居士話市崩先至鎖倉，人笑佢慢，佢笑人忙：刀慢一寸，銀樓多一息。',
+      role: 'locker',
+      cost: 33,
+      color: '#406858',
+      silhouette: 'brush',
+      atk: 9,
+      hp: 70,
+      range: 158,
+      cooldown: 0.72,
+      speed: 0,
+      slow: 0.18,
+      slowDur: 0.9,
+      skill: {
+        id: 'lock_seal',
+        name: '鎖倉印',
+        type: 'active',
+        blurb: '每第 4 擊鎖倉：敵攻擊 −38%（約 3.6 秒）',
+        every: 4,
+        lockMul: 0.62,
+        lockDur: 3.6,
+      },
+    },
   };
 
   /** 場上羈絆：同時存在列出嘅 id → 被動 */
@@ -364,6 +390,24 @@
       auraMul: 1.18,
       healLowBonus: 0.2,
       applyTo: ['dip_buyer', 'dividend_hermit'],
+    },
+    {
+      id: 'lock_vault',
+      name: '鎖倉鐵壁',
+      need: ['lock_hermit', 'market_guard'],
+      blurb: '鐵衛減傷；鎖倉減攻再 −8%',
+      tankDmgMul: 0.88,
+      lockBonus: 0.08,
+      applyTo: ['lock_hermit', 'market_guard'],
+    },
+    {
+      id: 'lock_div',
+      name: '細水鎖倉',
+      need: ['lock_hermit', 'dividend_hermit'],
+      blurb: '光環加強；鎖倉持續 +0.8 秒',
+      auraMul: 1.12,
+      lockDurBonus: 0.8,
+      applyTo: ['lock_hermit', 'dividend_hermit'],
     },
   ];
 
@@ -798,12 +842,12 @@
           { enemy: 'black_swan', count: 1, lane: 0, interval: 0, delay: 4 },
         ]),
         wavePack([
-          { enemy: 'retail_tide', count: 16, lane: 'cycle', interval: 0.26 },
-          { enemy: 'panic_board', count: 6, lane: 'random', interval: 0.75, delay: 0.4 },
-          { enemy: 'margin_call', count: 8, lane: 'cycle', interval: 0.5, delay: 0.5 },
-          { enemy: 'leverage_fiend', count: 5, lane: 'random', interval: 0.9, delay: 1 },
-          { enemy: 'black_swan', count: 2, lane: 'cycle', interval: 3.5, delay: 2.5 },
-          { enemy: 'rumor_swarm', count: 12, lane: 'random', interval: 0.24, delay: 0.3 },
+          { enemy: 'retail_tide', count: 15, lane: 'cycle', interval: 0.28 },
+          { enemy: 'panic_board', count: 5, lane: 'random', interval: 0.78, delay: 0.4 },
+          { enemy: 'margin_call', count: 7, lane: 'cycle', interval: 0.52, delay: 0.5 },
+          { enemy: 'leverage_fiend', count: 4, lane: 'random', interval: 0.95, delay: 1 },
+          { enemy: 'black_swan', count: 2, lane: 'cycle', interval: 3.6, delay: 2.8 },
+          { enemy: 'rumor_swarm', count: 10, lane: 'random', interval: 0.26, delay: 0.3 },
         ]),
       ],
     },
@@ -860,15 +904,85 @@
           { enemy: 'rumor_swarm', count: 14, lane: 'cycle', interval: 0.24, delay: 0.2 },
         ]),
         wavePack([
-          { enemy: 'dark_tape', count: 14, lane: 'cycle', interval: 0.3 },
-          { enemy: 'panic_board', count: 6, lane: 'random', interval: 0.75, delay: 0.4 },
+          { enemy: 'dark_tape', count: 13, lane: 'cycle', interval: 0.32 },
+          { enemy: 'panic_board', count: 5, lane: 'random', interval: 0.78, delay: 0.4 },
+          { enemy: 'margin_call', count: 7, lane: 'cycle', interval: 0.5, delay: 0.5 },
+          { enemy: 'leverage_fiend', count: 4, lane: 'random', interval: 0.95, delay: 1 },
+          { enemy: 'black_swan', count: 2, lane: 'cycle', interval: 3.4, delay: 2.5 },
+          { enemy: 'chase_zombie', count: 5, lane: 'random', interval: 0.58, delay: 0.6 },
+        ]),
+      ],
+    },
+    {
+      id: 7,
+      name: '斷索開市',
+      story: '開市鑼未響，槓桿索已斷。停牌符貼滿城門，暗盤影同恐慌盤一齊湧向櫃檯——掌櫃拍桌：今夜唔係開市，係斷索之後第一盤棋。鎖倉、護盤、軋空，一氣呵成，否則只剩空倉同空城。',
+      challenge: true,
+      startSilver: 278,
+      coreHp: 308,
+      unlockHeroes: Object.keys(HEROES),
+      firstClearBonus: 200,
+      waves: [
+        wavePack([
+          { enemy: 'halt_seal', count: 5, lane: 'cycle', interval: 0.7 },
+          { enemy: 'retail_tide', count: 10, lane: 'random', interval: 0.42, delay: 0.6 },
+          { enemy: 'rumor_swarm', count: 6, lane: 'cycle', interval: 0.4, delay: 0.5 },
+        ]),
+        wavePack([
+          { enemy: 'dark_tape', count: 7, lane: 'cycle', interval: 0.5 },
+          { enemy: 'margin_call', count: 5, lane: 'random', interval: 0.75, delay: 0.8 },
+          { enemy: 'halt_seal', count: 4, lane: 'cycle', interval: 0.85, delay: 1.2 },
+        ]),
+        wavePack([
+          { enemy: 'panic_board', count: 4, lane: 'cycle', interval: 1.05, delay: 0.5, elite: true },
+          { enemy: 'chase_zombie', count: 6, lane: 'random', interval: 0.7, delay: 0.8 },
+          { enemy: 'leverage_fiend', count: 2, lane: 'cycle', interval: 1.4, delay: 2 },
+          { enemy: 'halt_seal', count: 4, lane: 'random', interval: 0.9, delay: 1.5 },
+        ]),
+        wavePack([
+          { enemy: 'dark_tape', count: 10, lane: 'cycle', interval: 0.4 },
+          { enemy: 'rumor_swarm', count: 12, lane: 'random', interval: 0.3, delay: 0.3 },
+          { enemy: 'margin_call', count: 6, lane: 'cycle', interval: 0.6, delay: 0.8 },
+          { enemy: 'black_swan', count: 1, lane: 1, interval: 0, delay: 4.0 },
+        ]),
+        wavePack([
+          { enemy: 'panic_board', count: 5, lane: 'cycle', interval: 0.9 },
+          { enemy: 'halt_seal', count: 6, lane: 'random', interval: 0.7, delay: 0.5 },
+          { enemy: 'leverage_fiend', count: 3, lane: 'cycle', interval: 1.1, delay: 1.2, elite: true },
+          { enemy: 'dark_tape', count: 8, lane: 'random', interval: 0.4, delay: 0.6 },
+        ]),
+        wavePack([
+          { enemy: 'margin_call', count: 8, lane: 'cycle', interval: 0.5 },
+          { enemy: 'panic_board', count: 5, lane: 'random', interval: 0.85, delay: 0.5 },
+          { enemy: 'black_swan', count: 1, lane: 2, interval: 0, delay: 3.2 },
+          { enemy: 'halt_seal', count: 5, lane: 'cycle', interval: 0.75, delay: 1.5 },
+        ]),
+        wavePack([
+          { enemy: 'retail_tide', count: 14, lane: 'cycle', interval: 0.28 },
+          { enemy: 'dark_tape', count: 12, lane: 'random', interval: 0.34, delay: 0.25 },
+          { enemy: 'panic_board', count: 5, lane: 'cycle', interval: 0.85, delay: 0.8 },
+          { enemy: 'leverage_fiend', count: 4, lane: 'random', interval: 0.95, delay: 1 },
+          { enemy: 'rumor_swarm', count: 12, lane: 'cycle', interval: 0.26, delay: 0.2 },
+        ]),
+        wavePack([
+          { enemy: 'halt_seal', count: 8, lane: 'cycle', interval: 0.55 },
+          { enemy: 'dark_tape', count: 12, lane: 'random', interval: 0.32, delay: 0.3 },
+          { enemy: 'panic_board', count: 6, lane: 'cycle', interval: 0.8, delay: 0.6 },
+          { enemy: 'black_swan', count: 1, lane: 0, interval: 0, delay: 3.5 },
+          { enemy: 'black_swan', count: 1, lane: 3, interval: 0, delay: 6.0 },
+        ]),
+        wavePack([
+          { enemy: 'dark_tape', count: 14, lane: 'cycle', interval: 0.28 },
+          { enemy: 'panic_board', count: 6, lane: 'random', interval: 0.72, delay: 0.35 },
+          { enemy: 'halt_seal', count: 8, lane: 'cycle', interval: 0.5, delay: 0.4 },
+          { enemy: 'leverage_fiend', count: 5, lane: 'random', interval: 0.88, delay: 0.9, elite: true },
           { enemy: 'margin_call', count: 8, lane: 'cycle', interval: 0.48, delay: 0.5 },
-          { enemy: 'leverage_fiend', count: 5, lane: 'random', interval: 0.9, delay: 1 },
-          { enemy: 'black_swan', count: 2, lane: 'cycle', interval: 3.2, delay: 2.2 },
+          { enemy: 'black_swan', count: 2, lane: 'cycle', interval: 3.0, delay: 2.0 },
           { enemy: 'chase_zombie', count: 6, lane: 'random', interval: 0.55, delay: 0.6 },
         ]),
       ],
     },
+
   ];
 
   const ENDLESS = {
@@ -1259,19 +1373,105 @@
     return yy + '-' + mm + '-' + dd + '（下週一 00:00 港時間重置）';
   }
 
+
+  /** 上一 ISO 週鍵（港時） */
+  function hkPrevWeekKey(weekKey) {
+    const key = weekKey || hkWeekKey();
+    const m = /^(\d{4})-W(\d{2})$/.exec(key);
+    if (!m) return '';
+    let y = Number(m[1]);
+    let w = Number(m[2]) - 1;
+    if (w < 1) {
+      y -= 1;
+      w = 52;
+    }
+    return y + '-W' + String(w).padStart(2, '0');
+  }
+
+  /** 週挑戰首清：更新連續週／歷史／本地最佳 */
+  function recordWeeklyStreak(save, weekKey) {
+    const wk = weekKey || hkWeekKey();
+    if (!save) return 0;
+    if (save.lastWeeklyClearKey === wk) {
+      return save.weekStreak || 0;
+    }
+    const prev = hkPrevWeekKey(wk);
+    if (save.lastWeeklyClearKey && save.lastWeeklyClearKey === prev) {
+      save.weekStreak = (save.weekStreak || 0) + 1;
+    } else {
+      save.weekStreak = 1;
+    }
+    save.weekStreakBest = Math.max(save.weekStreakBest || 0, save.weekStreak || 0);
+    save.lastWeeklyClearKey = wk;
+    if (!Array.isArray(save.weekClearHistory)) save.weekClearHistory = [];
+    if (!save.weekClearHistory.includes(wk)) save.weekClearHistory.push(wk);
+    while (save.weekClearHistory.length > 12) save.weekClearHistory.shift();
+    if (!save.localBest || typeof save.localBest !== 'object') save.localBest = { endless: 0, weeklyStreak: 0, stageClears: 0 };
+    save.localBest.weeklyStreak = Math.max(save.localBest.weeklyStreak || 0, save.weekStreakBest || 0);
+    save.localBest.endless = Math.max(save.localBest.endless || 0, save.bestEndlessWave || 0);
+    save.localBest.stageClears = Math.max(save.localBest.stageClears || 0, save.maxStageCleared || 0);
+    return save.weekStreak || 0;
+  }
+
+  function formatLocalBestWall(save) {
+    const s = save || {};
+    const lb = s.localBest || {};
+    const endless = Math.max(lb.endless || 0, s.bestEndlessWave || 0);
+    const streak = Math.max(lb.weeklyStreak || 0, s.weekStreakBest || 0, s.weekStreak || 0);
+    const stages = Math.max(lb.stageClears || 0, s.maxStageCleared || 0);
+    const hist = Array.isArray(s.weekClearHistory) ? s.weekClearHistory.slice(-6) : [];
+    return {
+      endless: endless,
+      weekStreak: s.weekStreak || 0,
+      weekStreakBest: streak,
+      stages: stages,
+      stagesTotal: STAGES.length,
+      history: hist,
+      label:
+        '本地最佳｜無盡 ' +
+        endless +
+        ' 波｜連續週 ' +
+        (s.weekStreak || 0) +
+        '（最佳 ' +
+        streak +
+        '）｜主線 ' +
+        stages +
+        '/' +
+        STAGES.length,
+      short: '無盡' + endless + '·連週' + (s.weekStreak || 0) + '·主線' + stages + '/' + STAGES.length,
+    };
+  }
+
   function formatWeekProgress(save) {
     const wk = hkWeekKey();
     const dailyN = weekDailyCount(save, wk);
     const weeklyDone = save && save.weeklyKey === wk && save.weeklyCleared;
     const dailyDoneToday = save && save.dailyDate === hkDateString() && save.dailyCleared;
+    const streak = (save && save.weekStreak) || 0;
+    const streakBest = Math.max((save && save.weekStreakBest) || 0, streak);
+    const wall = formatLocalBestWall(save);
     return {
       weekKey: wk,
       dailyN: dailyN,
       dailyGoal: 7,
       weeklyDone: !!weeklyDone,
       dailyDoneToday: !!dailyDoneToday,
-      label: '本週 ' + wk + '｜每日 ' + dailyN + '/7' + (dailyDoneToday ? '（今日✓）' : '') + '｜週挑戰' + (weeklyDone ? '✓' : '未清'),
-      short: '日' + dailyN + '/7·週' + (weeklyDone ? '✓' : '—'),
+      weekStreak: streak,
+      weekStreakBest: streakBest,
+      localBest: wall,
+      label:
+        '本週 ' +
+        wk +
+        '｜每日 ' +
+        dailyN +
+        '/7' +
+        (dailyDoneToday ? '（今日✓）' : '') +
+        '｜週挑戰' +
+        (weeklyDone ? '✓' : '未清') +
+        '｜連週 ' +
+        streak +
+        (streakBest > streak ? '（最佳' + streakBest + '）' : ''),
+      short: '日' + dailyN + '/7·週' + (weeklyDone ? '✓' : '—') + '·連' + streak,
       resetHint: hkNextMondayHint(),
     };
   }
@@ -1356,9 +1556,10 @@
       { name: 'IPO 過熱', focus: 'rumor_swarm', blurb: '傳聞蚊偏多｜招股熱' },
       { name: '熔斷演練', focus: 'black_swan', blurb: '黑天鵝更早｜演練盤' },
       { name: '暗盤加時', focus: 'dark_tape', blurb: '暗盤影偏多｜盤後加時' },
+      { name: '斷索週結', focus: 'halt_seal', blurb: '停牌符偏多｜斷索週' },
     ];
     const theme = themes[h % themes.length];
-    const base = STAGES[2 + (h % 4)]; // 3–6 關難度帶
+    const base = STAGES[2 + (h % Math.max(1, STAGES.length - 2))]; // 3–末關難度帶
     const mods = pickModifiers(h ^ 0x51ed270b, 2);
     const modLine = modifierLabel(mods);
     return {
@@ -1375,8 +1576,8 @@
         (mods.map((m) => m.name + '—' + m.blurb).join('；') || '平盤') +
         '」。週挑戰比每日更密——合星、強化、羈絆齊人再開倉。結算頁會顯示本週每日進度同下週重置。',
       focus: theme.focus,
-      startSilver: 175 + (h % 6) * 6,
-      coreHp: 200 + (h % 5) * 8,
+      startSilver: 180 + (h % 6) * 6,
+      coreHp: 205 + (h % 5) * 8,
       seed: h,
       unlockHeroes: Object.keys(HEROES),
       waveCount: 6 + (h % 3), // 6–8
@@ -1509,6 +1710,13 @@
       blurb: '雙奶＋坦｜觸發細水抄底',
       tip: '殘血急救＋分紅光環；鐵衛頂前',
     },
+    {
+      id: 'lock_wall',
+      name: '鎖倉鐵壁',
+      heroes: ['lock_hermit', 'market_guard', 'dividend_hermit'],
+      blurb: '鎖倉＋坦＋奶｜觸發鎖倉鐵壁／細水鎖倉',
+      tip: '鐵筆鎖敵攻、鐵衛頂、隱士回血',
+    },
   ];
 
   /** 失敗後隨機提示 */
@@ -1528,6 +1736,9 @@
     '抄底居士＋股息隱士 →「細水抄底」：殘血急救更強；坦＋雙奶好捱。',
     '睇關卡列下方「本週進度」：每日 n/7＋週挑戰首清獎。',
     '傳聞蚊／暗盤影已有正式像素——認形快啲，優先清風聲再硬頂。',
+    '第 7 關「斷索開市」停牌符＋暗盤影混編——鎖倉居士減攻＋鐵衛更穩。',
+    '鎖倉居士＋莊家鐵衛 →「鎖倉鐵壁」；配股息隱士再觸「細水鎖倉」。',
+    '週挑戰睇連續週同本地最佳牆（設定／成就）；唔做線上排行。',
   ];
 
 
@@ -1559,7 +1770,8 @@
     { id: 'stage4', cat: 'stage', name: '清算達人', blurb: '通關第 4 關', check: (s) => (s.maxStageCleared || 0) >= 4 },
     { id: 'stage5', cat: 'stage', name: '熔斷倖存', blurb: '通關第 5 關', check: (s) => (s.maxStageCleared || 0) >= 5 },
     { id: 'stage6', cat: 'stage', name: '暗盤破曉', blurb: '通關第 6 關「盤後暗盤」', check: (s) => (s.maxStageCleared || 0) >= 6 },
-    { id: 'all_stages', cat: 'stage', name: '六關皆破', blurb: '通關全部主線關卡', check: (s) => (s.maxStageCleared || 0) >= 6 },
+    { id: 'stage7', cat: 'stage', name: '斷索開市', blurb: '通關第 7 關「斷索開市」', check: (s) => (s.maxStageCleared || 0) >= 7 },
+    { id: 'all_stages', cat: 'stage', name: '七關皆破', blurb: '通關全部主線關卡', check: (s) => (s.maxStageCleared || 0) >= STAGES.length },
     { id: 'star3', cat: 'merge', name: '三星掛牌', blurb: '首次合成 3 星', check: (s) => !!s.ach && s.ach.star3 },
     { id: 'maxstar', cat: 'merge', name: '滿星開盤', blurb: '首次合成 4 星', check: (s) => !!s.ach && s.ach.maxstar },
     { id: 'upgrade', cat: 'merge', name: '鍛打開倉', blurb: '首次強化場上俠客', check: (s) => !!s.ach && s.ach.upgrade },
@@ -1596,6 +1808,8 @@
     { id: 'dark_seen', cat: 'combat', name: '暗盤入眼', blurb: '圖鑑見過暗盤影', check: (s) => !!(s.seenEnemies && s.seenEnemies.dark_tape) },
     { id: 'rumor_sweep', cat: 'combat', name: '風聲收割', blurb: '單局擊殺傳聞蚊 ≥ 20', check: (s) => !!s.ach && !!s.ach.rumor_sweep },
     { id: 'streak5', cat: 'combat', name: '連斬開市', blurb: '單局達成一次連斬 ×5', check: (s) => !!s.ach && !!s.ach.streak5 },
+    { id: 'week_streak3', cat: 'meta', name: '三週連莊', blurb: '週挑戰連續週 ≥ 3', check: (s) => (s.weekStreakBest || 0) >= 3 || (s.weekStreak || 0) >= 3 },
+    { id: 'lock_bond', cat: 'combat', name: '鎖倉開倉', blurb: '觸發鎖倉鐵壁或細水鎖倉', check: (s) => !!s.ach && !!s.ach.lock_bond },
   ];
 
   /** 首通銀兩獎勵（入累計帳） */
@@ -1606,7 +1820,8 @@
     4: 80,
     5: 100,
     6: 150,
-    all: 200,
+    7: 200,
+    all: 250,
   };
 
   function stageFirstClearBonus(stageId) {
@@ -1624,6 +1839,9 @@
       achUnlocked: Object.keys(s.unlockedAch || {}).length,
       achTotal: ACHIEVEMENTS.length,
       weekProgress: formatWeekProgress(s).label,
+      localBest: formatLocalBestWall(s).label,
+      weekStreak: s.weekStreak || 0,
+      weekStreakBest: s.weekStreakBest || 0,
     };
   }
 
@@ -1802,19 +2020,19 @@
     };
   }
 
-  /** 召喚費曲線：同種每多召一次 +6（封頂 +48） */
+  /** 召喚費曲線：同種每多召一次 +5（封頂 +45） */
   function summonCost(heroId, summonCounts) {
     const def = HEROES[heroId];
     if (!def) return 999;
     const n = (summonCounts && summonCounts[heroId]) || 0;
-    return def.cost + Math.min(48, n * 6);
+    return def.cost + Math.min(45, n * 5);
   }
 
   /** 合併回報銀兩（按目標新星級） */
   function mergeRebate(heroId, newStar) {
     const def = HEROES[heroId];
     if (!def) return 0;
-    return Math.round(def.cost * 0.15 * newStar);
+    return Math.round(def.cost * 0.16 * newStar);
   }
 
   function activeBonds(heroes) {
@@ -1823,7 +2041,7 @@
   }
 
   function bondModsFor(heroId, bonds) {
-    const mods = { atkMul: 1, cdMul: 1, tankDmgMul: 1, auraMul: 1, buffBonus: 0, highHpExtra: 0, rangeBonus: 0, markBonus: 0, markDurBonus: 0, healLowBonus: 0 };
+    const mods = { atkMul: 1, cdMul: 1, tankDmgMul: 1, auraMul: 1, buffBonus: 0, highHpExtra: 0, rangeBonus: 0, markBonus: 0, markDurBonus: 0, healLowBonus: 0, lockBonus: 0, lockDurBonus: 0 };
     for (const b of bonds) {
       if (!b.applyTo.includes(heroId)) continue;
       if (b.atkMul) mods.atkMul *= b.atkMul;
@@ -1836,6 +2054,8 @@
       if (b.markBonus) mods.markBonus += b.markBonus;
       if (b.markDurBonus) mods.markDurBonus += b.markDurBonus;
       if (b.healLowBonus) mods.healLowBonus += b.healLowBonus;
+      if (b.lockBonus) mods.lockBonus += b.lockBonus;
+      if (b.lockDurBonus) mods.lockDurBonus += b.lockDurBonus;
     }
     return mods;
   }
@@ -1852,7 +2072,7 @@
 
   function defaultSave() {
     return {
-      version: 15,
+      version: 16,
       totalSilver: 0,
       totalKills: 0,
       maxStageCleared: 0,
@@ -1877,6 +2097,11 @@
       weeklyKey: '',
       weeklyCleared: false,
       weekDailyMap: {},
+      weekStreak: 0,
+      weekStreakBest: 0,
+      lastWeeklyClearKey: '',
+      weekClearHistory: [],
+      localBest: { endless: 0, weeklyStreak: 0, stageClears: 0 },
       firstBootDone: false,
       tutorialDone: false,
     };
@@ -1884,7 +2109,7 @@
 
   function exportSaveJson(save) {
     const payload = {
-      meta: { game: 'yinlou-defense', exportedAt: new Date().toISOString(), version: save.version || 15 },
+      meta: { game: 'yinlou-defense', exportedAt: new Date().toISOString(), version: save.version || 16 },
       save: { ...defaultSave(), ...save },
     };
     return JSON.stringify(payload, null, 2);
@@ -1895,7 +2120,12 @@
     const body = data && data.save ? data.save : data;
     if (!body || typeof body !== 'object') throw new Error('無效存檔');
     const merged = { ...defaultSave(), ...body };
-    merged.version = Math.max(15, merged.version || 15);
+    merged.version = Math.max(16, merged.version || 16);
+    if (merged.weekStreak == null) merged.weekStreak = 0;
+    if (merged.weekStreakBest == null) merged.weekStreakBest = 0;
+    if (!merged.lastWeeklyClearKey) merged.lastWeeklyClearKey = '';
+    if (!Array.isArray(merged.weekClearHistory)) merged.weekClearHistory = [];
+    if (!merged.localBest || typeof merged.localBest !== 'object') merged.localBest = { endless: 0, weeklyStreak: 0, stageClears: 0 };
     if (!merged.weekDailyMap) merged.weekDailyMap = {};
     if (!merged.firstClears) merged.firstClears = {};
     if (!merged.seenHeroes) merged.seenHeroes = {};
@@ -1970,8 +2200,11 @@
     pick('squeeze', 2 + (swan >= 3 ? 5 : swan >= 2 ? 3 : 0));
     pick('arb_hedge', 2 + (panic > 4 ? 5 : 0) + (stage && stage.id === 5 ? 2 : 0));
     pick('dark_night', 2 + (dark > 6 ? 7 : dark > 0 ? 4 : 0) + (stage && stage.id === 6 ? 3 : 0));
+    const halt = counts.halt_seal || 0;
+    pick('lock_wall', 2 + (halt > 5 ? 6 : 0) + (stage && stage.id === 7 ? 5 : 0));
     let reason = '均衡起步';
-    if (best.id === 'dark_night') reason = '暗盤影偏多——標記＋劍減速';
+    if (best.id === 'lock_wall') reason = '停牌／斷索——鎖倉減攻＋鐵壁';
+    else if (best.id === 'dark_night') reason = '暗盤影偏多——標記＋劍減速';
     else if (best.id === 'arb_hedge') reason = '恐慌／雜浪——跨 lane 點殺';
     else if (best.id === 'squeeze') reason = 'Boss／高血多——軋空收割';
     else if (best.id === 'leverage') reason = '傳聞蚊／槓桿潮——範圍清場';
@@ -2046,6 +2279,9 @@
     weekDailyCount,
     hkNextMondayHint,
     formatWeekProgress,
+    formatLocalBestWall,
+    hkPrevWeekKey,
+    recordWeeklyStreak,
     endlessModifiers,
     pickModifiers,
     buildModContext,

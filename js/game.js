@@ -1,6 +1,6 @@
 /**
- * 銀樓防衛 — 主循環 v1.5.0
- * v1.5.0：場景四層 ground→mid→wall→props；停牌符 PNG；加厚場景
+ * 銀樓防衛 — 主循環 v1.6.0
+ * v1.6.0：第7關／鎖倉居士／週連續＋本地最佳牆／手感平衡
  */
 (function () {
   const {
@@ -30,6 +30,8 @@
     recordWeekDailyClear,
     weekDailyCount,
     formatWeekProgress,
+    formatLocalBestWall,
+    recordWeeklyStreak,
     hkNextMondayHint,
     waveClearBonus,
     endlessMilestone,
@@ -96,7 +98,27 @@
     save.version = 15;
     writeSave(save);
   }
+  if (save.version < 16) {
+    save.version = 16;
+    if (save.weekStreak == null) save.weekStreak = 0;
+    if (save.weekStreakBest == null) save.weekStreakBest = 0;
+    if (!save.lastWeeklyClearKey) save.lastWeeklyClearKey = '';
+    if (!Array.isArray(save.weekClearHistory)) save.weekClearHistory = [];
+    if (!save.localBest || typeof save.localBest !== 'object') {
+      save.localBest = {
+        endless: save.bestEndlessWave || 0,
+        weeklyStreak: save.weekStreakBest || 0,
+        stageClears: save.maxStageCleared || 0,
+      };
+    }
+    writeSave(save);
+  }
   if (!save.weekDailyMap) save.weekDailyMap = {};
+  if (save.weekStreak == null) save.weekStreak = 0;
+  if (save.weekStreakBest == null) save.weekStreakBest = 0;
+  if (!save.localBest || typeof save.localBest !== 'object') {
+    save.localBest = { endless: 0, weeklyStreak: 0, stageClears: 0 };
+  }
   // 若今日已清每日但未入週圖，補一筆（唔重複加獎）
   try {
     if (save.dailyCleared && save.dailyDate === hkDateString()) {
@@ -281,6 +303,14 @@
     }
     if (state._bonds.length >= 3 && !save.ach.bonds3) {
       save.ach.bonds3 = true;
+      writeSave(save);
+      notifyAchievements();
+    }
+    if (
+      !save.ach.lock_bond &&
+      state._bonds.some((b) => b.id === 'lock_vault' || b.id === 'lock_div')
+    ) {
+      save.ach.lock_bond = true;
       writeSave(save);
       notifyAchievements();
     }
@@ -703,6 +733,12 @@
           save.weeklyCleared = true;
           save.ach.weekly = true;
           save.totalSilver += weeklyBonus;
+          if (typeof recordWeeklyStreak === 'function') recordWeeklyStreak(save, wk);
+        }
+        if (save.localBest) {
+          save.localBest.endless = Math.max(save.localBest.endless || 0, save.bestEndlessWave || 0);
+          save.localBest.weeklyStreak = Math.max(save.localBest.weeklyStreak || 0, save.weekStreakBest || 0);
+          save.localBest.stageClears = Math.max(save.localBest.stageClears || 0, save.maxStageCleared || 0);
         }
         writeSave(save);
         notifyAchievements();
@@ -718,8 +754,14 @@
             state.kills +
             '。\n' +
             (weeklyBonus ? '本週首清獎金 +' + weeklyBonus + ' 兩入帳。' : '本週已領過週挑戰首清獎（重打無額外獎）。') +
+            '\n連續週 ' +
+            (save.weekStreak || 0) +
+            '（最佳 ' +
+            (save.weekStreakBest || 0) +
+            '）' +
             '\n' +
             wp.label +
+            (typeof formatLocalBestWall === 'function' ? '\n' + formatLocalBestWall(save).label : '') +
             '\n重置：' +
             wp.resetHint +
             runModBlock() +
@@ -825,9 +867,13 @@
       let finaleBonus = 0;
       if ((save.maxStageCleared || 0) >= STAGES.length && !save.firstClears.all) {
         save.firstClears.all = true;
-        finaleBonus = (YD.STAGE_FIRST_CLEAR && YD.STAGE_FIRST_CLEAR.all) || 200;
+        finaleBonus = (YD.STAGE_FIRST_CLEAR && YD.STAGE_FIRST_CLEAR.all) || 250;
         save.totalSilver += finaleBonus;
-        rewardLines.push('六關皆破！終局獎勵 +' + finaleBonus + ' 兩');
+        rewardLines.push('七關皆破！終局獎勵 +' + finaleBonus + ' 兩');
+      }
+      if (save.localBest) {
+        save.localBest.stageClears = Math.max(save.localBest.stageClears || 0, save.maxStageCleared || 0);
+        save.localBest.endless = Math.max(save.localBest.endless || 0, save.bestEndlessWave || 0);
       }
       writeSave(save);
       notifyAchievements();
@@ -863,11 +909,15 @@
         },
       });
       const title =
-        stageId >= 6
-          ? '暗盤破曉'
-          : hasNext
-            ? '銀樓倖存'
-            : '六關皆破';
+        stageId >= 7
+          ? hasNext
+            ? '斷索開市'
+            : '七關皆破'
+          : stageId >= 6
+            ? '暗盤破曉'
+            : hasNext
+              ? '銀樓倖存'
+              : '七關皆破';
       const rewardBlock = rewardLines.length ? '\n' + rewardLines.join('\n') + '。' : '';
       UI.showOverlay(
         title,
@@ -882,7 +932,7 @@
           runModBlock() +
           (hasNext
             ? '\n已解鎖下一關' + (wasNew ? '「' + STAGES[nextIdx].name + '」' : '') + '。'
-            : '\n主線全破！可挑戰無盡／每日／週挑戰，或重溫暗盤。'),
+            : '\n主線全破！可挑戰無盡／每日／週挑戰，或重溫斷索／暗盤。'),
         hasNext ? '下一關' : '回第 1 關',
         () => {
           UI.hideOverlay();
@@ -899,6 +949,9 @@
 
     if (state.endless) {
       save.bestEndlessWave = Math.max(save.bestEndlessWave || 0, state.waveIndex);
+      if (save.localBest) {
+        save.localBest.endless = Math.max(save.localBest.endless || 0, save.bestEndlessWave || 0);
+      }
       writeSave(save);
       notifyAchievements();
       const ms = endlessMilestone(state.waveIndex);

@@ -1,4 +1,4 @@
-# 銀樓防衛 — 美術短規範（v1.5）
+# 銀樓防衛 — 美術短規範（v1.6）
 
 ## 風格名
 **墨點金融江湖（Ink-Pixel Finance）**：宣紙底、墨點色塊、硬邊直角、統一點陣。質感密度可對齊市面 Merge TD／Fortias 級**可讀性**，但**原創構圖與造型，唔抄 IP**。
@@ -81,3 +81,8 @@
 - `assets/scenes/battle_ground.png`／`battle_mid.png`／`core_wall.png`／`battle_props.png`（960×540）
 - 疊加：ground → mid → wall → 單位／FX → props；動態火把／燈籠／受擊／HP 仍程式
 
+
+
+## v1.6
+- 新剪影 `brush`（鎖倉居士鐵筆＋印匣）；敵「鎖倉」青綠框標。
+- 鎖倉居士暫無正式 PNG → 幾何 fallback；場景四層維持。
