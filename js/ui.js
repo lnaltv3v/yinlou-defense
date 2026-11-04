@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v4.5.0
+ * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v4.6.0
  */
 (function (global) {
   const {
@@ -37,6 +37,12 @@
     formatEndlessReplayChart,
     formatEndlessReplayMultiChart,
     formatReplayDualRange,
+    listDualRangePresets,
+    saveDualRangePreset,
+    removeDualRangePreset,
+    mergeSnapRadius,
+    syncMergeSnapDevice,
+    loadMergeSnapDevice,
     formatEndlessReplayTimeline,
     formatFailShareText,
     toggleEndlessReplayFav,
@@ -1343,6 +1349,83 @@ function fillWallCompareHist(save, dayFilter) {
         }
       };
     });
+    // v4.6：拖曳換欄／長按卸下
+    let dragSlot = null;
+    document.querySelectorAll('.set-member-row[data-drag-slot]').forEach(function (row) {
+      row.addEventListener('dragstart', function (ev) {
+        dragSlot = Number(row.getAttribute('data-drag-slot'));
+        try {
+          ev.dataTransfer.setData('text/plain', String(dragSlot));
+          ev.dataTransfer.effectAllowed = 'move';
+        } catch (_) {}
+        row.classList.add('dragging');
+      });
+      row.addEventListener('dragend', function () {
+        row.classList.remove('dragging');
+        dragSlot = null;
+      });
+      row.addEventListener('dragover', function (ev) {
+        ev.preventDefault();
+        row.classList.add('drag-over');
+      });
+      row.addEventListener('dragleave', function () {
+        row.classList.remove('drag-over');
+      });
+      row.addEventListener('drop', function (ev) {
+        ev.preventDefault();
+        row.classList.remove('drag-over');
+        let a = dragSlot;
+        try {
+          const raw = ev.dataTransfer.getData('text/plain');
+          if (raw !== '') a = Number(raw);
+        } catch (_) {}
+        const b = Number(row.getAttribute('data-drag-slot'));
+        const set = row.getAttribute('data-set') || focusSet || '';
+        if (a == null || isNaN(a) || isNaN(b) || a === b) return;
+        if (window.__yinlouSwapCharmSlots) {
+          const res = window.__yinlouSwapCharmSlots(a, b);
+          if (res && res.ok) {
+            if (window.__yinlouMarkSetDragSwap) window.__yinlouMarkSetDragSwap();
+            showCharmSetDetail(set, getSave || window.__yinlouGetSave);
+          }
+        }
+      });
+      // 長按卸下（≥520ms）
+      let lpTimer = null;
+      let lpFired = false;
+      const clearLp = function () {
+        if (lpTimer) clearTimeout(lpTimer);
+        lpTimer = null;
+      };
+      const startLp = function (ev) {
+        if (ev.target && ev.target.closest && ev.target.closest('button')) return;
+        lpFired = false;
+        clearLp();
+        const slot = Number(row.getAttribute('data-drag-slot'));
+        const set = row.getAttribute('data-set') || focusSet || '';
+        lpTimer = setTimeout(function () {
+          lpFired = true;
+          if (window.__yinlouEquipCharm) {
+            const res = window.__yinlouEquipCharm('', slot);
+            if (res && res.ok) {
+              if (window.__yinlouMarkSetDragSwap) window.__yinlouMarkSetDragSwap();
+              showCharmSetDetail(set, getSave || window.__yinlouGetSave);
+            }
+          }
+        }, 520);
+      };
+      row.addEventListener('pointerdown', startLp);
+      row.addEventListener('pointerup', clearLp);
+      row.addEventListener('pointerleave', clearLp);
+      row.addEventListener('pointercancel', clearLp);
+      row.addEventListener('click', function (ev) {
+        if (lpFired) {
+          ev.preventDefault();
+          ev.stopPropagation();
+          lpFired = false;
+        }
+      });
+    });
   }
 
   function showEndlessReplay(getSave, onClose, filterOpts) {
@@ -1560,7 +1643,33 @@ function fillWallCompareHist(save, dayFilter) {
           return m ? m[2] : '199';
         })() +
         '" class="dual-input"/></label>' +
-        '<button type="button" class="wall-mode-btn" id="dual-custom-apply">套用自訂</button></div>' +
+        '<button type="button" class="wall-mode-btn" id="dual-custom-apply">套用自訂</button>' +
+        '<button type="button" class="wall-mode-btn" id="dual-preset-save">收藏方案</button></div>' +
+        (function () {
+          const presets =
+            typeof listDualRangePresets === 'function' ? listDualRangePresets(save) : [];
+          if (!presets.length) return '<p class="card-meta dual-presets-empty">尚未收藏雙區間方案</p>';
+          return (
+            '<div class="dual-presets-row">' +
+            presets
+              .map(function (p) {
+                return (
+                  '<button type="button" class="wall-mode-btn' +
+                  (dualMode === p.key ? ' selected' : '') +
+                  '" data-dual-preset="' +
+                  p.key +
+                  '">' +
+                  (p.label || p.key) +
+                  '</button>' +
+                  '<button type="button" class="wall-mode-btn dual-preset-del" data-dual-del="' +
+                  p.key +
+                  '" title="刪除">×</button>'
+                );
+              })
+              .join('') +
+            '</div>'
+          );
+        })() +
         '<div class="dual-range-grid">' +
         '<div><b>' +
         dual.a.label +
@@ -1770,6 +1879,50 @@ function fillWallCompareHist(save, dayFilter) {
         });
       };
     }
+    const dualSaveBtn = $('dual-preset-save');
+    if (dualSaveBtn) {
+      dualSaveBtn.onclick = function () {
+        const ami = Math.max(1, Number(($('dual-a-min') || {}).value) || 1);
+        const ama = Math.max(ami, Number(($('dual-a-max') || {}).value) || ami);
+        const bmi = Math.max(1, Number(($('dual-b-min') || {}).value) || 1);
+        const bma = Math.max(bmi, Number(($('dual-b-max') || {}).value) || bmi);
+        const key = ami + '-' + ama + '|' + bmi + '-' + bma;
+        const label = ami + '–' + ama + ' vs ' + bmi + '–' + bma;
+        if (window.__yinlouSaveDualPreset) window.__yinlouSaveDualPreset(key, label);
+        else if (typeof saveDualRangePreset === 'function') saveDualRangePreset(save, key, label);
+        if (window.__yinlouMarkReplayDualCustom) window.__yinlouMarkReplayDualCustom();
+        showEndlessReplay(getSave, onClose, {
+          favOnly: favOnly,
+          minWave: minWave,
+          maxWave: maxWave,
+          metric: metric,
+          scrub: scrub,
+          dual: key,
+        });
+      };
+    }
+    document.querySelectorAll('[data-dual-preset]').forEach(function (b) {
+      b.onclick = function () {
+        const key = b.getAttribute('data-dual-preset');
+        showEndlessReplay(getSave, onClose, {
+          favOnly: favOnly,
+          minWave: minWave,
+          maxWave: maxWave,
+          metric: metric,
+          scrub: scrub,
+          dual: key,
+        });
+      };
+    });
+    document.querySelectorAll('[data-dual-del]').forEach(function (b) {
+      b.onclick = function (ev) {
+        ev.stopPropagation();
+        const key = b.getAttribute('data-dual-del');
+        if (window.__yinlouRemoveDualPreset) window.__yinlouRemoveDualPreset(key);
+        else if (typeof removeDualRangePreset === 'function') removeDualRangePreset(save, key);
+        showEndlessReplay(getSave, onClose, filterOpts);
+      };
+    });
     const range = $('replay-scrub-range');
     if (range) {
       range.oninput = function () {
@@ -2088,14 +2241,14 @@ function fillWallCompareHist(save, dayFilter) {
       })() +
       '</strong></div>' +
       '<div class="paper-row"><span>吸附</span><strong>' +
-      ({ off: '關', low: '低', mid: '中', high: '高' }[save.mergeSnapSens || 'mid'] || '中') +
+      (save.mergeSnapPx != null ? save.mergeSnapPx + 'px' : ({ off: '關', low: '低', mid: '中', high: '高' }[save.mergeSnapSens || 'mid'] || '中')) +
       ' · buzz ' +
       (save.mergeSnapBuzz !== false ? '開' : '關') +
       '</strong></div>' +
-      '<div class="paper-row"><span>版本</span><strong>v4.5.0｜存檔 v' +
-      (save.version || 45) +
+      '<div class="paper-row"><span>版本</span><strong>v4.6.0｜存檔 v' +
+      (save.version || 46) +
       '</strong></div>' +
-      '<p class="paper-note">v4.5：十七池1050–1100、徽記卸／換欄、自訂雙區間、吸附靈敏度／buzz。本地牆本機｜唔做線上排行。</p>' +
+      '<p class="paper-note">v4.6：十八池1150–1200、超千浪 Boss 輪換、拖曳／長按卸、雙區間收藏、吸附滑桿（裝置記憶）。本地牆本機｜唔做線上排行。</p>' +
       '<div id="charm-equip-bar" class="charm-equip-bar"></div>' +
       '</div>';
     const btn = $('btn-overlay');
@@ -2154,6 +2307,43 @@ function fillWallCompareHist(save, dayFilter) {
       false,
       true
     );
+    (function () {
+      const wrap = document.createElement('div');
+      wrap.className = 'snap-slider-row';
+      const lab = document.createElement('label');
+      lab.textContent = '吸附靈敏度 ';
+      const val = document.createElement('span');
+      val.id = 'snap-px-val';
+      const cur =
+        save.mergeSnapPx != null
+          ? save.mergeSnapPx
+          : ({ off: 0, low: 40, mid: 70, high: 100 }[save.mergeSnapSens || 'mid'] || 70);
+      val.textContent = cur <= 0 ? '關' : cur + 'px';
+      const inp = document.createElement('input');
+      inp.type = 'range';
+      inp.min = '0';
+      inp.max = '120';
+      inp.step = '5';
+      inp.value = String(cur);
+      inp.id = 'merge-snap-px';
+      inp.oninput = function () {
+        const px = Number(inp.value) || 0;
+        val.textContent = px <= 0 ? '關' : px + 'px';
+      };
+      inp.onchange = function () {
+        const px = Number(inp.value) || 0;
+        if (window.__yinlouSetMergeSnapPx) window.__yinlouSetMergeSnapPx(px);
+        else {
+          save.mergeSnapPx = px;
+          if (typeof syncMergeSnapDevice === 'function') syncMergeSnapDevice(save);
+        }
+        showSettings(opts);
+      };
+      lab.appendChild(val);
+      wrap.appendChild(lab);
+      wrap.appendChild(inp);
+      extra.appendChild(wrap);
+    })();
     if (onToggleSkillCd) {
       mk(
         save.showSkillCd !== false ? '技能條：開' : '技能條：關',

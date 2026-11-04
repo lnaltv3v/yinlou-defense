@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 主循環 v4.5.0
+ * 銀樓防衛 — 主循環 v4.6.0
  * v1.9.0：第7關／鎖倉居士／週連續＋本地最佳牆／手感平衡
  */
 (function () {
@@ -95,6 +95,12 @@
     charmSetProgress,
     formatCharmSetDetailHtml,
     formatFailShareText,
+    listDualRangePresets,
+    saveDualRangePreset,
+    removeDualRangePreset,
+    mergeSnapRadius,
+    syncMergeSnapDevice,
+    loadMergeSnapDevice,
   } = YD;
   const AudioSfx = window.YDAudio;
   const Battle = YDBattle;
@@ -108,6 +114,9 @@
   if (typeof migrateSave === 'function') {
     save = migrateSave(save);
     writeSave(save);
+  }
+  if (typeof loadMergeSnapDevice === 'function') {
+    save = loadMergeSnapDevice(save) || save;
   }
   // migrate soft fields
   if (!save.seenHeroes) save.seenHeroes = {};
@@ -957,12 +966,15 @@
             m.late750 ||
             m.late850 ||
             m.late950 ||
-            m.late1050
+            m.late1050 ||
+            m.late1150
         );
         state._lateModBadge = lateMods.length
           ? lateMods.map((m) => m.name).join(' · ')
           : '';
-        state._lateModTier = lateMods.some((m) => m.late1050)
+        state._lateModTier = lateMods.some((m) => m.late1150)
+          ? 1150
+          : lateMods.some((m) => m.late1050)
           ? 1050
           : lateMods.some((m) => m.late950)
           ? 950
@@ -1087,6 +1099,12 @@
           writeSave(save);
           notifyAchievements();
         }
+        if ((save.bestEndlessWave || 0) >= 1150) {
+          if (!save.ach) save.ach = {};
+          save.ach.late1150_run = true;
+          writeSave(save);
+          notifyAchievements();
+        }
         if (save._equipCharmToast) {
           const nm = save._equipCharmToast;
           save._equipCharmToast = '';
@@ -1097,7 +1115,9 @@
         if (state._lateModBadge) {
           setTimeout(() => {
             const tag =
-              state._lateModTier >= 1050
+              state._lateModTier >= 1150
+                ? '【1150+】'
+                : state._lateModTier >= 1050
                 ? '【1050+】'
                 : state._lateModTier >= 950
                 ? '【950+】'
@@ -2335,10 +2355,13 @@
   };
   window.__yinlouCycleMergeSnapSens = function () {
     const order = ['off', 'low', 'mid', 'high'];
+    const map = { off: 0, low: 40, mid: 70, high: 100 };
     const cur = save.mergeSnapSens || 'mid';
     const i = order.indexOf(cur);
     save.mergeSnapSens = order[(i + 1) % order.length];
+    save.mergeSnapPx = map[save.mergeSnapSens];
     writeSave(save);
+    if (typeof syncMergeSnapDevice === 'function') syncMergeSnapDevice(save);
     if (window.__yinlouMarkMergeSnapTune) window.__yinlouMarkMergeSnapTune();
     try {
       const A = window.YDAudio;
@@ -2346,11 +2369,83 @@
     } catch (_) {}
     return save.mergeSnapSens;
   };
+  window.__yinlouSetMergeSnapPx = function (px) {
+    px = Math.max(0, Math.min(120, Number(px) || 0));
+    save.mergeSnapPx = px;
+    if (px <= 0) save.mergeSnapSens = 'off';
+    else if (px < 50) save.mergeSnapSens = 'low';
+    else if (px < 85) save.mergeSnapSens = 'mid';
+    else save.mergeSnapSens = 'high';
+    writeSave(save);
+    if (typeof syncMergeSnapDevice === 'function') syncMergeSnapDevice(save);
+    if (!save.ach) save.ach = {};
+    if (!save.ach.merge_snap_slider) {
+      save.ach.merge_snap_slider = true;
+      writeSave(save);
+      notifyAchievements();
+      UI.toast('成就｜吸附滑桿', 1800);
+    }
+    if (window.__yinlouMarkMergeSnapTune) window.__yinlouMarkMergeSnapTune();
+    try {
+      const A = window.YDAudio;
+      if (A && A.play) A.play('merge_snap');
+    } catch (_) {}
+    return save.mergeSnapPx;
+  };
   window.__yinlouToggleMergeSnapBuzz = function () {
     save.mergeSnapBuzz = save.mergeSnapBuzz === false;
     writeSave(save);
+    if (typeof syncMergeSnapDevice === 'function') syncMergeSnapDevice(save);
     if (window.__yinlouMarkMergeSnapTune) window.__yinlouMarkMergeSnapTune();
     return save.mergeSnapBuzz !== false;
+  };
+  window.__yinlouSaveDualPreset = function (key, label) {
+    const res =
+      typeof saveDualRangePreset === 'function'
+        ? saveDualRangePreset(save, key, label)
+        : { ok: false };
+    if (res && res.ok) {
+      if (!save.ach) save.ach = {};
+      if (!save.ach.dual_preset_fav) {
+        save.ach.dual_preset_fav = true;
+        writeSave(save);
+        notifyAchievements();
+        UI.toast('成就｜區間方案', 1800);
+      } else {
+        writeSave(save);
+      }
+      try {
+        const A = window.YDAudio;
+        if (A && A.play) A.play('dual_preset');
+      } catch (_) {}
+      UI.toast('已收藏雙區間', 1600);
+    }
+    return res;
+  };
+  window.__yinlouRemoveDualPreset = function (key) {
+    const res =
+      typeof removeDualRangePreset === 'function'
+        ? removeDualRangePreset(save, key)
+        : { ok: false };
+    if (res && res.ok) {
+      writeSave(save);
+      UI.toast('已移除方案', 1400);
+    }
+    return res;
+  };
+  window.__yinlouMarkSetDragSwap = function () {
+    if (!save.ach) save.ach = {};
+    if (!save.ach.set_drag_swap) {
+      save.ach.set_drag_swap = true;
+      writeSave(save);
+      notifyAchievements();
+      UI.toast('成就｜拖曳換欄', 1800);
+    }
+    if (window.__yinlouMarkSetUnequipSwap) window.__yinlouMarkSetUnequipSwap();
+    try {
+      const A = window.YDAudio;
+      if (A && A.play) A.play('set_drag_swap');
+    } catch (_) {}
   };
   window.__yinlouMarkReplayDamageMetric = function () {
     if (!save.ach) save.ach = {};
@@ -3105,15 +3200,22 @@
     let cell = Battle.hitTestCell(x, y, pad);
     const prevSnap = state.drag.snapHint;
     state.drag.snapHint = null;
-    // v4.5：合併合法格吸附（可調靈敏度／buzz）
-    const snapSens = save.mergeSnapSens || 'mid';
-    if (ptr.kind === 'hero' && snapSens !== 'off') {
+    // v4.6：合併合法格吸附（滑桿 px／裝置記憶／buzz）
+    const snapRad =
+      typeof mergeSnapRadius === 'function'
+        ? mergeSnapRadius(save, !!ptr.isTouch)
+        : (function () {
+            const sens = save.mergeSnapSens || 'mid';
+            if (sens === 'off') return 0;
+            const touchBase = sens === 'high' ? 108 : sens === 'low' ? 52 : 78;
+            const mouseBase = sens === 'high' ? 72 : sens === 'low' ? 36 : 52;
+            return ptr.isTouch ? touchBase : mouseBase;
+          })();
+    if (ptr.kind === 'hero' && snapRad > 0) {
       const from = state.heroes.find((h) => h.uid === ptr.heroUid);
       if (from && from.star < (typeof MAX_STAR === 'number' ? MAX_STAR : 5)) {
-        const touchBase = snapSens === 'high' ? 108 : snapSens === 'low' ? 52 : 78;
-        const mouseBase = snapSens === 'high' ? 72 : snapSens === 'low' ? 36 : 52;
         let best = null;
-        let bestD = ptr.isTouch ? touchBase : mouseBase;
+        let bestD = snapRad;
         for (const h of state.heroes || []) {
           if (h.uid === from.uid) continue;
           if (h.id !== from.id || h.star !== from.star) continue;

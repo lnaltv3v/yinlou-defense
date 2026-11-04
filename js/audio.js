@@ -165,6 +165,15 @@
       setTimeout(function () { buzz(480, 0.04, 'sine', 0.032); }, 40);
       setTimeout(function () { buzz(760, 0.045, 'square', 0.03); }, 90);
     },
+    set_drag_swap: function () {
+      buzz(500, 0.03, 'triangle', 0.028);
+      setTimeout(function () { buzz(720, 0.04, 'sine', 0.032); }, 35);
+      setTimeout(function () { buzz(900, 0.045, 'square', 0.028); }, 85);
+    },
+    dual_preset: function () {
+      buzz(640, 0.035, 'sine', 0.03);
+      setTimeout(function () { buzz(860, 0.045, 'triangle', 0.035); }, 40);
+    },
     merge_snap: function () {
       buzz(540, 0.028, 'sine', 0.028);
       setTimeout(function () { buzz(760, 0.035, 'triangle', 0.03); }, 30);
