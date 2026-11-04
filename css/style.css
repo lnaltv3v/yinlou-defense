@@ -1590,3 +1590,39 @@ button.set-badge { appearance: none; -webkit-appearance: none; }
 .snap-star-swatch { font-size: 11px; padding: 2px 6px; border: 1px solid; border-radius: 4px; background: rgba(26,21,16,0.35); }
 .snap-star-swatch.fail { font-weight: 600; }
 .lock-summary-line { margin: 2px 0 8px; color: #A89070; }
+
+/* v5.0 tide / lesson / deep preview */
+.tide-phase-hud {
+  display: none;
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  padding: 2px 8px;
+  border: 1px solid #C9A227;
+  border-radius: 4px;
+  font-size: 11px;
+  background: rgba(26, 21, 16, 0.72);
+  z-index: 6;
+  pointer-events: none;
+}
+.tide-phase-hud.show { display: block; }
+.merge-snap-lesson .lesson-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.merge-snap-lesson .lesson-detail {
+  min-height: 2.4em;
+  padding: 6px 8px;
+  border: 1px dashed #6a5a40;
+  border-radius: 4px;
+  color: #d8c8a8;
+  font-size: 12px;
+}
+.deep-preview-box {
+  margin: 6px 0;
+  padding: 6px 8px;
+  background: rgba(26, 21, 16, 0.45);
+  border: 1px solid #5a4a30;
+  border-radius: 4px;
+  font-size: 12px;
+}
+.deep-preview-row { margin: 2px 0; }
+.lock-deep-row { display: flex; gap: 6px; margin: 4px 0 6px; flex-wrap: wrap; }
+.snap-star-swatch { cursor: pointer; background: rgba(26,21,16,0.35); }

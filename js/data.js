@@ -1791,6 +1791,8 @@
     { wave: 1400, silver: 22600, label: '千四百浪永恒池' },
     { wave: 1450, silver: 23400, label: '千四百五十浪二十一池' },
     { wave: 1500, silver: 24200, label: '千五百浪紀元池' },
+    { wave: 1550, silver: 25000, label: '千五百五十浪二十二池' },
+    { wave: 1600, silver: 25800, label: '千六百浪紀元潮' },
   ];
 
   function endlessMilestone(waveIndex) {
@@ -3308,11 +3310,82 @@
 
   function ultra1400Composite(n) {
     if (n < 1400) return null;
+    if (n >= 1500) return null; // v5.0：千五改潮相節奏
     return ENDLESS_ULTRA1400_COMPOSITE[Math.floor(n / 5) % ENDLESS_ULTRA1400_COMPOSITE.length];
   }
 
+  const RUN_MODIFIERS_1550 = [
+    {
+      id: 'twentytwo_vault',
+      name: '二十二池銀潮',
+      blurb: '開局銀 +62%；核心 HP +38%',
+      late1550: true,
+      apply: (ctx) => {
+        ctx.silverMul = (ctx.silverMul || 1) * 1.62;
+        ctx.coreMul = (ctx.coreMul || 1) * 1.38;
+      },
+    },
+    {
+      id: 'twentytwo_mirror',
+      name: '二十二池潮鏡',
+      blurb: '鏡稅地板 +0.36；抽銀 ×0.035',
+      late1550: true,
+      apply: (ctx) => {
+        ctx.mirageTaxFloorBonus = (ctx.mirageTaxFloorBonus || 0) + 0.36;
+        ctx.silverDrainMul = (ctx.silverDrainMul || 1) * 0.035;
+      },
+    },
+    {
+      id: 'twentytwo_poly',
+      name: '二十二池潮拍',
+      blurb: '合星 ×1.28；進階共鳴 ×1.26',
+      late1550: true,
+      apply: (ctx) => {
+        ctx.mergeRebateMul = (ctx.mergeRebateMul || 1) * 1.28;
+        ctx.charmSetAdvMul = (ctx.charmSetAdvMul || 1) * 1.26;
+      },
+    },
+    {
+      id: 'twentytwo_seal',
+      name: '二十二池潮印',
+      blurb: '敵速 −22%；俠客冷卻 −20%',
+      late1550: true,
+      apply: (ctx) => {
+        ctx.enemySpeedMul = (ctx.enemySpeedMul || 1) * 0.78;
+        ctx.heroCdMul = (ctx.heroCdMul || 1) * 0.8;
+      },
+    },
+  ];
+
+  /** 超千五潮相節奏：四潮相輪替（漲／平／退／急） */
+  const ENDLESS_ULTRA1500_TIDE = [
+    { id: 'tide_rise', label: '漲潮', phase: 'rise', bossGap: 1.3, trashMul: 1.12, intervalAdd: 0.4, duoBias: 0.5, hue: '#3A8ABA' },
+    { id: 'tide_slack', label: '平潮', phase: 'slack', bossGap: 1.55, trashMul: 0.98, intervalAdd: 0.58, duoBias: 0.35, hue: '#5a9a7a' },
+    { id: 'tide_ebb', label: '退潮', phase: 'ebb', bossGap: 1.7, trashMul: 0.92, intervalAdd: 0.68, duoBias: 0.65, hue: '#8a9aaa' },
+    { id: 'tide_surge', label: '急潮', phase: 'surge', bossGap: 1.2, trashMul: 1.18, intervalAdd: 0.32, duoBias: 0.7, hue: '#d4784a' },
+    { id: 'tide_rise_heavy', label: '漲·重', phase: 'rise', bossGap: 1.45, trashMul: 1.06, intervalAdd: 0.48, duoBias: 0.55, hue: '#3A8ABA' },
+    { id: 'tide_surge_silence', label: '急·靜', phase: 'surge', bossGap: 1.6, trashMul: 1.0, intervalAdd: 0.55, duoBias: 0.45, hue: '#C9A227' },
+  ];
+
+  function ultra1500Tide(n) {
+    if (n < 1500) return null;
+    return ENDLESS_ULTRA1500_TIDE[Math.floor(n / 5) % ENDLESS_ULTRA1500_TIDE.length];
+  }
+
+  function tidePhaseForWave(n) {
+    const t = ultra1500Tide(n);
+    if (!t) return null;
+    return {
+      id: t.id,
+      label: t.label,
+      phase: t.phase,
+      hue: t.hue || '#C9A227',
+      blurb: '潮相 ' + t.label + '｜Boss間距×' + t.bossGap + '｜雜兵×' + t.trashMul,
+    };
+  }
+
   function ultraRhythmForWave(n) {
-    return ultra1400Composite(n) || ultra1300Rhythm(n);
+    return ultra1500Tide(n) || ultra1400Composite(n) || ultra1300Rhythm(n);
   }
 
   /** 符咒 → 本局修飾欄項目（可裝備） */
@@ -4236,6 +4309,14 @@
         else mods.push(late21);
       }
     }
+    if (best >= 1550 && RUN_MODIFIERS_1550.length) {
+      const h23 = (seed ^ 0x1550beef) >>> 0;
+      const late22 = RUN_MODIFIERS_1550[h23 % RUN_MODIFIERS_1550.length];
+      if (!mods.some((m) => m.id === late22.id)) {
+        if (mods.length >= 3) mods[0] = late22;
+        else mods.push(late22);
+      }
+    }
     return mods;
   }
 
@@ -4937,6 +5018,11 @@
     { id: 'charm_lock_summary', cat: 'meta', name: '鎖欄摘要', blurb: '匯出過含套裝／星級摘要嘅鎖欄短碼', check: (s) => !!s.ach && !!s.ach.charm_lock_summary },
     { id: 'dual_share_copy', cat: 'meta', name: '分享文案', blurb: '一鍵複製過分享卡文案', check: (s) => !!s.ach && !!s.ach.dual_share_copy },
     { id: 'merge_fail_ring', cat: 'meta', name: '合失敗紅環', blurb: '見過合失敗紅閃提示環', check: (s) => !!s.ach && !!s.ach.merge_fail_ring },
+    { id: 'late1550_run', cat: 'meta', name: '二十二池開盤', blurb: '曾達 1550 浪後再開無盡（抽第二十二池修飾）', check: (s) => !!s.ach && !!s.ach.late1550_run },
+    { id: 'merge_snap_lesson', cat: 'meta', name: '合吸教學', blurb: '打開過合失敗／吸附教學一頁', check: (s) => !!s.ach && !!s.ach.merge_snap_lesson },
+    { id: 'wall_multi_pack', cat: 'meta', name: '牆多檔包', blurb: '匯出或對照過多檔牆包', check: (s) => !!s.ach && !!s.ach.wall_multi_pack },
+    { id: 'short_deeplink', cat: 'meta', name: '短碼深鏈', blurb: '用過鎖欄／分享深鏈預覽', check: (s) => !!s.ach && !!s.ach.short_deeplink },
+    { id: 'tide_phase_hud', cat: 'meta', name: '潮相 HUD', blurb: '見過超千五潮相 HUD', check: (s) => !!s.ach && !!s.ach.tide_phase_hud },
     { id: 'set_badge_hud', cat: 'meta', name: '共鳴徽記', blurb: '見過進階共鳴 HUD 徽記', check: (s) => !!s.ach && !!s.ach.set_badge_hud },
     { id: 'set_badge_detail', cat: 'meta', name: '徽記明細', blurb: '點開共鳴徽記睇過套裝明細／下一件', check: (s) => !!s.ach && !!s.ach.set_badge_detail },
     { id: 'set_equip_next', cat: 'meta', name: '一鍵裝下件', blurb: '由徽記明細一鍵裝上下一件符咒', check: (s) => !!s.ach && !!s.ach.set_equip_next },
@@ -5047,12 +5133,15 @@
     const late1400 = n >= 1400 ? Math.min(0.012, (n - 1400) * 0.00024) : 0;
     const late1450 = n >= 1450 ? Math.min(0.011, (n - 1450) * 0.00023) : 0;
     const late1500 = n >= 1500 ? Math.min(0.01, (n - 1500) * 0.00022) : 0;
-    const mul = 1 + (n - 1) * 0.105 + late50 + late75 + late90 + late120 + late130 + late140 + late150 + late160 + late180 + late200 + late220 + late250 + late300 + late350 + late400 + late450 + late500 + late550 + late600 + late650 + late700 + late750 + late800 + late850 + late900 + late950 + late1000 + late1050 + late1100 + late1150 + late1200 + late1250 + late1300 + late1350 + late1400 + late1450 + late1500;
+    const late1550 = n >= 1550 ? Math.min(0.0095, (n - 1550) * 0.00021) : 0;
+    const late1600 = n >= 1600 ? Math.min(0.009, (n - 1600) * 0.0002) : 0;
+    const mul = 1 + (n - 1) * 0.105 + late50 + late75 + late90 + late120 + late130 + late140 + late150 + late160 + late180 + late200 + late220 + late250 + late300 + late350 + late400 + late450 + late500 + late550 + late600 + late650 + late700 + late750 + late800 + late850 + late900 + late950 + late1000 + late1050 + late1100 + late1150 + late1200 + late1250 + late1300 + late1350 + late1400 + late1450 + late1500 + late1550 + late1600;
     const countLate = n >= 50 ? Math.min(n - 50, 25) * 0.01 + (n >= 75 ? (n - 75) * 0.006 : 0) : 0;
     const count = (base) => {
       let raw = Math.max(1, Math.round(base * (1 + (n - 1) * 0.072 + countLate)));
       // v2.4：絕對軟頂——75+ 壓力改由 Boss／精英／間隔承担，避免符紙／暗盤洪峰
-      if (n >= 1450) raw = Math.min(raw, 13 + Math.min(4, Math.floor((n - 1450) / 50)));
+      if (n >= 1550) raw = Math.min(raw, 12 + Math.min(4, Math.floor((n - 1550) / 55)));
+      else if (n >= 1450) raw = Math.min(raw, 13 + Math.min(4, Math.floor((n - 1450) / 50)));
       else if (n >= 1350) raw = Math.min(raw, 14 + Math.min(4, Math.floor((n - 1350) / 45)));
       else if (n >= 1250) raw = Math.min(raw, 15 + Math.min(4, Math.floor((n - 1250) / 40)));
       else if (n >= 1150) raw = Math.min(raw, 16 + Math.min(4, Math.floor((n - 1150) / 35)));
@@ -5651,7 +5740,7 @@
     if (s.mergeSnapRing == null) s.mergeSnapRing = true;
     if (s.mergeLegalOnly == null) s.mergeLegalOnly = true;
     if (s.mergeFailBuzz == null) s.mergeFailBuzz = true;
-    s.version = Math.max(49, from, base.version || 49);
+    s.version = Math.max(50, from, base.version || 50);
     return s;
   }
 
@@ -5667,7 +5756,7 @@
 
   function defaultSave() {
     return {
-      version: 49,
+      version: 50,
       totalSilver: 0,
       totalKills: 0,
       maxStageCleared: 0,
@@ -6209,6 +6298,144 @@
     return encodeCharmLockShort(save);
   }
 
+  const SHORT_DEEP_BASE = 'https://lnaltv3v.github.io/yinlou-defense/';
+
+  function buildShortDeepLink(parts) {
+    parts = parts || {};
+    const q = [];
+    if (parts.lock) q.push('lock=' + encodeURIComponent(parts.lock));
+    if (parts.dual) q.push('dual=' + encodeURIComponent(parts.dual));
+    if (parts.wall) q.push('wall=' + encodeURIComponent(parts.wall));
+    if (parts.preview) q.push('preview=1');
+    if (!q.length) return '';
+    return SHORT_DEEP_BASE + '?' + q.join('&');
+  }
+
+  function parseShortDeepLink(href) {
+    try {
+      const u = new URL(href || '', SHORT_DEEP_BASE);
+      const lock = u.searchParams.get('lock') || '';
+      const dual = u.searchParams.get('dual') || '';
+      const wall = u.searchParams.get('wall') || '';
+      const preview = u.searchParams.get('preview') === '1' || !!(lock || dual || wall);
+      return { ok: !!(lock || dual || wall), lock: lock, dual: dual, wall: wall, preview: preview };
+    } catch (_) {
+      return { ok: false, lock: '', dual: '', wall: '', preview: false };
+    }
+  }
+
+  function formatShortDeepLinkPreview(parsed) {
+    if (!parsed || !parsed.ok) return '<p class="card-meta">無深鏈預覽</p>';
+    const bits = [];
+    if (parsed.lock) {
+      const d = decodeCharmLockShort(parsed.lock);
+      bits.push(
+        '<div class="deep-preview-row"><strong>鎖欄</strong> ' +
+          (d.ok ? (d.summary || (d.ids || []).join('·') || '可匯入') : '短碼無效') +
+          '</div>'
+      );
+    }
+    if (parsed.dual) {
+      bits.push('<div class="deep-preview-row"><strong>區間</strong> <span class="mono">' + parsed.dual.slice(0, 48) + (parsed.dual.length > 48 ? '…' : '') + '</span></div>');
+    }
+    if (parsed.wall) {
+      const w = parseWallShort(parsed.wall);
+      bits.push(
+        '<div class="deep-preview-row"><strong>牆</strong> ' +
+          (w
+            ? '無盡' + w.endless + '｜連週' + w.weekStreakBest + '｜主線' + w.stages
+            : parsed.wall.slice(0, 40)) +
+          '</div>'
+      );
+    }
+    return '<div class="deep-preview-box">' + bits.join('') + '</div>';
+  }
+
+  function formatMergeSnapLessonHtml() {
+    const legend = mergeSnapStarLegendHtml();
+    return (
+      '<div class="merge-snap-lesson">' +
+      '<p class="paper-note">拖曳同星俠客靠近合格欄會吸附；環色跟星級。非法合（不同星／非同種）會紅閃＋輕 buzz。</p>' +
+      legend +
+      '<div class="lesson-chips" role="tablist">' +
+      '<button type="button" class="wall-mode-btn lesson-chip selected" data-lesson="snap">吸附環</button>' +
+      '<button type="button" class="wall-mode-btn lesson-chip" data-lesson="fail">合失敗</button>' +
+      '<button type="button" class="wall-mode-btn lesson-chip" data-lesson="legal">僅合法合</button>' +
+      '<button type="button" class="wall-mode-btn lesson-chip" data-lesson="sens">靈敏度</button>' +
+      '</div>' +
+      '<div class="lesson-detail" id="merge-lesson-detail">拖近同星同種會出星級色環；鬆手合星。</div>' +
+      '</div>'
+    );
+  }
+
+  function mergeSnapLessonDetail(key) {
+    const map = {
+      snap: '吸附環：拖曳時畫靈敏度半徑；星級色＝★1灰青→★5橙。',
+      fail: '合失敗：不同星／不同種／滿欄非法合 → 紅閃環約 0.5s＋可關 buzz。',
+      legal: '僅合法合：開則只吸附可合併目標；關則仍可拖到空欄。',
+      sens: '靈敏度：0–120px（觸控 ×1.15）；設定滑桿或檔位 off／低／中／高。',
+    };
+    return map[key] || map.snap;
+  }
+
+  function exportWallMultiPack(save, opts) {
+    opts = opts || {};
+    const snaps = Array.isArray(save && save.wallSnapshots) ? save.wallSnapshots.slice() : [];
+    const hist = Array.isArray(save && save.wallCompareHistory) ? save.wallCompareHistory.slice(-12) : [];
+    const pack = {
+      v: 50,
+      at: new Date().toISOString(),
+      mine: typeof encodeWallShort === 'function' ? encodeWallShort(save) : '',
+      label: typeof formatLocalBestWall === 'function' ? formatLocalBestWall(save).label : '',
+      snapshots: snaps.slice(-8),
+      history: hist,
+    };
+    if (opts.asText) {
+      const lines = ['銀樓防衛牆多檔包 v5.0', pack.label || '', '我方：' + pack.mine];
+      pack.snapshots.forEach(function (s, i) {
+        lines.push('#' + (i + 1) + ' ' + (s.short || s.code || '') + (s.reason ? '｜' + s.reason : ''));
+      });
+      hist.slice(0, 6).forEach(function (h) {
+        lines.push('對照 ' + (h.localAt || h.at || '') + ' ' + (h.otherCode || ''));
+      });
+      return lines.join('\n');
+    }
+    return JSON.stringify(pack);
+  }
+
+  function compareWallMultiPack(save, raw) {
+    if (!save) return { ok: false, error: '無存檔' };
+    let pack = null;
+    const text = String(raw || '').trim();
+    if (!text) return { ok: false, error: '空內容' };
+    try {
+      pack = JSON.parse(text);
+    } catch (_) {
+      // text pack: collect YL-E codes
+      const codes = [];
+      text.split(/\n+/).forEach(function (line) {
+        const m = /YL-E\d+-S\d+-M\d+(?:-A\d+)?(?:-T\d+)?-H[0-9a-fA-F]+/.exec(line);
+        if (m) codes.push(m[0]);
+      });
+      if (!codes.length) return { ok: false, error: '搵唔到牆短碼／JSON' };
+      pack = { mine: codes[0], snapshots: codes.slice(1).map(function (c) { return { code: c }; }) };
+    }
+    const others = [];
+    if (pack.mine) others.push(pack.mine);
+    (pack.snapshots || []).forEach(function (s) {
+      if (s && s.code) others.push(s.code);
+    });
+    const uniq = [];
+    others.forEach(function (c) {
+      if (c && uniq.indexOf(c) < 0) uniq.push(c);
+    });
+    const rows = uniq.slice(0, 8).map(function (code) {
+      const cmp = compareWallShort(save, code);
+      return { code: code, cmp: cmp };
+    });
+    return { ok: true, count: rows.length, rows: rows, pack: pack };
+  }
+
   function mergeSnapStarColor(star) {
     const colors = ['#8a9aaa', '#5a9a7a', '#3a8aba', '#C9A227', '#d4784a', '#e8dcc8'];
     const s = Math.max(1, Math.min(5, Number(star) || 1));
@@ -6218,22 +6445,24 @@
   function mergeSnapStarLegendHtml() {
     const labels = ['★1 灰青', '★2 綠', '★3 藍', '★4 金', '★5 橙'];
     return (
-      '<div class="snap-star-legend">' +
+      '<div class="snap-star-legend" id="snap-star-legend">' +
       labels
         .map(function (lab, i) {
           const col = mergeSnapStarColor(i + 1);
           return (
-            '<span class="snap-star-swatch" style="border-color:' +
+            '<button type="button" class="snap-star-swatch" data-star="' +
+            (i + 1) +
+            '" style="border-color:' +
             col +
             ';color:' +
             col +
             '">' +
             lab +
-            '</span>'
+            '</button>'
           );
         })
         .join('') +
-      '<span class="snap-star-swatch fail" style="border-color:#c44;color:#c44">合失敗紅閃</span>' +
+      '<button type="button" class="snap-star-swatch fail" data-star="fail" style="border-color:#c44;color:#c44">合失敗紅閃</button>' +
       '</div>'
     );
   }
@@ -6284,7 +6513,10 @@
     if (lockCode) lines.push('鎖欄短碼：' + lockCode);
     if (lockSum) lines.push('鎖欄摘要：' + lockSum);
     if (wall) lines.push('牆短碼：' + wall);
-    lines.push('本機｜v4.9｜https://lnaltv3v.github.io/yinlou-defense/');
+    const deep = buildShortDeepLink({ lock: lockCode, dual: dualCode, wall: wall });
+    if (deep) lines.push('深鏈：' + deep);
+    if (lockSum) lines.push('玩法提示：拖同星合併；紅環＝非法合；吸附環跟星級色');
+    lines.push('本機｜v5.0｜https://lnaltv3v.github.io/yinlou-defense/');
     return lines.join('\n');
   }
 
@@ -7066,6 +7298,17 @@
     RUN_MODIFIERS_1250,
     RUN_MODIFIERS_1350,
     RUN_MODIFIERS_1450,
+    RUN_MODIFIERS_1550,
+    ENDLESS_ULTRA1500_TIDE,
+    ultra1500Tide,
+    tidePhaseForWave,
+    buildShortDeepLink,
+    parseShortDeepLink,
+    formatShortDeepLinkPreview,
+    formatMergeSnapLessonHtml,
+    mergeSnapLessonDetail,
+    exportWallMultiPack,
+    compareWallMultiPack,
     ENDLESS_BOSS_ROT,
     ENDLESS_ULTRA_BOSS_ROT,
     ENDLESS_DUO_BOSS_PACKS,

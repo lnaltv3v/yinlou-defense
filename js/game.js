@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 主循環 v4.9.0
+ * 銀樓防衛 — 主循環 v5.0.0
  * v1.9.0：第7關／鎖倉居士／週連續＋本地最佳牆／手感平衡
  */
 (function () {
@@ -118,7 +118,16 @@
     mergeSnapStarLegendHtml,
     ultra1300Rhythm,
     ultra1400Composite,
+    ultra1500Tide,
+    tidePhaseForWave,
     ultraRhythmForWave,
+    buildShortDeepLink,
+    parseShortDeepLink,
+    formatShortDeepLinkPreview,
+    formatMergeSnapLessonHtml,
+    mergeSnapLessonDetail,
+    exportWallMultiPack,
+    compareWallMultiPack,
   } = YD;
   const AudioSfx = window.YDAudio;
   const Battle = YDBattle;
@@ -652,6 +661,7 @@
       );
     }
     if (upgradeApi) upgradeApi.refresh();
+    syncTidePhaseHud();
     UI.updateHud(state);
     if (UI.updateTutorialHud) UI.updateTutorialHud(state.tutorialStep);
     updateHint();
@@ -988,12 +998,15 @@
             m.late1150 ||
             m.late1250 ||
             m.late1350 ||
-            m.late1450
+            m.late1450 ||
+            m.late1550
         );
         state._lateModBadge = lateMods.length
           ? lateMods.map((m) => m.name).join(' · ')
           : '';
-        state._lateModTier = lateMods.some((m) => m.late1450)
+        state._lateModTier = lateMods.some((m) => m.late1550)
+          ? 1550
+          : lateMods.some((m) => m.late1450)
           ? 1450
           : lateMods.some((m) => m.late1350)
           ? 1350
@@ -1150,6 +1163,12 @@
           writeSave(save);
           notifyAchievements();
         }
+        if ((save.bestEndlessWave || 0) >= 1550) {
+          if (!save.ach) save.ach = {};
+          save.ach.late1550_run = true;
+          writeSave(save);
+          notifyAchievements();
+        }
         if (save._equipCharmToast) {
           const nm = save._equipCharmToast;
           save._equipCharmToast = '';
@@ -1160,7 +1179,9 @@
         if (state._lateModBadge) {
           setTimeout(() => {
             const tag =
-              state._lateModTier >= 1450
+              state._lateModTier >= 1550
+                ? '【1550+】'
+                : state._lateModTier >= 1450
                 ? '【1450+】'
                 : state._lateModTier >= 1350
                 ? '【1350+】'
@@ -2630,7 +2651,94 @@
   window.__yinlouCharmLockSummary = function () {
     return typeof formatCharmLockSummary === 'function' ? formatCharmLockSummary(save) : '';
   };
-  window.__yinlouCopyDualShareText = function (dual) {
+  function syncTidePhaseHud() {
+    if (!state || !state.endless) {
+      if (state) state._tidePhase = null;
+      return;
+    }
+    const n = state.waveIndex || 0;
+    const phase = typeof tidePhaseForWave === 'function' ? tidePhaseForWave(n) : null;
+    state._tidePhase = phase;
+    if (phase) {
+      if (!save.ach) save.ach = {};
+      if (!save.ach.tide_phase_hud) {
+        save.ach.tide_phase_hud = true;
+        writeSave(save);
+        notifyAchievements();
+      }
+    }
+  }
+
+  window.__yinlouOpenMergeSnapLesson = function () {
+    if (UI && UI.showMergeSnapLesson) UI.showMergeSnapLesson(save);
+    else if (typeof formatMergeSnapLessonHtml === 'function' && UI && UI.showOverlay) {
+      UI.showOverlay('合失敗／吸附教學', formatMergeSnapLessonHtml(), '關閉');
+    }
+    if (!save.ach) save.ach = {};
+    if (!save.ach.merge_snap_lesson) {
+      save.ach.merge_snap_lesson = true;
+      writeSave(save);
+      notifyAchievements();
+      if (UI && UI.toast) UI.toast('成就｜合吸教學', 1800);
+    }
+    try {
+      const A = window.YDAudio;
+      if (A && A.play) A.play('lesson_open');
+    } catch (_) {}
+  };
+
+  window.__yinlouPreviewShortDeepLink = function (href) {
+    const parsed = typeof parseShortDeepLink === 'function' ? parseShortDeepLink(href || location.href) : null;
+    if (!parsed || !parsed.ok) return null;
+    if (!save.ach) save.ach = {};
+    if (!save.ach.short_deeplink) {
+      save.ach.short_deeplink = true;
+      writeSave(save);
+      notifyAchievements();
+      if (UI && UI.toast) UI.toast('成就｜短碼深鏈', 1800);
+    }
+    try {
+      const A = window.YDAudio;
+      if (A && A.play) A.play('deeplink_preview');
+    } catch (_) {}
+    return parsed;
+  };
+
+  window.__yinlouExportWallMultiPack = function (asText) {
+    const out = typeof exportWallMultiPack === 'function' ? exportWallMultiPack(save, { asText: !!asText }) : '';
+    if (!save.ach) save.ach = {};
+    if (!save.ach.wall_multi_pack) {
+      save.ach.wall_multi_pack = true;
+      writeSave(save);
+      notifyAchievements();
+      if (UI && UI.toast) UI.toast('成就｜牆多檔包', 1800);
+    }
+    return out;
+  };
+
+  window.__yinlouCompareWallMultiPack = function (raw) {
+    const res = typeof compareWallMultiPack === 'function' ? compareWallMultiPack(save, raw) : { ok: false };
+    if (res && res.ok) {
+      if (!save.ach) save.ach = {};
+      if (!save.ach.wall_multi_pack) {
+        save.ach.wall_multi_pack = true;
+        writeSave(save);
+        notifyAchievements();
+        if (UI && UI.toast) UI.toast('成就｜牆多檔包', 1800);
+      }
+    }
+    return res;
+  };
+
+  window.__yinlouBuildShortDeepLink = function (parts) {
+    return typeof buildShortDeepLink === 'function' ? buildShortDeepLink(parts || {}) : '';
+  };
+
+  window.__yinlouCharmLockSummary = window.__yinlouCharmLockSummary || function () {
+    return typeof formatCharmLockSummary === 'function' ? formatCharmLockSummary(save) : '';
+  };
+
+    window.__yinlouCopyDualShareText = function (dual) {
     const text =
       typeof formatDualShareText === 'function'
         ? formatDualShareText(save, dual || {})
@@ -4051,6 +4159,21 @@
       });
     }
   })();
+
+  // v5.0：短碼深鏈預覽（?lock= / ?dual= / ?wall=）
+  try {
+    const parsed = typeof parseShortDeepLink === 'function' ? parseShortDeepLink(location.href) : null;
+    if (parsed && parsed.ok) {
+      window.__yinlouPendingDeepLink = parsed;
+      setTimeout(function () {
+        if (window.__yinlouPreviewShortDeepLink) window.__yinlouPreviewShortDeepLink(location.href);
+        if (UI && UI.showShortDeepLinkPreview) UI.showShortDeepLinkPreview(parsed, save);
+        else if (UI && UI.toast) {
+          UI.toast('深鏈預覽｜' + (parsed.lock ? '鎖欄' : '') + (parsed.dual ? '區間' : '') + (parsed.wall ? '牆' : ''), 2600);
+        }
+      }, 600);
+    }
+  } catch (_) {}
 
   syncAll();
   notifyAchievements();

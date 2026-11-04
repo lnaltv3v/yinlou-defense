@@ -1,5 +1,13 @@
 # Changelog
 
+## v5.0.0 — 2026-11-05
+
+- **第二十二池／1550–1600**：`RUN_MODIFIERS_1550` 四枚；里程碑 1550／1600；【1550+】；超千五潮相 `ENDLESS_ULTRA1500_TIDE`＋潮相 HUD；成就 `late1550_run`／`tide_phase_hud`
+- **合失敗／吸附教學**：設定「合失敗／吸附教學」一頁；圖例／芯片互動；成就 `merge_snap_lesson`
+- **牆多檔包**：匯出／對照多檔牆包（文字／JSON）；成就 `wall_multi_pack`
+- **短碼深鏈預覽**：鎖欄複製深鏈＋預覽；分享文案加厚含深鏈；`?lock=`／`?dual=`／`?wall=` 開頁預覽；成就 `short_deeplink`
+- mid／props 無新檔；存檔 **version 50**；`?v=5.0.0`／`CACHE_VER=5.0.0`；Pages 全樹一次；無正式音檔；小平衡／文案
+
 ## v4.9.0 — 2026-11-05
 
 - **第二十一池／1450–1500**：`RUN_MODIFIERS_1450` 四枚；里程碑 1450／1500；【1450+】；超千四複合節奏 `ENDLESS_ULTRA1400_COMPOSITE`；成就 `late1450_run`
