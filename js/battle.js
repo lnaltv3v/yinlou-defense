@@ -239,6 +239,7 @@
     const before = enemy.hp;
     const dealt = Math.min(before, amount);
     const over = Math.max(0, amount - before);
+    if (state && dealt > 0) state.damageDealt = (state.damageDealt || 0) + dealt;
     enemy.hp -= amount;
     enemy.hitFlash = kind === 'crit' ? 0.18 : 0.12;
     // 輕量擊退（唔推過遠；Boss 減半）

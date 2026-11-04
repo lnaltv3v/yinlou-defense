@@ -155,6 +155,15 @@
       setTimeout(function () { buzz(860, 0.045, 'triangle', 0.035); }, 40);
       setTimeout(function () { buzz(1080, 0.06, 'sine', 0.032); }, 95);
     },
+    set_equip_next: function () {
+      buzz(700, 0.04, 'square', 0.035);
+      setTimeout(function () { buzz(920, 0.05, 'triangle', 0.04); }, 45);
+      setTimeout(function () { buzz(1140, 0.06, 'sine', 0.035); }, 100);
+    },
+    merge_snap: function () {
+      buzz(540, 0.028, 'sine', 0.028);
+      setTimeout(function () { buzz(760, 0.035, 'triangle', 0.03); }, 30);
+    },
     merge_path: function () {
       buzz(480, 0.03, 'sine', 0.025);
       setTimeout(function () { buzz(700, 0.04, 'triangle', 0.03); }, 35);

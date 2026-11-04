@@ -550,6 +550,23 @@
       ctx.arc(cb.x, cb.y, 3, 0, Math.PI * 2);
       ctx.fill();
     });
+    // v4.4：吸附提示環＋字
+    const snap = state.drag && state.drag.snapHint;
+    if (snap && state.drag && state.drag.active) {
+      const sc = cellCenter(snap.lane, snap.slot);
+      const ring = 14 + 4 * Math.sin(t * 8);
+      ctx.setLineDash([]);
+      ctx.strokeStyle = 'rgba(58,122,106,' + (0.55 + 0.35 * pulse).toFixed(2) + ')';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(sc.x, sc.y, ring, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(232,220,200,' + (0.75 + 0.2 * pulse).toFixed(2) + ')';
+      ctx.font = 'bold 11px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('吸附', sc.x, sc.y - ring - 6);
+      if (window.__yinlouMarkTutMergeSnap) window.__yinlouMarkTutMergeSnap();
+    }
     ctx.restore();
     if ((tut === 1 || (state.drag && state.drag.active)) && window.__yinlouMarkTutMergePath) {
       window.__yinlouMarkTutMergePath();

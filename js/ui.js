@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v4.3.0
+ * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v4.4.0
  */
 (function (global) {
   const {
@@ -36,6 +36,7 @@
     compareEndlessReplay,
     formatEndlessReplayChart,
     formatEndlessReplayMultiChart,
+    formatReplayDualRange,
     formatEndlessReplayTimeline,
     formatFailShareText,
     toggleEndlessReplayFav,
@@ -1287,6 +1288,22 @@ function fillWallCompareHist(save, dayFilter) {
     $('overlay-extra').innerHTML = '';
     ov.classList.add('show');
     if (window.__yinlouMarkSetBadgeDetail) window.__yinlouMarkSetBadgeDetail();
+    document.querySelectorAll('[data-equip-next]').forEach(function (b) {
+      b.onclick = function (ev) {
+        ev.stopPropagation();
+        const id = b.getAttribute('data-equip-next');
+        const set = b.getAttribute('data-set') || focusSet || '';
+        if (window.__yinlouEquipCharm) {
+          const res = window.__yinlouEquipCharm(id);
+          if (res && res.ok) {
+            if (window.__yinlouMarkSetEquipNext) window.__yinlouMarkSetEquipNext();
+            showCharmSetDetail(set, getSave || window.__yinlouGetSave);
+          }
+        } else {
+          toast('裝備介面未就緒', 1600);
+        }
+      };
+    });
   }
 
   function showEndlessReplay(getSave, onClose, filterOpts) {
@@ -1370,7 +1387,10 @@ function fillWallCompareHist(save, dayFilter) {
         '" data-metric="silverRain">銀雨</button>' +
         '<button type="button" class="wall-mode-btn' +
         (metricMode === 'silver' ? ' selected' : '') +
-        '" data-metric="silver">銀兩</button></div>' +
+        '" data-metric="silver">銀兩</button>' +
+        '<button type="button" class="wall-mode-btn' +
+        (metricMode === 'damage' ? ' selected' : '') +
+        '" data-metric="damage">傷量</button></div>' +
         '<svg class="replay-line-svg" viewBox="0 0 ' +
         W +
         ' ' +
@@ -1416,7 +1436,7 @@ function fillWallCompareHist(save, dayFilter) {
           .join(' ')) +
         '</div><div class="replay-line-actions">' +
         '<button type="button" class="wall-mode-btn" id="replay-line-export-png">匯出折線 PNG</button>' +
-        '<span class="card-meta">多局折線｜左舊右新｜浪次／擊殺／銀兩｜可區間篩</span></div></div>';
+        '<span class="card-meta">多局折線｜左舊右新｜浪次／擊殺／銀兩／傷量</span></div></div>';
       if (window.__yinlouMarkReplayTimeline) window.__yinlouMarkReplayTimeline();
       if (metricMode === 'multi' && window.__yinlouMarkReplayMultiMetric) {
         window.__yinlouMarkReplayMultiMetric();
@@ -1427,6 +1447,91 @@ function fillWallCompareHist(save, dayFilter) {
       ) {
         window.__yinlouMarkReplaySilverMetric();
       }
+      if (
+        (metricMode === 'damage' || metricMode === 'multi') &&
+        window.__yinlouMarkReplayDamageMetric
+      ) {
+        window.__yinlouMarkReplayDamageMetric();
+      }
+    }
+
+    // v4.4 雙區間對照
+    const dualMode = filterOpts.dual || '50-99|100-199';
+    const dual =
+      typeof formatReplayDualRange === 'function'
+        ? (function () {
+            const parts = String(dualMode).split('|');
+            const parseR = function (s) {
+              const m = /^(\d+)-(\d+)$/.exec(s || '');
+              return m ? { min: Number(m[1]), max: Number(m[2]) } : null;
+            };
+            const A = parseR(parts[0]) || { min: 50, max: 99 };
+            const B = parseR(parts[1]) || { min: 100, max: 199 };
+            return formatReplayDualRange(save, {
+              aMin: A.min,
+              aMax: A.max,
+              bMin: B.min,
+              bMax: B.max,
+              favOnly: favOnly,
+            });
+          })()
+        : null;
+    if (dual && dual.a && dual.b) {
+      const d = dual.delta || {};
+      html +=
+        '<div class="replay-dual-range card-thick">' +
+        '<strong style="color:#C9A227">雙區間對照</strong>' +
+        '<div class="replay-filters dual-range-tabs">' +
+        '<button type="button" class="wall-mode-btn' +
+        (dualMode === '50-99|100-199' ? ' selected' : '') +
+        '" data-dual="50-99|100-199">50–99 vs 100–199</button>' +
+        '<button type="button" class="wall-mode-btn' +
+        (dualMode === '100-199|200-9999' ? ' selected' : '') +
+        '" data-dual="100-199|200-9999">100–199 vs ≥200</button>' +
+        '<button type="button" class="wall-mode-btn' +
+        (dualMode === '1-99|100-9999' ? ' selected' : '') +
+        '" data-dual="1-99|100-9999">＜100 vs ≥100</button></div>' +
+        '<div class="dual-range-grid">' +
+        '<div><b>' +
+        dual.a.label +
+        '</b><span class="card-meta">n=' +
+        dual.a.count +
+        '</span><div>浪均 ' +
+        dual.a.wave +
+        '｜殺 ' +
+        dual.a.kills +
+        '</div><div>銀 ' +
+        dual.a.silver +
+        '｜傷 ' +
+        dual.a.damage +
+        '</div></div>' +
+        '<div><b>' +
+        dual.b.label +
+        '</b><span class="card-meta">n=' +
+        dual.b.count +
+        '</span><div>浪均 ' +
+        dual.b.wave +
+        '｜殺 ' +
+        dual.b.kills +
+        '</div><div>銀 ' +
+        dual.b.silver +
+        '｜傷 ' +
+        dual.b.damage +
+        '</div></div></div>' +
+        '<div class="card-meta">Δ 浪 ' +
+        (d.wave >= 0 ? '+' : '') +
+        d.wave +
+        '｜殺 ' +
+        (d.kills >= 0 ? '+' : '') +
+        d.kills +
+        '｜銀 ' +
+        (d.silver >= 0 ? '+' : '') +
+        d.silver +
+        '｜傷 ' +
+        (d.damage >= 0 ? '+' : '') +
+        d.damage +
+        '</div></div>';
+      if (window.__yinlouMarkReplayDamageMetric) window.__yinlouMarkReplayDamageMetric();
     }
 
     // timeline scrub
@@ -1518,7 +1623,7 @@ function fillWallCompareHist(save, dayFilter) {
       });
       html += '</ul>';
     }
-    html += '<p class="paper-note">本機回放｜唔做線上排行｜v4.3 銀兩指標／區間篩選</p></div>';
+    html += '<p class="paper-note">本機回放｜唔做線上排行｜v4.4 傷量／雙區間對照</p></div>';
     $('overlay-msg').innerHTML = html;
     const btn = $('btn-overlay');
     btn.textContent = '關閉';
@@ -1531,7 +1636,7 @@ function fillWallCompareHist(save, dayFilter) {
     document.querySelectorAll('[data-rf]').forEach(function (b) {
       b.onclick = function () {
         const k = b.getAttribute('data-rf');
-        const next = { favOnly: false, minWave: 0, maxWave: 0, metric: metric, scrub: 0 };
+        const next = { favOnly: false, minWave: 0, maxWave: 0, metric: metric, scrub: 0, dual: dualMode };
         if (k === 'fav') next.favOnly = true;
         if (k === 'w50') next.minWave = 50;
         if (k === 'w100') next.minWave = 100;
@@ -1558,6 +1663,20 @@ function fillWallCompareHist(save, dayFilter) {
           maxWave: maxWave,
           metric: b.getAttribute('data-metric'),
           scrub: scrub,
+          dual: dualMode,
+        });
+      };
+    });
+    document.querySelectorAll('[data-dual]').forEach(function (b) {
+      b.onclick = function () {
+        if (window.__yinlouMarkReplayDamageMetric) window.__yinlouMarkReplayDamageMetric();
+        showEndlessReplay(getSave, onClose, {
+          favOnly: favOnly,
+          minWave: minWave,
+          maxWave: maxWave,
+          metric: metric,
+          scrub: scrub,
+          dual: b.getAttribute('data-dual'),
         });
       };
     });
@@ -1570,6 +1689,7 @@ function fillWallCompareHist(save, dayFilter) {
           minWave: minWave,
           maxWave: maxWave,
           metric: metric,
+          dual: dualMode,
           scrub: Number(range.value) || 0,
         });
       };
@@ -1582,6 +1702,7 @@ function fillWallCompareHist(save, dayFilter) {
           minWave: minWave,
           maxWave: maxWave,
           metric: metric,
+          dual: dualMode,
           scrub: Number(li.getAttribute('data-scrub-li')) || 0,
         });
       };
@@ -1877,7 +1998,7 @@ function fillWallCompareHist(save, dayFilter) {
       })() +
       '</strong></div>' +
       '<div class="paper-row"><span>版本</span><strong>v4.2.0｜存檔 v' +
-      (save.version || 43) +
+      (save.version || 44) +
       '</strong></div>' +
       '<p class="paper-note">v4.2：十四池750–800、進階共鳴 HUD 徽記、多指標折線疊加、教學全步跟手／高亮格。本地牆本機｜唔做線上排行。</p>' +
       '<div id="charm-equip-bar" class="charm-equip-bar"></div>' +
