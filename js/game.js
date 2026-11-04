@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 主循環 v4.6.0
+ * 銀樓防衛 — 主循環 v4.7.0
  * v1.9.0：第7關／鎖倉居士／週連續＋本地最佳牆／手感平衡
  */
 (function () {
@@ -101,6 +101,13 @@
     mergeSnapRadius,
     syncMergeSnapDevice,
     loadMergeSnapDevice,
+    toggleCharmSlotLock,
+    isCharmSlotLocked,
+    recommendCharmSetEquip,
+    encodeDualPresetShort,
+    decodeDualPresetShort,
+    importDualPresetShort,
+    exportDualPresetsShort,
   } = YD;
   const AudioSfx = window.YDAudio;
   const Battle = YDBattle;
@@ -967,12 +974,15 @@
             m.late850 ||
             m.late950 ||
             m.late1050 ||
-            m.late1150
+            m.late1150 ||
+            m.late1250
         );
         state._lateModBadge = lateMods.length
           ? lateMods.map((m) => m.name).join(' · ')
           : '';
-        state._lateModTier = lateMods.some((m) => m.late1150)
+        state._lateModTier = lateMods.some((m) => m.late1250)
+          ? 1250
+          : lateMods.some((m) => m.late1150)
           ? 1150
           : lateMods.some((m) => m.late1050)
           ? 1050
@@ -1105,6 +1115,12 @@
           writeSave(save);
           notifyAchievements();
         }
+        if ((save.bestEndlessWave || 0) >= 1250) {
+          if (!save.ach) save.ach = {};
+          save.ach.late1250_run = true;
+          writeSave(save);
+          notifyAchievements();
+        }
         if (save._equipCharmToast) {
           const nm = save._equipCharmToast;
           save._equipCharmToast = '';
@@ -1115,7 +1131,9 @@
         if (state._lateModBadge) {
           setTimeout(() => {
             const tag =
-              state._lateModTier >= 1150
+              state._lateModTier >= 1250
+                ? '【1250+】'
+                : state._lateModTier >= 1150
                 ? '【1150+】'
                 : state._lateModTier >= 1050
                 ? '【1050+】'
@@ -2447,6 +2465,127 @@
       if (A && A.play) A.play('set_drag_swap');
     } catch (_) {}
   };
+  window.__yinlouToggleCharmSlotLock = function (slot) {
+    const res =
+      typeof toggleCharmSlotLock === 'function'
+        ? toggleCharmSlotLock(save, slot)
+        : { ok: false };
+    if (res && res.ok) {
+      writeSave(save);
+      if (!save.ach) save.ach = {};
+      if (!save.ach.charm_slot_lock) {
+        save.ach.charm_slot_lock = true;
+        writeSave(save);
+        notifyAchievements();
+        UI.toast('成就｜欄位鎖定', 1800);
+      } else {
+        UI.toast(res.locked ? '已鎖欄' + (Number(slot) + 1) : '已解鎖欄' + (Number(slot) + 1), 1400);
+      }
+      try {
+        const A = window.YDAudio;
+        if (A && A.play) A.play('slot_lock');
+      } catch (_) {}
+    } else {
+      UI.toast((res && res.error) || '鎖定失敗', 1800);
+    }
+    return res;
+  };
+  window.__yinlouRecommendCharmSet = function (setId) {
+    const res =
+      typeof recommendCharmSetEquip === 'function'
+        ? recommendCharmSetEquip(save, setId || '')
+        : { ok: false };
+    if (res && res.ok) {
+      writeSave(save);
+      if (!save.ach) save.ach = {};
+      if (!save.ach.set_recommend_one) {
+        save.ach.set_recommend_one = true;
+        writeSave(save);
+        notifyAchievements();
+        UI.toast('成就｜推薦套裝｜' + (res.name || ''), 2000);
+      } else {
+        UI.toast('已裝推薦｜' + (res.name || ''), 1800);
+      }
+      try {
+        const A = window.YDAudio;
+        if (A && A.play) A.play('set_recommend');
+      } catch (_) {}
+    } else {
+      UI.toast((res && res.error) || '推薦失敗', 1800);
+    }
+    return res;
+  };
+  window.__yinlouExportDualShort = function () {
+    const code =
+      typeof exportDualPresetsShort === 'function' ? exportDualPresetsShort(save) : '';
+    if (!save.ach) save.ach = {};
+    if (!save.ach.dual_preset_short) {
+      save.ach.dual_preset_short = true;
+      writeSave(save);
+      notifyAchievements();
+    }
+    try {
+      const A = window.YDAudio;
+      if (A && A.play) A.play('dual_short');
+    } catch (_) {}
+    return code || '';
+  };
+  window.__yinlouImportDualShort = function (code) {
+    const res =
+      typeof importDualPresetShort === 'function'
+        ? importDualPresetShort(save, code)
+        : { ok: false };
+    if (res && res.ok) {
+      writeSave(save);
+      if (!save.ach) save.ach = {};
+      if (!save.ach.dual_preset_short) {
+        save.ach.dual_preset_short = true;
+        writeSave(save);
+        notifyAchievements();
+      }
+      UI.toast('已匯入雙區間方案', 1800);
+      try {
+        const A = window.YDAudio;
+        if (A && A.play) A.play('dual_short');
+      } catch (_) {}
+    } else {
+      UI.toast((res && res.error) || '匯入失敗', 2000);
+    }
+    return res;
+  };
+  window.__yinlouMarkDualCardPng = function () {
+    if (!save.ach) save.ach = {};
+    if (!save.ach.dual_card_png) {
+      save.ach.dual_card_png = true;
+      writeSave(save);
+      notifyAchievements();
+      UI.toast('成就｜對照卡 PNG', 1800);
+    }
+  };
+  window.__yinlouToggleMergeSnapRing = function () {
+    save.mergeSnapRing = save.mergeSnapRing === false;
+    writeSave(save);
+    if (!save.ach) save.ach = {};
+    if (!save.ach.merge_snap_ring) {
+      save.ach.merge_snap_ring = true;
+      writeSave(save);
+      notifyAchievements();
+      UI.toast('成就｜吸附環', 1800);
+    }
+    return save.mergeSnapRing !== false;
+  };
+  window.__yinlouToggleMergeLegalOnly = function () {
+    save.mergeLegalOnly = save.mergeLegalOnly === false;
+    writeSave(save);
+    if (!save.ach) save.ach = {};
+    if (!save.ach.merge_snap_ring) {
+      save.ach.merge_snap_ring = true;
+      writeSave(save);
+      notifyAchievements();
+      UI.toast('成就｜吸附環', 1800);
+    }
+    return save.mergeLegalOnly !== false;
+  };
   window.__yinlouMarkReplayDamageMetric = function () {
     if (!save.ach) save.ach = {};
     if (!save.ach.replay_damage_metric) {
@@ -3216,20 +3355,30 @@
       if (from && from.star < (typeof MAX_STAR === 'number' ? MAX_STAR : 5)) {
         let best = null;
         let bestD = snapRad;
+        const legalCells = [];
         for (const h of state.heroes || []) {
           if (h.uid === from.uid) continue;
+          // 僅合法合：同 id 同星
           if (h.id !== from.id || h.star !== from.star) continue;
           const cx = GRID.originX + h.slot * (GRID.cellW + GRID.gapX) + GRID.cellW / 2;
           const cy = GRID.originY + h.lane * (GRID.cellH + GRID.gapY) + GRID.cellH / 2;
           const d = Math.hypot(x - cx, y - cy);
+          legalCells.push({ lane: h.lane, slot: h.slot, dist: d, cx: cx, cy: cy });
           if (d < bestD) {
             bestD = d;
             best = h;
           }
         }
+        state.drag.legalMergeCells = save.mergeLegalOnly === false ? [] : legalCells;
+        state.drag.snapRing = save.mergeSnapRing !== false ? { x: x, y: y, r: snapRad } : null;
         if (best) {
           cell = { lane: best.lane, slot: best.slot };
-          state.drag.snapHint = { lane: best.lane, slot: best.slot, dist: bestD };
+          state.drag.snapHint = {
+            lane: best.lane,
+            slot: best.slot,
+            dist: bestD,
+            ring: snapRad,
+          };
           const newly =
             !prevSnap || prevSnap.lane !== best.lane || prevSnap.slot !== best.slot;
           if (newly && save.mergeSnapBuzz !== false) {
@@ -3241,6 +3390,9 @@
           if (window.__yinlouMarkTutMergeSnap) window.__yinlouMarkTutMergeSnap();
         }
       }
+    } else {
+      state.drag.legalMergeCells = null;
+      state.drag.snapRing = null;
     }
     if (cell) {
       state.drag.hoverLane = cell.lane;

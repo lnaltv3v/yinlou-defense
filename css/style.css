@@ -1575,3 +1575,8 @@ button.set-badge { appearance: none; -webkit-appearance: none; }
 .dual-presets-empty { margin: 4px 0 0; font-size: 11px; }
 .dual-custom-row { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 6px 0; }
 .dual-input { width: 56px; }
+
+/* v4.7 dual short / lock */
+.dual-short-row { margin: 4px 0 8px; }
+.dual-short-input { width: 100%; max-width: 420px; font-size: 12px; padding: 4px 6px; background: #1A1510; color: #E8DCC8; border: 1px solid #5A4A38; border-radius: 4px; }
+.set-lock-slot { opacity: 0.9; }

@@ -550,22 +550,44 @@
       ctx.arc(cb.x, cb.y, 3, 0, Math.PI * 2);
       ctx.fill();
     });
-    // v4.4：吸附提示環＋字
-    const snap = state.drag && state.drag.snapHint;
-    if (snap && state.drag && state.drag.active) {
-      const sc = cellCenter(snap.lane, snap.slot);
-      const ring = 14 + 4 * Math.sin(t * 8);
-      ctx.setLineDash([]);
-      ctx.strokeStyle = 'rgba(58,122,106,' + (0.55 + 0.35 * pulse).toFixed(2) + ')';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.arc(sc.x, sc.y, ring, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.fillStyle = 'rgba(232,220,200,' + (0.75 + 0.2 * pulse).toFixed(2) + ')';
-      ctx.font = 'bold 11px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('吸附', sc.x, sc.y - ring - 6);
-      if (window.__yinlouMarkTutMergeSnap) window.__yinlouMarkTutMergeSnap();
+    // v4.7：吸附可視化環（靈敏度半徑）＋僅合法合高亮＋目標環
+    const drag = state.drag;
+    if (drag && drag.active) {
+      const snapRing = drag.snapRing;
+      if (snapRing && snapRing.r > 0) {
+        ctx.setLineDash([5, 4]);
+        ctx.strokeStyle = 'rgba(201,162,39,' + (0.25 + 0.2 * pulse).toFixed(2) + ')';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(snapRing.x, snapRing.y, snapRing.r, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      const legal = drag.legalMergeCells || [];
+      legal.forEach(function (c) {
+        const sc = cellCenter(c.lane, c.slot);
+        ctx.strokeStyle = 'rgba(58,122,106,' + (0.35 + 0.25 * pulse).toFixed(2) + ')';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(sc.x, sc.y, 18 + 2 * pulse, 0, Math.PI * 2);
+        ctx.stroke();
+      });
+      const snap = drag.snapHint;
+      if (snap) {
+        const sc = cellCenter(snap.lane, snap.slot);
+        const ring = 14 + 4 * Math.sin(t * 8);
+        ctx.setLineDash([]);
+        ctx.strokeStyle = 'rgba(58,122,106,' + (0.55 + 0.35 * pulse).toFixed(2) + ')';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(sc.x, sc.y, ring, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(232,220,200,' + (0.75 + 0.2 * pulse).toFixed(2) + ')';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('吸附·合', sc.x, sc.y - ring - 6);
+        if (window.__yinlouMarkTutMergeSnap) window.__yinlouMarkTutMergeSnap();
+      }
     }
     ctx.restore();
     if ((tut === 1 || (state.drag && state.drag.active)) && window.__yinlouMarkTutMergePath) {
