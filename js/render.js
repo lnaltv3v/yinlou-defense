@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — Canvas 繪製 v2.8.0
+ * 銀樓防衛 — Canvas 繪製 v2.9.0
  * v1.5：場景四層 ground→mid→wall→props；halt_seal PNG；擊破／暴擊
  */
 (function (global) {
@@ -740,11 +740,14 @@
     else if (e.id === 'halt_tide') hpCol = '#C4A070';
     else if (e.boss) hpCol = '#C9A227';
     drawPixelRect(ctx, e.x - r, e.y - r - 8 + bob, bw * (e.hp / e.maxHp), 3, hpCol);
-    if (e.id === 'ink_specter' && state && state._dualInkActive) {
-      ctx.fillStyle = '#B07AD4';
-      ctx.font = 'bold 9px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('雙墨', e.x, e.y - r - 18 + bob);
+    if (e.id === 'ink_specter') {
+      const tag = e.inkTag || (e.lane <= 1 ? '左帳' : '右帳');
+      if (state && state._dualInkActive) {
+        ctx.fillStyle = tag === '左帳' ? '#C9A0DC' : '#9B6BC4';
+        ctx.font = 'bold 9px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(tag, e.x, e.y - r - 18 + bob);
+      }
     }
     ctx.globalAlpha = 1;
   }
@@ -1116,16 +1119,63 @@
     if (!state || !state._dualInkActive) return;
     const pulse = 0.55 + 0.45 * Math.sin((performance.now() || 0) / 280);
     ctx.globalAlpha = 0.88;
-    drawPixelRect(ctx, 300, 38, 360, 26, '#1A1510');
+    drawPixelRect(ctx, 260, 36, 440, 42, '#1A1510');
     ctx.strokeStyle = '#B07AD4';
     ctx.lineWidth = 2;
     ctx.globalAlpha = 0.55 + 0.45 * pulse;
-    ctx.strokeRect(300, 38, 360, 26);
+    ctx.strokeRect(260, 36, 440, 42);
     ctx.globalAlpha = 1;
     ctx.fillStyle = '#B07AD4';
     ctx.font = 'bold 13px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('雙墨同場｜護銀分路 · 血條轉紫', 480, 56);
+    ctx.fillText('雙墨同場｜護銀分路 · 血條轉紫', 480, 52);
+    const inks = (state.enemies || []).filter(
+      (e) => e.hp > 0 && e.id === 'ink_specter'
+    );
+    const left = inks.filter((e) => (e.inkTag || (e.lane <= 1 ? '左帳' : '右帳')) === '左帳');
+    const right = inks.filter((e) => (e.inkTag || (e.lane <= 1 ? '左帳' : '右帳')) === '右帳');
+    ctx.font = '11px sans-serif';
+    ctx.fillStyle = '#D4B8E8';
+    ctx.fillText(
+      '左帳×' + left.length + '（上線）  ·  右帳×' + right.length + '（下線）',
+      480,
+      70
+    );
+    ctx.globalAlpha = 1;
+  }
+
+  function drawMergeLadderHud(ctx, state) {
+    const combo = (state && state._mergeCombo) || 0;
+    const t = state && state._mergeComboT;
+    const fresh = t && performance.now() - t < 3800;
+    if (!combo || (!fresh && combo < 2)) return;
+    const steps = [2, 3, 4, 5];
+    const rewards = { 2: 6, 3: 12, 4: 18, 5: 28 };
+    const x0 = 720;
+    const y0 = 44;
+    const w = 220;
+    const h = 36;
+    ctx.globalAlpha = 0.9;
+    drawPixelRect(ctx, x0, y0, w, h, '#1A1510');
+    ctx.strokeStyle = combo >= 5 ? '#B07AD4' : '#C9A227';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x0, y0, w, h);
+    ctx.fillStyle = '#E8DCC8';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('合星階梯 ×' + combo, x0 + 8, y0 + 14);
+    const barX = x0 + 8;
+    const barY = y0 + 20;
+    const barW = w - 16;
+    const barH = 10;
+    drawPixelRect(ctx, barX, barY, barW, barH, '#2A2218');
+    const pct = Math.min(1, Math.max(0, (combo - 1) / 4));
+    drawPixelRect(ctx, barX, barY, Math.max(2, Math.round(barW * pct)), barH, combo >= 5 ? '#B07AD4' : '#C9A227');
+    ctx.font = '9px sans-serif';
+    ctx.fillStyle = '#A09070';
+    ctx.textAlign = 'right';
+    const next = steps.find((s) => s > combo);
+    ctx.fillText(next ? '下一檔 +' + rewards[next] + '兩' : '滿階 +' + rewards[5] + '兩', x0 + w - 8, y0 + 14);
     ctx.globalAlpha = 1;
   }
 

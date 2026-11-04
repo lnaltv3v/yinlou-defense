@@ -131,6 +131,13 @@
       rushDmgMul: 1,
       atkBuffMul: 1,
       atkBuffT: 0,
+      inkTag:
+        (extra && extra.inkTag) ||
+        (typeId === 'ink_specter'
+          ? lane <= 1
+            ? '左帳'
+            : '右帳'
+          : null),
     };
   }
 
@@ -1590,6 +1597,7 @@
         fixedLane: typeof s.lane === 'number' ? s.lane : null,
         hpMul: s.hpMul || hpMul,
         elite: !!s.elite,
+        inkTag: s.inkTag || null,
       });
     }
     return { jobs, laneCycle: 0, done: false, elapsed: 0 };

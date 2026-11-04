@@ -806,3 +806,42 @@ header.title {
 .mod-row strong {
   letter-spacing: 0.02em;
 }
+
+
+/* v2.9.0 */
+.lane-tips {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.lane-chip {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  border: 1px solid #5A4030;
+  background: #2A2218;
+}
+.lane-chip.left { color: #C9A0DC; border-color: #B07AD4; }
+.lane-chip.right { color: #9B6BC4; border-color: #8A5BB0; }
+.rec-tips {
+  margin: 8px 0 0;
+  padding-left: 1.2em;
+  color: #E8DCC8;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.rec-tips li { margin: 2px 0; }
+.wall-spark-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 6px 0;
+}
+.wall-spark-code {
+  font-size: 11px;
+  color: #A09070;
+}
+.stage-rec-card .lore { display: block; margin-top: 4px; opacity: 0.85; }

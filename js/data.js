@@ -1522,8 +1522,8 @@
       name: '雙墨夜帳',
       story:
         '翻帳未盡，第二帳從裂縫並肩翻開——雙墨同場，銀袋兩頭抽。\n\n' +
-        '護銀分路：鎖倉減抽、鐵衛分頂兩線；先清暗盤影再開合星連擊攞階梯銀。\n\n' +
-        '末波兩帳幾乎同步入場；銀兩唔好堆死，合星連擊階梯會回補。',
+        '分路口訣：左帳（上線）鐵衛＋鎖倉減抽；右帳（下線）第二鐵衛／刀客清影。\n\n' +
+        '護銀分路，先清暗盤再開合星階梯回補。末波兩帳分先後入場——唔好兩邊都空。',
       challenge: true,
       startSilver: 428,
       coreHp: 455,
@@ -1580,8 +1580,8 @@
           { enemy: 'panic_board', count: 7, lane: 'random', interval: 0.58, delay: 0.18 },
           { enemy: 'halt_seal', count: 11, lane: 'cycle', interval: 0.34, delay: 0.28 },
           { enemy: 'margin_call', count: 10, lane: 'random', interval: 0.38, delay: 0.3 },
-          { enemy: 'ink_specter', count: 1, lane: 1, interval: 0, delay: 1.8, hpMul: 1.0 },
-          { enemy: 'ink_specter', count: 1, lane: 3, interval: 0, delay: 4.6, hpMul: 1.05 },
+          { enemy: 'ink_specter', count: 1, lane: 1, interval: 0, delay: 1.8, hpMul: 1.0, inkTag: '左帳' },
+          { enemy: 'ink_specter', count: 1, lane: 3, interval: 0, delay: 4.6, hpMul: 1.05, inkTag: '右帳' },
           { enemy: 'leverage_fiend', count: 4, lane: 'cycle', interval: 0.75, delay: 0.5, elite: true },
           { enemy: 'chase_zombie', count: 8, lane: 'random', interval: 0.4, delay: 0.45 },
         ]),
@@ -1623,6 +1623,7 @@
     { wave: 100, silver: 1000, label: '百浪墨城' },
     { wave: 110, silver: 1150, label: '百十浪帳守' },
     { wave: 120, silver: 1350, label: '百廿浪雙墨' },
+    { wave: 130, silver: 1550, label: '百卅浪長帳' },
   ];
 
   function endlessMilestone(waveIndex) {
@@ -2830,7 +2831,7 @@
       heroes: ['lock_hermit', 'market_guard', 'short_blade'],
       blurb: '鎖倉＋坦＋劍｜擋停牌潮',
       tip: '第 11 關／停牌潮：鐵筆減攻、鐵衛頂、劍減速收割',
-    },,
+    },
     {
       id: 'ink_guard',
       name: '護銀抗墨',
@@ -3014,6 +3015,10 @@
     { id: 'endless120', cat: 'combat', name: '百廿浪雙墨', blurb: '無盡最佳 ≥ 120 波', check: (s) => (s.bestEndlessWave || 0) >= 120 },
     { id: 'merge_combo5', cat: 'merge', name: '合星五連', blurb: '短時間內連續合星 ≥ 5 次', check: (s) => !!s.ach && !!s.ach.merge_combo5 },
     { id: 'wall_mode', cat: 'meta', name: '牆影切換', blurb: '喺時間軸切換無盡／連週走勢', check: (s) => !!s.ach && !!s.ach.wall_mode },
+    { id: 'endless130', cat: 'combat', name: '百卅浪長帳', blurb: '無盡最佳 ≥ 130 波', check: (s) => (s.bestEndlessWave || 0) >= 130 },
+    { id: 'dual_ink_cycle', cat: 'combat', name: '雙墨週期', blurb: '無盡 100+ 遇上雙墨常駐週期', check: (s) => !!s.ach && !!s.ach.dual_ink_cycle },
+    { id: 'wall_png', cat: 'meta', name: '牆影出圖', blurb: '匯出一次牆走勢圖（本機）', check: (s) => !!s.ach && !!s.ach.wall_png },
+    { id: 'ink_lanes', cat: 'combat', name: '左右分帳', blurb: '雙墨同場時睇過左／右帳提示', check: (s) => !!s.ach && !!s.ach.ink_lanes },
   ];
 
   /** 首通銀兩獎勵（入累計帳） */
@@ -3063,7 +3068,8 @@
     const late75 = n >= 75 ? (n - 75) * 0.011 : 0;
     const late90 = n >= 90 ? (n - 90) * 0.008 : 0;
     const late120 = n >= 120 ? (n - 120) * 0.006 : 0;
-    const mul = 1 + (n - 1) * 0.105 + late50 + late75 + late90 + late120;
+    const late130 = n >= 130 ? (n - 130) * 0.005 : 0;
+    const mul = 1 + (n - 1) * 0.105 + late50 + late75 + late90 + late120 + late130;
     const countLate = n >= 50 ? Math.min(n - 50, 25) * 0.01 + (n >= 75 ? (n - 75) * 0.006 : 0) : 0;
     const count = (base) => {
       let raw = Math.max(1, Math.round(base * (1 + (n - 1) * 0.072 + countLate)));
@@ -3243,17 +3249,73 @@
       }
     }
 
-    if (n === 120) {
-      spawns.push({ enemy: 'ink_specter', count: 1, lane: 1, interval: 0, delay: 2.2, hpMul: mul * 1.08 });
-      spawns.push({ enemy: 'ink_specter', count: 1, lane: 3, interval: 0, delay: 5.0, hpMul: mul * 1.12 });
+    // v2.9：100+ 每 20 浪雙墨常駐週期（避開四潮整除浪）；補足至 2 帳
+    if (n >= 100 && n % 20 === 0 && n % 60 !== 0) {
+      let haveInk = spawns.filter((s) => s.enemy === 'ink_specter').reduce((a, s) => a + (s.count || 1), 0);
+      if (haveInk < 1) {
+        spawns.push({ enemy: 'ink_specter', count: 1, lane: 1, interval: 0, delay: 2.4, hpMul: mul * 1.06, inkTag: '左帳' });
+        haveInk += 1;
+      }
+      if (haveInk < 2) {
+        spawns.push({ enemy: 'ink_specter', count: 1, lane: 3, interval: 0, delay: 5.2, hpMul: mul * 1.1, inkTag: '右帳' });
+      }
+      // 為已有墨影補 tag
+      for (const s of spawns) {
+        if (s.enemy === 'ink_specter' && !s.inkTag) {
+          s.inkTag = (typeof s.lane === 'number' && s.lane <= 1) ? '左帳' : '右帳';
+        }
+      }
       spawns.push({
         enemy: 'dark_tape',
-        count: count(5),
+        count: count(4),
         lane: 'cycle',
-        interval: 0.36,
-        delay: 0.8,
-        hpMul: mul * 0.95,
+        interval: 0.38,
+        delay: 0.9,
+        hpMul: mul * 0.94,
       });
+    }
+    if (n === 120 || n === 130) {
+      let haveInk = spawns.filter((s) => s.enemy === 'ink_specter').reduce((a, s) => a + (s.count || 1), 0);
+      if (haveInk < 1) {
+        spawns.push({
+          enemy: 'ink_specter',
+          count: 1,
+          lane: n === 130 ? 0 : 1,
+          interval: 0,
+          delay: 2.0,
+          hpMul: mul * (n === 130 ? 1.1 : 1.08),
+          inkTag: '左帳',
+        });
+        haveInk += 1;
+      }
+      if (haveInk < 2) {
+        const existing = spawns.find((s) => s.enemy === 'ink_specter');
+        const needLeft = !existing || existing.inkTag === '右帳' || (typeof existing.lane === 'number' && existing.lane > 1);
+        spawns.push({
+          enemy: 'ink_specter',
+          count: 1,
+          lane: needLeft ? 1 : 3,
+          interval: 0,
+          delay: n === 130 ? 4.8 : 5.0,
+          hpMul: mul * (n === 130 ? 1.14 : 1.12),
+          inkTag: needLeft ? '左帳' : '右帳',
+        });
+      }
+      for (const s of spawns) {
+        if (s.enemy === 'ink_specter' && !s.inkTag) {
+          s.inkTag = typeof s.lane === 'number' && s.lane <= 1 ? '左帳' : '右帳';
+        }
+      }
+      if (n === 120) {
+        spawns.push({
+          enemy: 'dark_tape',
+          count: count(5),
+          lane: 'cycle',
+          interval: 0.36,
+          delay: 0.8,
+          hpMul: mul * 0.95,
+        });
+      }
     }
 
     return { spawns, hpMul: mul };
@@ -3363,7 +3425,7 @@
   function mergeRebate(heroId, newStar) {
     const def = HEROES[heroId];
     if (!def) return 0;
-    return Math.round(def.cost * 0.186 * newStar);
+    return Math.round(def.cost * 0.188 * newStar);
   }
 
   function activeBonds(heroes) {
@@ -3403,7 +3465,7 @@
 
   function defaultSave() {
     return {
-      version: 28,
+      version: 29,
       totalSilver: 0,
       totalKills: 0,
       maxStageCleared: 0,
@@ -3745,12 +3807,21 @@
   /** 根據關卡敵組成動態推薦陣容（簡版） */
   function recommendForStage(stage, endless, daily, weekly) {
     if (stage && stage.id === 13) {
-      const lu = LINEUPS.find((x) => x.id === 'ink_guard') || LINEUPS[0];
+      const lu = LINEUPS.find((x) => x && x.id === 'ink_guard') || LINEUPS[0];
       return { lineup: lu, reason: '墨影翻帳——護銀抗墨：鐵衛＋鎖倉清影' };
     }
     if (stage && stage.id === 14) {
-      const lu = LINEUPS.find((x) => x.id === 'ink_guard') || LINEUPS[0];
-      return { lineup: lu, reason: '雙墨夜帳——分路護銀：鐵衛雙線＋鎖倉減抽＋合星階梯' };
+      const lu = LINEUPS.find((x) => x && x.id === 'ink_guard') || LINEUPS[0];
+      return {
+        lineup: lu,
+        reason: '雙墨夜帳——分路護銀：鐵衛雙線＋鎖倉減抽＋合星階梯',
+        tips: [
+          '左帳（lane 0–1／上線）：鐵衛＋鎖倉頂前，優先減抽',
+          '右帳（lane 2–3／下線）：第二鐵衛或刀客清影，唔好兩邊都空',
+          '末波兩帳分先後入場——先清早到嗰邊，合星階梯回補銀兩',
+        ],
+        lanes: { left: '左帳｜上線 lane0–1', right: '右帳｜下線 lane2–3' },
+      };
     }
     const counts = {};
     const waves = (stage && stage.waves) || [];

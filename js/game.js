@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 主循環 v2.8.0
+ * 銀樓防衛 — 主循環 v2.9.0
  * v1.9.0：第7關／鎖倉居士／週連續＋本地最佳牆／手感平衡
  */
 (function () {
@@ -388,6 +388,31 @@
         (e) => e.hp > 0 && (e.id === 'ink_specter' || (e.def && e.def.id === 'ink_specter'))
       ).length;
       state._dualInkActive = inkAlive >= 2;
+      if (inkAlive >= 2) {
+        const tags = (state.enemies || [])
+          .filter((e) => e.hp > 0 && e.id === 'ink_specter')
+          .map((e) => e.inkTag || (e.lane <= 1 ? '左帳' : '右帳'));
+        state._inkLaneTips = tags;
+        if (!save.ach) save.ach = {};
+        if (!save.ach.ink_lanes) {
+          save.ach.ink_lanes = true;
+          writeSave(save);
+          notifyAchievements();
+        }
+        if (
+          state.endless &&
+          state.waveIndex >= 100 &&
+          state.waveIndex % 20 === 0 &&
+          !save.ach.dual_ink_cycle
+        ) {
+          save.ach.dual_ink_cycle = true;
+          writeSave(save);
+          notifyAchievements();
+          UI.toast('成就｜雙墨週期', 2200);
+        }
+      } else {
+        state._inkLaneTips = null;
+      }
       if (inkAlive >= 2 || (state._dualInkSeen || 0) >= 1) {
         if (!save.ach) save.ach = {};
         if (!save.ach.dual_ink) {
@@ -721,7 +746,7 @@
       state.stage && (state.stage.id === 13 || state.stage.id === 14) && !state.endless
         ? '本關推薦｜' + rec.lineup.name + '（' + (heroes || '') + '）— ' + rec.reason
         : '本關推薦｜' + rec.lineup.name + ' — ' + rec.reason;
-    UI.toast(long, state.stage && state.stage.id === 13 ? 3400 : 2800);
+    UI.toast(long, state.stage && (state.stage.id === 13 || state.stage.id === 14) ? 3600 : 2800);
   }
 
   function enterStage(idx, endless, daily, weekly) {
@@ -1551,6 +1576,15 @@
             UI.toast('成就｜牆影切換', 1800);
           }
         };
+        window.__yinlouMarkWallPng = () => {
+          if (!save.ach) save.ach = {};
+          if (!save.ach.wall_png) {
+            save.ach.wall_png = true;
+            writeSave(save);
+            notifyAchievements();
+            UI.toast('成就｜牆影出圖', 1800);
+          }
+        };
         UI.showWallTimeline(
           () => save,
           () => syncAll(),
@@ -2210,6 +2244,7 @@
       const enemy = Battle.makeEnemy(job.enemy, lane, {
         hpMul: job.hpMul || 1,
         elite: !!job.elite,
+        inkTag: job.inkTag || null,
       });
       if (state.modCtx) {
         if (state.modCtx.enemySpeedMul && state.modCtx.enemySpeedMul !== 1) {

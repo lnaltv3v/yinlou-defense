@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v2.8.0
+ * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v2.9.0
  */
 (function (global) {
   const {
@@ -96,7 +96,7 @@
       ink +
       '"></i>' +
       gear;
-    const src = (window.YDSprites && window.YDSprites.urlFor) ? window.YDSprites.urlFor(def.id) : ('assets/sprites/' + def.id + '.png?v=2.8.0');
+    const src = (window.YDSprites && window.YDSprites.urlFor) ? window.YDSprites.urlFor(def.id) : ('assets/sprites/' + def.id + '.png?v=2.9.0');
     return (
       '<span class="hero-avatar" aria-hidden="true" data-hero="' +
       def.id +
@@ -311,10 +311,32 @@
                 .join('＋') +
               '</span>'
             : '') +
-          (rec.lineup.blurb ? '<em class="lore">' + rec.lineup.blurb + '</em>' : '') +
-          '</div>';
+          (rec.lineup.blurb ? '<em class="lore">' + rec.lineup.blurb + '</em>' : '');
+        if (rec.lanes) {
+          html +=
+            '<div class="lane-tips">' +
+            '<span class="lane-chip left">◀ ' +
+            (rec.lanes.left || '左帳') +
+            '</span>' +
+            '<span class="lane-chip right">' +
+            (rec.lanes.right || '右帳') +
+            ' ▶</span></div>';
+        }
+        if (rec.tips && rec.tips.length) {
+          html += '<ul class="rec-tips">';
+          for (let i = 0; i < rec.tips.length; i++) {
+            html += '<li>' + rec.tips[i] + '</li>';
+          }
+          html += '</ul>';
+        }
+        html += '</div>';
       }
-      html += '<p class="paper-note">鎖倉減抽、鐵衛頂前；合 2–3 星再開波。</p></div>';
+      html +=
+        '<p class="paper-note">' +
+        (rec && rec.lanes
+          ? '左帳上線／右帳下線分路；鎖倉減抽、合星階梯回補銀兩。'
+          : '鎖倉減抽、鐵衛頂前；合 2–3 星再開波。') +
+        '</p></div>';
       $('overlay-msg').innerHTML = html;
       const btn = $('btn-overlay');
       btn.textContent = '繼續';
@@ -771,7 +793,7 @@
     const src = id && window.YDSprites && window.YDSprites.urlFor
       ? window.YDSprites.urlFor(id)
       : id
-        ? 'assets/sprites/' + id + '.png?v=2.8.0'
+        ? 'assets/sprites/' + id + '.png?v=2.9.0'
         : '';
     const fallback =
       '<span class="codex-thumb-fallback" style="background:' + c + '"></span>';
@@ -1072,6 +1094,12 @@
           (spark.bars || '') +
           '</span>' +
           '<canvas id="wall-spark-canvas" class="wall-spark-canvas" width="320" height="56" aria-label="牆走勢"></canvas>' +
+          '<div class="wall-spark-actions">' +
+          '<button type="button" class="wall-mode-btn" id="wall-export-png">匯出走勢圖</button>' +
+          '<button type="button" class="wall-mode-btn" id="wall-copy-code">複製短碼</button>' +
+          '<span class="mono wall-spark-code" id="wall-spark-code">' +
+          (typeof encodeWallShort === 'function' ? encodeWallShort(save) : '') +
+          '</span></div>' +
           '<span class="card-meta" id="wall-spark-meta">' +
           (spark.label || '') +
           '</span></div>'
@@ -1146,15 +1174,60 @@
       applySparkMode('endless');
       const box = $('wall-spark-box');
       if (box) {
-        box.querySelectorAll('.wall-mode-btn').forEach((b) => {
+        box.querySelectorAll('.wall-mode-btn[data-mode]').forEach((b) => {
           b.onclick = () => {
             applySparkMode(b.getAttribute('data-mode'));
-            if (typeof onMark === 'function') {
-              /* mark wall_mode via parent */
-            }
             if (window.__yinlouMarkWallMode) window.__yinlouMarkWallMode();
           };
         });
+      }
+      const pngBtn = $('wall-export-png');
+      if (pngBtn) {
+        pngBtn.onclick = () => {
+          try {
+            const exportCv = document.createElement('canvas');
+            exportCv.width = 640;
+            exportCv.height = 160;
+            drawWallSparkCanvas(exportCv, spark, sparkMode);
+            const ctx2 = exportCv.getContext('2d');
+            if (ctx2) {
+              ctx2.fillStyle = '#E8DCC8';
+              ctx2.font = '12px sans-serif';
+              ctx2.textAlign = 'left';
+              const code = typeof encodeWallShort === 'function' ? encodeWallShort(save) : '';
+              ctx2.fillText('銀樓防衛｜牆走勢（本機） ' + code, 12, 152);
+            }
+            const a = document.createElement('a');
+            a.href = exportCv.toDataURL('image/png');
+            a.download = 'yinlou-wall-' + (sparkMode || 'endless') + '.png';
+            a.click();
+            if (window.__yinlouMarkWallPng) window.__yinlouMarkWallPng();
+            toast('已匯出走勢圖（本機）', 2000);
+          } catch (err) {
+            toast('匯出失敗');
+          }
+        };
+      }
+      const codeBtn = $('wall-copy-code');
+      if (codeBtn) {
+        codeBtn.onclick = () => {
+          const code = typeof encodeWallShort === 'function' ? encodeWallShort(save) : '';
+          if (!code) {
+            toast('無短碼');
+            return;
+          }
+          const done = () => toast('已複製短碼 ' + code, 2200);
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(code).then(done).catch(() => {
+              prompt('複製短碼', code);
+              done();
+            });
+          } else {
+            prompt('複製短碼', code);
+            done();
+          }
+          if (window.__yinlouMarkWallPng) window.__yinlouMarkWallPng();
+        };
       }
     }
     const btn = $('btn-overlay');

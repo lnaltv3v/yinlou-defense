@@ -128,3 +128,6 @@
 
 ## v2.8
 - mid／props 無新檔；`CACHE_VER=2.8.0`；雙墨 HUD 色差。
+
+## v2.9
+- mid／props 無新檔；`CACHE_VER=2.9.0`；牆走勢可匯出 PNG。
