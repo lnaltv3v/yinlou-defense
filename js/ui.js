@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v0.7.0
+ * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v0.8.0
  */
 (function (global) {
   const {
@@ -9,6 +9,8 @@
     SPEED_OPTIONS,
     BONDS,
     ACHIEVEMENTS,
+    ACHIEVEMENT_CATS,
+    saveStats,
     LINEUPS,
     summonCost,
     hkDateString,
@@ -56,6 +58,10 @@
       gear = '<i class="av-gear" style="background:#8A5040;left:20px;top:8px;width:8px;height:4px"></i>';
     } else if (sil === 'coin' || sil === 'arb') {
       gear = '<i class="av-gear" style="background:#C9A227;left:18px;top:10px;width:10px;height:10px;border-radius:0"></i>';
+    } else if (sil === 'scroll' || sil === 'marker') {
+      gear =
+        '<i class="av-gear" style="background:#E8DCC8;left:18px;top:6px;width:6px;height:14px"></i>' +
+        '<i class="av-gear" style="background:#C45C4A;left:2px;top:10px;width:8px;height:8px"></i>';
     }
     return (
       '<span class="hero-avatar" aria-hidden="true" style="--av:' +
@@ -262,9 +268,10 @@
     for (const st of STAGES) {
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = 'stage-btn';
+      btn.className = 'stage-btn' + (st.challenge ? ' challenge' : '');
       btn.dataset.stage = String(st.id);
       btn.textContent = st.id + '. ' + st.name;
+      if (st.challenge) btn.title = '挑戰關：盤後暗盤';
       btn.addEventListener('click', () => onPickStage(st.id - 1));
       bar.appendChild(btn);
     }
@@ -593,14 +600,32 @@
     const ov = $('overlay');
     ov.classList.remove('settings-mode');
     ov.classList.add('codex-mode');
-    $('overlay-title').textContent = '成就';
+    $('overlay-title').textContent = '成就／統計';
+    const st = saveStats ? saveStats(save) : {};
     const lines = [];
-    for (const a of ACHIEVEMENTS) {
-      const ok = save.unlockedAch && save.unlockedAch[a.id];
-      lines.push((ok ? '✓ ' : '○ ') + a.name + ' — ' + a.blurb);
+    lines.push(
+      '【統計】',
+      '總擊殺 ' + (st.totalKills || 0) +
+        '｜最高無盡 ' + (st.bestEndlessWave || 0) + ' 波' +
+        '｜累計銀兩帳 ' + (st.totalSilver || 0),
+      '主線進度 ' + (st.maxStageCleared || 0) + '/' + (st.stagesTotal || 6) +
+        '｜成就 ' + (st.achUnlocked || 0) + '/' + (st.achTotal || ACHIEVEMENTS.length),
+      ''
+    );
+    const cats = ACHIEVEMENT_CATS || [{ id: 'all', name: '全部' }];
+    for (const cat of cats) {
+      const list = ACHIEVEMENTS.filter((a) => (a.cat || 'all') === cat.id);
+      if (!list.length) continue;
+      const done = list.filter((a) => save.unlockedAch && save.unlockedAch[a.id]).length;
+      lines.push('【' + cat.name + '】' + done + '/' + list.length);
+      for (const a of list) {
+        const ok = save.unlockedAch && save.unlockedAch[a.id];
+        lines.push((ok ? '✓ ' : '○ ') + a.name + ' — ' + a.blurb);
+      }
+      lines.push('');
     }
     const meta = dailyStageMeta();
-    lines.push('', '今日關卡：' + meta.name + '（' + meta.blurb + '）');
+    lines.push('今日關卡：' + meta.name + '（' + meta.blurb + '）');
     $('overlay-msg').textContent = lines.join('\n');
     const btn = $('btn-overlay');
     btn.textContent = '關閉';

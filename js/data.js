@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 靜態資料 v0.7.0
+ * 銀樓防衛 — 靜態資料 v0.8.0
  * 角色為原創綽號，影射金融江湖氣氛；唔用真人真名／金庸名／Fortias IP。
  */
 (function (global) {
@@ -230,6 +230,30 @@
         slowDur: 1.1,
       },
     },
+    night_broker: {
+      id: 'night_broker',
+      name: '夜盤掮客',
+      blurb: '暗盤標記 · 隊友收割',
+      role: 'marker',
+      cost: 33,
+      color: '#3A4060',
+      silhouette: 'scroll',
+      atk: 10,
+      hp: 62,
+      range: 175,
+      cooldown: 0.68,
+      slow: 0.25,
+      slowDur: 1.0,
+      skill: {
+        id: 'dark_mark',
+        name: '暗盤標記',
+        type: 'active',
+        blurb: '每第 4 擊標記目標 4 秒，隊友打標記 +35% 傷',
+        every: 4,
+        markDur: 4.0,
+        markAllyBonus: 0.35,
+      },
+    },
   };
 
   /** 場上羈絆：同時存在列出嘅 id → 被動 */
@@ -276,6 +300,24 @@
       rangeBonus: 18,
       cdMul: 0.94,
       applyTo: ['arb_walker', 'short_blade'],
+    },
+    {
+      id: 'dark_session',
+      name: '暗盤通宵',
+      need: ['night_broker', 'short_blade'],
+      blurb: '雙方冷卻 −8%；標記加傷再 +10%',
+      cdMul: 0.92,
+      markBonus: 0.10,
+      applyTo: ['night_broker', 'short_blade'],
+    },
+    {
+      id: 'night_arb',
+      name: '夜盤套利',
+      need: ['night_broker', 'arb_walker'],
+      blurb: '雙方射程 +12；標記持續 +1 秒',
+      rangeBonus: 12,
+      markDurBonus: 1,
+      applyTo: ['night_broker', 'arb_walker'],
     },
   ];
 
@@ -419,6 +461,30 @@
         dur: 1.8,
       },
     },
+    dark_tape: {
+      id: 'dark_tape',
+      name: '暗盤影',
+      hp: 38,
+      atk: 9,
+      speed: 52,
+      reward: 9,
+      color: '#2A2840',
+      radius: 10,
+      attackRange: 40,
+      attackCd: 0.7,
+      preferHero: 0.75,
+      stealth: true,
+      skill: {
+        id: 'shadow_slip',
+        name: '影遁',
+        every: 3,
+        blurb: '精英技：短暫加速並隱身感',
+        type: 'rush',
+        speedMul: 1.7,
+        dmgMul: 1.35,
+        dur: 1.6,
+      },
+    },
   };
 
   function wavePack(list) {
@@ -500,8 +566,8 @@
       id: 3,
       name: '夜盤黑潮',
       story: '夜盤無聲，傳聞蚊起舞。黑羽掠過屋脊——黑天鵝唔敲門，只破門。',
-      startSilver: 175,
-      coreHp: 205,
+      startSilver: 182,
+      coreHp: 210,
       unlockHeroes: Object.keys(HEROES),
       waves: [
         wavePack([
@@ -550,8 +616,8 @@
       id: 4,
       name: '清算之夜',
       story: '清算之夜，槓桿反噬。銀樓鐵壁若齊人，尚有一息；否則只剩空倉同空城。',
-      startSilver: 200,
-      coreHp: 235,
+      startSilver: 215,
+      coreHp: 240,
       unlockHeroes: Object.keys(HEROES),
       waves: [
         wavePack([
@@ -607,8 +673,8 @@
       id: 5,
       name: '熔斷黎明',
       story: '熔斷黎明前最後一炷香。恐慌盤如潮，套利行者跨 lane 收割——撐過呢一浪，江湖記得你名。',
-      startSilver: 210,
-      coreHp: 250,
+      startSilver: 225,
+      coreHp: 255,
       unlockHeroes: Object.keys(HEROES),
       waves: [
         wavePack([
@@ -662,14 +728,76 @@
         ]),
       ],
     },
+
+    {
+      id: 6,
+      name: '盤後暗盤',
+      story: '收市鐘已響，暗盤卻未歇。掮客提燈入巷，影在磚縫遊走——呢一晚唔係開市，係清算未完嘅債。',
+      challenge: true,
+      startSilver: 235,
+      coreHp: 270,
+      unlockHeroes: Object.keys(HEROES),
+      firstClearBonus: 150,
+      waves: [
+        wavePack([
+          { enemy: 'dark_tape', count: 6, lane: 'cycle', interval: 0.55 },
+          { enemy: 'retail_tide', count: 8, lane: 'random', interval: 0.45, delay: 0.8 },
+          { enemy: 'rumor_swarm', count: 6, lane: 'cycle', interval: 0.4, delay: 0.5 },
+        ]),
+        wavePack([
+          { enemy: 'dark_tape', count: 8, lane: 'cycle', interval: 0.48 },
+          { enemy: 'margin_call', count: 5, lane: 'random', interval: 0.75, delay: 0.8 },
+          { enemy: 'chase_zombie', count: 4, lane: 'cycle', interval: 0.85, delay: 1.2 },
+        ]),
+        wavePack([
+          { enemy: 'retail_tide', count: 12, lane: 'cycle', interval: 0.34 },
+          { enemy: 'dark_tape', count: 8, lane: 'random', interval: 0.42, delay: 0.4 },
+          { enemy: 'panic_board', count: 3, lane: 'cycle', interval: 1.1, delay: 1.5, elite: true },
+          { enemy: 'leverage_fiend', count: 2, lane: 'random', interval: 1.3, delay: 2 },
+        ]),
+        wavePack([
+          { enemy: 'dark_tape', count: 10, lane: 'cycle', interval: 0.4 },
+          { enemy: 'rumor_swarm', count: 12, lane: 'random', interval: 0.28, delay: 0.3 },
+          { enemy: 'margin_call', count: 6, lane: 'cycle', interval: 0.6, delay: 0.8 },
+          { enemy: 'black_swan', count: 1, lane: 2, interval: 0, delay: 4.2 },
+        ]),
+        wavePack([
+          { enemy: 'chase_zombie', count: 7, lane: 'cycle', interval: 0.6 },
+          { enemy: 'dark_tape', count: 10, lane: 'random', interval: 0.38, delay: 0.4 },
+          { enemy: 'panic_board', count: 4, lane: 'cycle', interval: 0.95, delay: 1 },
+          { enemy: 'leverage_fiend', count: 3, lane: 'random', interval: 1.05, delay: 1.5 },
+        ]),
+        wavePack([
+          { enemy: 'margin_call', count: 8, lane: 'cycle', interval: 0.5 },
+          { enemy: 'dark_tape', count: 12, lane: 'random', interval: 0.35, delay: 0.3 },
+          { enemy: 'black_swan', count: 1, lane: 1, interval: 0, delay: 3 },
+          { enemy: 'black_swan', count: 1, lane: 3, interval: 0, delay: 5.5 },
+        ]),
+        wavePack([
+          { enemy: 'retail_tide', count: 14, lane: 'cycle', interval: 0.28 },
+          { enemy: 'dark_tape', count: 12, lane: 'random', interval: 0.32, delay: 0.25 },
+          { enemy: 'panic_board', count: 5, lane: 'cycle', interval: 0.85, delay: 0.8 },
+          { enemy: 'leverage_fiend', count: 4, lane: 'random', interval: 0.95, delay: 1 },
+          { enemy: 'rumor_swarm', count: 14, lane: 'cycle', interval: 0.24, delay: 0.2 },
+        ]),
+        wavePack([
+          { enemy: 'dark_tape', count: 14, lane: 'cycle', interval: 0.3 },
+          { enemy: 'panic_board', count: 6, lane: 'random', interval: 0.75, delay: 0.4 },
+          { enemy: 'margin_call', count: 8, lane: 'cycle', interval: 0.48, delay: 0.5 },
+          { enemy: 'leverage_fiend', count: 5, lane: 'random', interval: 0.9, delay: 1 },
+          { enemy: 'black_swan', count: 2, lane: 'cycle', interval: 3.2, delay: 2.2 },
+          { enemy: 'chase_zombie', count: 6, lane: 'random', interval: 0.55, delay: 0.6 },
+        ]),
+      ],
+    },
   ];
 
   const ENDLESS = {
     id: 'endless',
     name: '無盡殺跌',
     story: '殺跌無盡，浪高過浪。里程碑銀兩係你唯一嘅喘息——守得愈久，江湖傳聞愈響。',
-    startSilver: 170,
-    coreHp: 190,
+    startSilver: 175,
+    coreHp: 195,
     unlockHeroes: Object.keys(HEROES),
   };
 
@@ -679,7 +807,7 @@
       // 無盡：前期略甜、後期仍升但唔失控
       return Math.round(18 + waveIndex * 6.5 + Math.min(40, waveIndex * 1.2));
     }
-    return 22 + waveIndex * 8;
+    return 24 + waveIndex * 8;
   }
 
   /** 無盡里程碑獎勵（銀兩）；同一局只領一次 */
@@ -817,6 +945,13 @@
       blurb: '行者＋劍＋坦｜觸發套利對沖',
       tip: '跨 lane 點殺＋遠程減速',
     },
+    {
+      id: 'dark_night',
+      name: '暗盤通宵',
+      heroes: ['night_broker', 'short_blade', 'market_guard'],
+      blurb: '掮客＋劍＋坦｜觸發暗盤通宵',
+      tip: '標記後隊友收割；鐵衛頂前',
+    },
   ];
 
   /** 失敗後隨機提示 */
@@ -830,26 +965,66 @@
     '拖放可調位：坦克靠左、輸出靠右（敵人由右入）。',
     '開波前睇羈絆列：齊人先開波，收益更大。',
     '點場上俠客可強化：刀利／甲厚／內息（花銀兩，合併會保留較高強化）。',
+    '夜盤掮客標記目標後，隊友打標記怪傷害更高；配空頭劍客觸發「暗盤通宵」。',
+    '第 6 關「盤後暗盤」暗盤影又快又陰；前排坦克＋標記收割更穩。',
+  ];
+
+  const ACHIEVEMENT_CATS = [
+    { id: 'stage', name: '關卡' },
+    { id: 'merge', name: '合成' },
+    { id: 'combat', name: '戰鬥' },
+    { id: 'meta', name: '收集／日常' },
   ];
 
   const ACHIEVEMENTS = [
-    { id: 'first_clear', name: '開張大吉', blurb: '通關第 1 關', check: (s) => (s.maxStageCleared || 0) >= 1 },
-    { id: 'stage4', name: '清算達人', blurb: '通關第 4 關', check: (s) => (s.maxStageCleared || 0) >= 4 },
-    { id: 'maxstar', name: '滿星開盤', blurb: '首次合成 4 星', check: (s) => !!s.ach && s.ach.maxstar },
-    { id: 'star3', name: '三星掛牌', blurb: '首次合成 3 星', check: (s) => !!s.ach && s.ach.star3 },
-    { id: 'stage5', name: '熔斷倖存', blurb: '通關第 5 關', check: (s) => (s.maxStageCleared || 0) >= 5 },
-    { id: 'endless20', name: '廿浪長牛', blurb: '無盡最佳 ≥ 20 波', check: (s) => (s.bestEndlessWave || 0) >= 20 },
-    { id: 'bond', name: '齊人有行情', blurb: '首次觸發羈絆', check: (s) => !!s.ach && s.ach.bond },
-    { id: 'kills100', name: '百人斬', blurb: '累計擊殺 100', check: (s) => (s.totalKills || 0) >= 100 },
-    { id: 'kills500', name: '殺跌機器', blurb: '累計擊殺 500', check: (s) => (s.totalKills || 0) >= 500 },
-    { id: 'endless10', name: '撐過十浪', blurb: '無盡最佳 ≥ 10 波', check: (s) => (s.bestEndlessWave || 0) >= 10 },
-    { id: 'codex_heroes', name: '門派圖齊', blurb: '圖鑑見齊全部俠客', check: (s) => Object.keys(HEROES).every((id) => (s.seenHeroes || {})[id]) },
-    { id: 'codex_enemies', name: '敵情盡知', blurb: '圖鑑見齊全部敵人', check: (s) => Object.keys(ENEMIES).every((id) => (s.seenEnemies || {})[id]) },
-    { id: 'daily', name: '日日開盤', blurb: '完成一次每日關', check: (s) => !!s.ach && s.ach.daily },
-    { id: 'elite', name: '精英過招', blurb: '擊敗一次精英敵', check: (s) => !!s.ach && s.ach.elite },
-    { id: 'lineup', name: '跟單上陣', blurb: '使用一次推薦陣容芯片', check: (s) => !!s.ach && s.ach.lineup },
-    { id: 'upgrade', name: '鍛打開倉', blurb: '首次強化場上俠客', check: (s) => !!s.ach && s.ach.upgrade },
+    { id: 'first_clear', cat: 'stage', name: '開張大吉', blurb: '通關第 1 關', check: (s) => (s.maxStageCleared || 0) >= 1 },
+    { id: 'stage4', cat: 'stage', name: '清算達人', blurb: '通關第 4 關', check: (s) => (s.maxStageCleared || 0) >= 4 },
+    { id: 'stage5', cat: 'stage', name: '熔斷倖存', blurb: '通關第 5 關', check: (s) => (s.maxStageCleared || 0) >= 5 },
+    { id: 'stage6', cat: 'stage', name: '暗盤破曉', blurb: '通關第 6 關「盤後暗盤」', check: (s) => (s.maxStageCleared || 0) >= 6 },
+    { id: 'all_stages', cat: 'stage', name: '六關皆破', blurb: '通關全部主線關卡', check: (s) => (s.maxStageCleared || 0) >= 6 },
+    { id: 'star3', cat: 'merge', name: '三星掛牌', blurb: '首次合成 3 星', check: (s) => !!s.ach && s.ach.star3 },
+    { id: 'maxstar', cat: 'merge', name: '滿星開盤', blurb: '首次合成 4 星', check: (s) => !!s.ach && s.ach.maxstar },
+    { id: 'upgrade', cat: 'merge', name: '鍛打開倉', blurb: '首次強化場上俠客', check: (s) => !!s.ach && s.ach.upgrade },
+    { id: 'bond', cat: 'combat', name: '齊人有行情', blurb: '首次觸發羈絆', check: (s) => !!s.ach && s.ach.bond },
+    { id: 'elite', cat: 'combat', name: '精英過招', blurb: '擊敗一次精英敵', check: (s) => !!s.ach && s.ach.elite },
+    { id: 'kills100', cat: 'combat', name: '百人斬', blurb: '累計擊殺 100', check: (s) => (s.totalKills || 0) >= 100 },
+    { id: 'kills500', cat: 'combat', name: '殺跌機器', blurb: '累計擊殺 500', check: (s) => (s.totalKills || 0) >= 500 },
+    { id: 'kills1000', cat: 'combat', name: '千浪收割', blurb: '累計擊殺 1000', check: (s) => (s.totalKills || 0) >= 1000 },
+    { id: 'endless10', cat: 'combat', name: '撐過十浪', blurb: '無盡最佳 ≥ 10 波', check: (s) => (s.bestEndlessWave || 0) >= 10 },
+    { id: 'endless20', cat: 'combat', name: '廿浪長牛', blurb: '無盡最佳 ≥ 20 波', check: (s) => (s.bestEndlessWave || 0) >= 20 },
+    { id: 'codex_heroes', cat: 'meta', name: '門派圖齊', blurb: '圖鑑見齊全部俠客', check: (s) => Object.keys(HEROES).every((id) => (s.seenHeroes || {})[id]) },
+    { id: 'codex_enemies', cat: 'meta', name: '敵情盡知', blurb: '圖鑑見齊全部敵人', check: (s) => Object.keys(ENEMIES).every((id) => (s.seenEnemies || {})[id]) },
+    { id: 'daily', cat: 'meta', name: '日日開盤', blurb: '完成一次每日關', check: (s) => !!s.ach && s.ach.daily },
+    { id: 'lineup', cat: 'meta', name: '跟單上陣', blurb: '使用一次推薦陣容芯片', check: (s) => !!s.ach && s.ach.lineup },
   ];
+
+  /** 首通銀兩獎勵（入累計帳） */
+  const STAGE_FIRST_CLEAR = {
+    1: 30,
+    2: 45,
+    3: 60,
+    4: 80,
+    5: 100,
+    6: 150,
+    all: 200,
+  };
+
+  function stageFirstClearBonus(stageId) {
+    return STAGE_FIRST_CLEAR[stageId] || 0;
+  }
+
+  function saveStats(save) {
+    const s = save || {};
+    return {
+      totalKills: s.totalKills || 0,
+      bestEndlessWave: s.bestEndlessWave || 0,
+      totalSilver: s.totalSilver || 0,
+      maxStageCleared: s.maxStageCleared || 0,
+      stagesTotal: STAGES.length,
+      achUnlocked: Object.keys(s.unlockedAch || {}).length,
+      achTotal: ACHIEVEMENTS.length,
+    };
+  }
 
   function buildEndlessWave(n) {
     const mul = 1 + (n - 1) * 0.11;
@@ -902,6 +1077,16 @@
         interval: Math.max(0.7, 1.2 - n * 0.02),
         delay: 1.8,
         hpMul: mul * 0.95,
+      });
+    }
+    if (n >= 6) {
+      spawns.push({
+        enemy: 'dark_tape',
+        count: count(2 + Math.floor(n / 4)),
+        lane: 'random',
+        interval: Math.max(0.32, 0.55 - n * 0.012),
+        delay: 0.6,
+        hpMul: mul * 0.9,
       });
     }
     if (n % 5 === 0) {
@@ -1030,7 +1215,7 @@
   }
 
   function bondModsFor(heroId, bonds) {
-    const mods = { atkMul: 1, cdMul: 1, tankDmgMul: 1, auraMul: 1, buffBonus: 0, highHpExtra: 0, rangeBonus: 0 };
+    const mods = { atkMul: 1, cdMul: 1, tankDmgMul: 1, auraMul: 1, buffBonus: 0, highHpExtra: 0, rangeBonus: 0, markBonus: 0, markDurBonus: 0 };
     for (const b of bonds) {
       if (!b.applyTo.includes(heroId)) continue;
       if (b.atkMul) mods.atkMul *= b.atkMul;
@@ -1040,6 +1225,8 @@
       if (b.buffBonus) mods.buffBonus += b.buffBonus;
       if (b.highHpExtra) mods.highHpExtra += b.highHpExtra;
       if (b.rangeBonus) mods.rangeBonus += b.rangeBonus;
+      if (b.markBonus) mods.markBonus += b.markBonus;
+      if (b.markDurBonus) mods.markDurBonus += b.markDurBonus;
     }
     return mods;
   }
@@ -1056,11 +1243,12 @@
 
   function defaultSave() {
     return {
-      version: 7,
+      version: 8,
       totalSilver: 0,
       totalKills: 0,
       maxStageCleared: 0,
       bestEndlessWave: 0,
+      firstClears: {},
       unlocked: Object.keys(HEROES),
       lastSpeed: 1,
       skipTutorial: false,
@@ -1081,7 +1269,7 @@
 
   function exportSaveJson(save) {
     const payload = {
-      meta: { game: 'yinlou-defense', exportedAt: new Date().toISOString(), version: save.version || 7 },
+      meta: { game: 'yinlou-defense', exportedAt: new Date().toISOString(), version: save.version || 8 },
       save: { ...defaultSave(), ...save },
     };
     return JSON.stringify(payload, null, 2);
@@ -1092,7 +1280,8 @@
     const body = data && data.save ? data.save : data;
     if (!body || typeof body !== 'object') throw new Error('無效存檔');
     const merged = { ...defaultSave(), ...body };
-    merged.version = Math.max(7, merged.version || 7);
+    merged.version = Math.max(8, merged.version || 8);
+    if (!merged.firstClears) merged.firstClears = {};
     if (!merged.seenHeroes) merged.seenHeroes = {};
     if (!merged.seenEnemies) merged.seenEnemies = {};
     if (!merged.ach) merged.ach = {};
@@ -1149,6 +1338,10 @@
     STAGES,
     ENDLESS,
     ACHIEVEMENTS,
+    ACHIEVEMENT_CATS,
+    STAGE_FIRST_CLEAR,
+    stageFirstClearBonus,
+    saveStats,
     LINEUPS,
     FAIL_TIPS,
     MAX_STAR,

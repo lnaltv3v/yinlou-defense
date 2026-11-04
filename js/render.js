@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — Canvas 繪製 v0.7.0
+ * 銀樓防衛 — Canvas 繪製 v0.8.0
  * 強化標記、背景快取（效能）、精英／Boss 技閃
  */
 (function (global) {
@@ -86,6 +86,29 @@
       drawPixelRect(g, GRID.originX, y, GRID.slots * (GRID.cellW + GRID.gapX), 1, '#1A1510');
       g.globalAlpha = 1;
     }
+    // v0.8 戰場加厚：右緣燈柱、銅錢紋、地磚裂縫、左側匾影
+    for (let i = 0; i < 4; i++) {
+      const ly = floorTop + 24 + i * ((floorBot - floorTop - 40) / 3);
+      drawPixelRect(g, w - 48, ly, 6, 26, '#3A3028');
+      drawPixelRect(g, w - 52, ly - 8, 14, 10, '#C45C4A');
+      drawPixelRect(g, w - 50, ly - 5, 10, 5, '#C9A227');
+    }
+    for (let i = 0; i < 6; i++) {
+      const cx = 160 + i * 120;
+      const cy = floorBot - 14;
+      g.globalAlpha = 0.22;
+      drawPixelRect(g, cx, cy, 10, 10, '#C9A227');
+      drawPixelRect(g, cx + 2, cy + 2, 6, 6, '#3A3228');
+      g.globalAlpha = 1;
+    }
+    for (let i = 0; i < 8; i++) {
+      const cx = 50 + (i * 97) % (w - 100);
+      const cy = floorTop + 20 + ((i * 53) % (floorBot - floorTop - 40));
+      drawPixelRect(g, cx, cy, 8, 1, '#2A241C');
+      drawPixelRect(g, cx + 3, cy, 1, 6, '#2A241C');
+    }
+    drawPixelRect(g, 42, floorTop + 8, 28, 8, '#5A4030');
+    drawPixelRect(g, 44, floorTop + 10, 24, 4, '#C9A227');
     bgCache = c;
     bgCacheW = w;
     bgCacheH = h;
@@ -147,10 +170,25 @@
     drawPixelRect(ctx, x + 8, y - 28, 14, 16, '#E8DCC8');
     drawPixelRect(ctx, x - 16, y - 22, 3, 3, '#1A1510');
     drawPixelRect(ctx, x + 14, y - 22, 3, 3, '#1A1510');
-    // 門
+    // 門＋門環＋門檻
     drawPixelRect(ctx, x - 12, y + 4, 24, 30, '#2A241C');
     drawPixelRect(ctx, x - 8, y + 8, 6, 10, '#3A3228');
+    drawPixelRect(ctx, x + 2, y + 8, 6, 10, '#3A3228');
     drawPixelRect(ctx, x + 4, y + 18, 3, 3, '#C9A227');
+    drawPixelRect(ctx, x - 6, y + 16, 3, 3, '#C9A227');
+    drawPixelRect(ctx, x - 16, y + 32, 32, 4, '#4A4034');
+    // 石柱
+    drawPixelRect(ctx, x - 40, y - 20, 6, 52, '#5A5040');
+    drawPixelRect(ctx, x + 34, y - 20, 6, 52, '#5A5040');
+    drawPixelRect(ctx, x - 42, y - 24, 10, 6, '#6A6055');
+    drawPixelRect(ctx, x + 32, y - 24, 10, 6, '#6A6055');
+    // 瓦簷再一層
+    drawPixelRect(ctx, x - 48, y - 54, 96, 4, '#8A3030');
+    for (let i = 0; i < 9; i++) {
+      drawPixelRect(ctx, x - 44 + i * 10, y - 52, 7, 3, i % 2 ? '#C45C4A' : '#A04040');
+    }
+    // 匾額陰影
+    drawPixelRect(ctx, x - 22, y - 66, 44, 2, '#1A1510');
 
     // 燈籠微動
     const bob = Math.sin(t * 3) * 1.5;
@@ -246,6 +284,15 @@
       drawPixelRect(ctx, hx + s + wx, hy - 6 + wy, 8, 8, '#4A7080');
       drawPixelRect(ctx, hx + s + 2 + wx, hy - 4 + wy, 4, 4, '#E8DCC8');
       drawPixelRect(ctx, hx - 10, hy - s - 20, 20, 5, '#4A7080');
+    } else if (kind === 'scroll' || kind === 'marker') {
+      // 夜盤掮客：捲軸＋提燈
+      drawPixelRect(ctx, hx + s - 4 + wx, hy - 12 + wy, 6, 18, paper);
+      drawPixelRect(ctx, hx + s - 3 + wx, hy - 10 + wy, 4, 14, '#3A4060');
+      drawPixelRect(ctx, hx + s - 2 + wx, hy - 8 + wy, 2, 10, '#C9A227');
+      drawPixelRect(ctx, hx - s - 10, hy - 6, 8, 10, '#C45C4A');
+      drawPixelRect(ctx, hx - s - 8, hy - 3, 4, 4, '#C9A227');
+      drawPixelRect(ctx, hx - 10, hy - s - 22, 20, 5, '#3A4060');
+      drawPixelRect(ctx, hx - 4, hy - s - 28, 8, 6, '#C9A227');
     }
   }
 
@@ -323,6 +370,11 @@
       ctx.globalAlpha = alpha * (0.55 + Math.sin(h.hitFlash * 40) * 0.25);
     }
     drawPixelRect(ctx, h.x - 14 + lean, h.y + 18, 28, 6, 'rgba(0,0,0,0.35)');
+    // 門派色環（可讀辨識）
+    if (!ghost) {
+      drawPixelRect(ctx, h.x - 12 + lean, h.y + 16, 24, 3, def.color);
+      drawPixelRect(ctx, h.x - 10 + lean, h.y + 17, 20, 1, '#1A1510');
+    }
 
     if (h.star >= 3 && !ghost) {
       const pulse = 0.35 + 0.25 * Math.sin(t * 5);
@@ -333,6 +385,15 @@
     }
 
     drawSilhouette(ctx, h, def, s, lean, idle);
+    // 單字門派標（辨識）
+    if (!ghost && def.name) {
+      ctx.fillStyle = '#1A1510';
+      ctx.font = 'bold 9px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(def.name.charAt(0), h.x + lean - s - 2, h.y - s - 8 + idle);
+      ctx.fillStyle = def.color;
+      ctx.fillText(def.name.charAt(0), h.x + lean - s - 3, h.y - s - 9 + idle);
+    }
 
     if (h.atkBuffT > 0 && !ghost) {
       drawPixelRect(ctx, h.x + s + 2 + lean, h.y - s - 18 + idle, 6, 6, '#C9A227');
@@ -412,13 +473,30 @@
     const r = e.radius;
     const t = (state && state._animT) || 0;
     const bob = Math.sin(t * 5 + e.x * 0.05) * 1.2;
-    if (e.hitFlash > 0) ctx.globalAlpha = 0.55 + Math.sin(e.hitFlash * 50) * 0.3;
+    let baseA = 1;
+    if (e.def && e.def.stealth) {
+      const pulse = 0.45 + 0.35 * Math.sin(t * 4 + e.x * 0.03);
+      baseA = e.rushT > 0 ? 0.35 : pulse;
+    }
+    if (e.hitFlash > 0) ctx.globalAlpha = baseA * (0.55 + Math.sin(e.hitFlash * 50) * 0.3);
+    else ctx.globalAlpha = baseA;
     // 身體＋簡單特徵
     drawPixelRect(ctx, e.x - r, e.y - r + bob, r * 2, r * 2, e.def.color);
     drawPixelRect(ctx, e.x - r + 2, e.y - r + 4 + bob, r * 2 - 4, 3, '#1A1510');
     drawPixelRect(ctx, e.x - r + 2, e.y - r + 2 + bob, 3, 3, '#1A1510');
     drawPixelRect(ctx, e.x + r - 5, e.y - r + 2 + bob, 3, 3, '#1A1510');
     drawPixelRect(ctx, e.x - 3, e.y + 2 + bob, 6, 2, '#E8DCC8');
+    if (e.def && e.def.stealth) {
+      drawPixelRect(ctx, e.x - r - 4, e.y - 2 + bob, 4, 8, '#1A1510');
+      drawPixelRect(ctx, e.x + r, e.y - 2 + bob, 4, 8, '#1A1510');
+      drawPixelRect(ctx, e.x - 2, e.y - r - 4 + bob, 4, 3, '#5A4060');
+    }
+    if (e.darkMarkT > 0) {
+      ctx.strokeStyle = '#3A4060';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(e.x - r - 4, e.y - r - 4 + bob, r * 2 + 8, r * 2 + 8);
+      drawPixelRect(ctx, e.x - 5, e.y - r - 12 + bob, 10, 4, '#C9A227');
+    }
     if (e.boss) {
       // 羽翼感
       drawPixelRect(ctx, e.x - r - 8, e.y - 4 + bob, 8, 10, '#2A241C');

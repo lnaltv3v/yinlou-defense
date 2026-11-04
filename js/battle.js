@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 戰鬥／生成／合併邏輯 v0.7.0
+ * 銀樓防衛 — 戰鬥／生成／合併邏輯 v0.8.0
  */
 (function (global) {
   const { HEROES, ENEMIES, GRID, CORE, heroStats, activeBonds, bondModsFor, MAX_STAR, UPGRADE_PATHS, upgradeCost } = global.YD;
@@ -110,6 +110,8 @@
       reward: Math.round(def.reward * (1 + (hpMul - 1) * 0.5) * (elite ? 2.2 : 1)),
       radius: def.radius + (elite ? 3 : 0),
       slowT: 0,
+      darkMarkT: 0,
+      darkMarkBonus: 0,
       def,
       boss: !!def.boss,
       elite: elite,
@@ -395,6 +397,29 @@
         target.slowT = Math.max(target.slowT, sk.slowDur || 1.1);
         target.speed = target.baseSpeed * (1 - sk.slow);
       }
+      if (sk.id === 'dark_mark') {
+        const dur = (sk.markDur || 4) + (mods.markDurBonus || 0);
+        target.darkMarkT = Math.max(target.darkMarkT || 0, dur);
+        target.darkMarkBonus = Math.max(target.darkMarkBonus || 0, (sk.markAllyBonus || 0.35) + (mods.markBonus || 0));
+        pushFloat(floats, {
+          x: target.x,
+          y: target.y - 26,
+          text: '暗盤！',
+          color: '#3A4060',
+          size: 13,
+          vy: -22,
+          life: 0.75,
+        });
+        state.fx.push({ type: 'skill', x: target.x, y: target.y, color: '#3A4060', life: 0.4, text: sk.name });
+      }
+    }
+
+    // 標記加傷（掮客以外隊友／自己後續普攻）
+    if (target.darkMarkT > 0 && target.darkMarkBonus && !(skillProc && sk && sk.id === 'dark_mark')) {
+      dmg = Math.round(dmg * (1 + target.darkMarkBonus));
+      kind = kind === 'hit' ? 'crit' : kind;
+    } else if (target.darkMarkT > 0 && target.darkMarkBonus && skillProc && sk && sk.id === 'dark_mark') {
+      // 標記當下唔叠加標記加傷，避免雙乘
     }
 
     applyDamage(target, dmg, floats, kind);
@@ -655,6 +680,13 @@
       if (e.slowT > 0) {
         e.slowT -= dt;
         if (e.slowT <= 0) e.speed = e.baseSpeed;
+      }
+      if (e.darkMarkT > 0) {
+        e.darkMarkT -= dt;
+        if (e.darkMarkT <= 0) {
+          e.darkMarkT = 0;
+          e.darkMarkBonus = 0;
+        }
       }
 
       e.cd -= dt;

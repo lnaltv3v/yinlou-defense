@@ -1,6 +1,6 @@
 /**
- * 銀樓防衛 — 主循環 v0.7.0
- * 強化系統／劇情開場／Boss 技／Web Audio／效能
+ * 銀樓防衛 — 主循環 v0.8.0
+ * 第 6 關盤後暗盤／首通獎勵／成就分類統計／夜盤掮客
  */
 (function () {
   const {
@@ -32,6 +32,8 @@
     markSeenHero,
     markSeenEnemy,
     refreshAchievements,
+    stageFirstClearBonus,
+    saveStats,
   } = YD;
   const AudioSfx = window.YDAudio;
   const Battle = YDBattle;
@@ -52,8 +54,9 @@
   if (save.reduceShake == null) save.reduceShake = false;
   if (save.firstBootDone == null) save.firstBootDone = false;
   if (save.sfxEnabled == null) save.sfxEnabled = true;
-  if (save.version < 7) {
-    save.version = 7;
+  if (!save.firstClears) save.firstClears = {};
+  if (save.version < 8) {
+    save.version = 8;
     writeSave(save);
   }
   if (AudioSfx) AudioSfx.setEnabled(save.sfxEnabled !== false);
@@ -531,7 +534,29 @@
         return;
       }
 
-      save.maxStageCleared = Math.max(save.maxStageCleared, state.stage.id);
+      const stageId = state.stage.id;
+      const wasNew = (save.maxStageCleared || 0) < stageId;
+      save.maxStageCleared = Math.max(save.maxStageCleared || 0, stageId);
+      if (!save.firstClears) save.firstClears = {};
+      let rewardLines = [];
+      let clearBonus = 0;
+      const key = String(stageId);
+      if (!save.firstClears[key]) {
+        save.firstClears[key] = true;
+        clearBonus = (typeof stageFirstClearBonus === 'function' ? stageFirstClearBonus(stageId) : 0) ||
+          (state.stage.firstClearBonus || 0);
+        if (clearBonus > 0) {
+          save.totalSilver += clearBonus;
+          rewardLines.push('首通獎勵 +' + clearBonus + ' 兩入帳');
+        }
+      }
+      let finaleBonus = 0;
+      if ((save.maxStageCleared || 0) >= STAGES.length && !save.firstClears.all) {
+        save.firstClears.all = true;
+        finaleBonus = (YD.STAGE_FIRST_CLEAR && YD.STAGE_FIRST_CLEAR.all) || 200;
+        save.totalSilver += finaleBonus;
+        rewardLines.push('六關皆破！終局獎勵 +' + finaleBonus + ' 兩');
+      }
       writeSave(save);
       notifyAchievements();
       const nextIdx = state.stageIndex + 1;
@@ -547,6 +572,16 @@
             syncAll();
           },
         });
+      } else {
+        extras.push({
+          label: '挑戰無盡',
+          onClick: () => {
+            UI.hideOverlay();
+            state = freshState(0, true, false);
+            resetWaveBtn();
+            syncAll();
+          },
+        });
       }
       extras.push({
         label: '再打本關',
@@ -555,8 +590,15 @@
           resetRun(false, false);
         },
       });
+      const title =
+        stageId >= 6
+          ? '暗盤破曉'
+          : hasNext
+            ? '銀樓倖存'
+            : '六關皆破';
+      const rewardBlock = rewardLines.length ? '\n' + rewardLines.join('\n') + '。' : '';
       UI.showOverlay(
-        '銀樓倖存',
+        title,
         '打退 ' +
           state.waveIndex +
           ' 波！擊殺 ' +
@@ -564,7 +606,10 @@
           '。累計銀兩帳 ' +
           save.totalSilver +
           '。' +
-          (hasNext ? '\n已解鎖下一關。' : '\n五關皆破！可挑戰無盡／每日。'),
+          rewardBlock +
+          (hasNext
+            ? '\n已解鎖下一關' + (wasNew ? '「' + STAGES[nextIdx].name + '」' : '') + '。'
+            : '\n主線全破！可挑戰無盡／每日，或重溫暗盤。'),
         hasNext ? '下一關' : '回第 1 關',
         () => {
           UI.hideOverlay();
@@ -1290,7 +1335,7 @@
   }
   UI.showOverlay(
     '銀樓防衛',
-    '合併塔防 v0.7.0\n' +
+    '合併塔防 v0.8.0\n' +
       '拖放放置 → 合併升星（最高 4）→ 點俠客強化 → 開波守銀樓。\n' +
       '新：刀利／甲厚／內息強化、Boss／精英技能、關卡劇情、簡易音效。\n' +
       (bonus > 0 ? '新手加銀 +' + bonus + ' 兩（僅首局）\n' : '') +

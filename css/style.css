@@ -355,3 +355,8 @@ header.title {
 @media (max-width: 640px) {
   .upgrade-btn { flex: 1 1 30%; font-size: 11px; }
 }
+
+/* v0.8 */
+.stage-btn.challenge { border-color: #5A4060; color: #C9A227; }
+.stage-btn.challenge.selected { background: #3A3048; }
+#overlay.codex-mode p { max-height: 360px; }
