@@ -70,3 +70,9 @@
 
 ## v2.4
 - `ink_specter`／`_attack`／`_sheet`：正式接入遊戲載入路徑（同 halt_tide／circuit_swan）；`CACHE_VER=2.4.0`。
+
+
+## v3.3.0 素材（帳鏡蜃）
+- sprites.js `CACHE_VER=3.3.0`；`KNOWN_IDS` 含 ledger_mirage；ensure 載 idle／attack／sheet，唔再淨借 ink_specter。
+
+- `ledger_mirage`（帳鏡蜃／第五 Boss）：`ledger_mirage.png`／`_attack`／`_sheet` 正式 PNG（48×48／sheet 96×48）；對摺帳本＋銅鏡／鏡面蜃樓、金邊鏡框、帳頁反光宣紙條、硃紅印、蜃氣波紋點；主色鏡藍灰 `#3A4858`；有別 `ink_specter` 寬垂帳幔＋裂縫墨核＋墨霧。生成：`tools/gen_ledger_mirage.py`（Pillow 點陣，2026-11-05）。

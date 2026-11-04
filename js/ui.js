@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v3.2.0
+ * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v3.3.0
  */
 (function (global) {
   const {
@@ -24,6 +24,8 @@
     encodeWallShort,
     parseWallShort,
     compareWallShort,
+    recordWallCompare,
+    formatWallCompareHistory,
     recordWallSnapshot,
     formatWallTimeline,
     formatWallSparkline,
@@ -96,7 +98,7 @@
       ink +
       '"></i>' +
       gear;
-    const src = (window.YDSprites && window.YDSprites.urlFor) ? window.YDSprites.urlFor(def.id) : ('assets/sprites/' + def.id + '.png?v=3.2.0');
+    const src = (window.YDSprites && window.YDSprites.urlFor) ? window.YDSprites.urlFor(def.id) : ('assets/sprites/' + def.id + '.png?v=3.3.0');
     return (
       '<span class="hero-avatar" aria-hidden="true" data-hero="' +
       def.id +
@@ -533,6 +535,31 @@
       lockEl.textContent = locked || procs ? locked + (procs ? '/' + procs : '') : '—';
       lockEl.title = '場上鎖倉數／本局鎖倉印次數';
     }
+    // v3.3：鏡稅剩餘秒數 HUD
+    let taxEl = $('mirage-tax-hud');
+    if (!taxEl) {
+      taxEl = document.createElement('div');
+      taxEl.id = 'mirage-tax-hud';
+      taxEl.className = 'mirage-tax-hud';
+      taxEl.setAttribute('role', 'status');
+      taxEl.setAttribute('aria-live', 'polite');
+      const host = $('hud') || $('wrap') || document.body;
+      host.appendChild(taxEl);
+    }
+    const taxT = state && state._mirageTaxT ? state._mirageTaxT : 0;
+    if (taxT > 0.05) {
+      const secs = Math.ceil(taxT);
+      const mul = state._mirageTaxMul || 0.55;
+      const pct = Math.round(mul * 100);
+      taxEl.textContent = '鏡稅 ' + secs + 's｜擊破銀 ×' + pct + '%';
+      taxEl.title = '帳鏡蜃鏡稅剩餘 ' + secs + ' 秒；期間擊破銀兩打折';
+      taxEl.classList.add('show');
+      taxEl.setAttribute('aria-hidden', 'false');
+    } else {
+      taxEl.textContent = '';
+      taxEl.classList.remove('show');
+      taxEl.setAttribute('aria-hidden', 'true');
+    }
     const pauseBtn = $('btn-pause');
     if (pauseBtn) {
       pauseBtn.textContent = state.paused ? '繼續' : '暫停';
@@ -578,6 +605,33 @@
     ov.classList.remove('paper-panel');
   }
 
+  function fillWallCompareHist(save) {
+    const histEl = $('wall-compare-hist');
+    if (!histEl) return;
+    const rows =
+      typeof formatWallCompareHistory === 'function' ? formatWallCompareHistory(save) : [];
+    if (!rows.length) {
+      histEl.innerHTML = '<span class="card-meta">對照歷史：尚無本機留底</span>';
+      return;
+    }
+    histEl.innerHTML =
+      '<strong style="color:#C9A227">對照歷史（本機）</strong><ul class="wall-hist-list">' +
+      rows
+        .slice(0, 6)
+        .map(function (r) {
+          return (
+            '<li><span class="mono">' +
+            (r.localAt || '') +
+            '</span> ' +
+            (r.summary || '') +
+            (r.otherCode ? ' <span class="mono dim">← ' + r.otherCode + '</span>' : '') +
+            '</li>'
+          );
+        })
+        .join('') +
+      '</ul>';
+  }
+
   function updateTutorialHud(step) {
     let el = $('tutorial-hud');
     if (!el) {
@@ -600,11 +654,15 @@
     let dots = '';
     for (let i = 1; i <= 5; i++) {
       dots +=
-        '<span class="tut-dot' +
+        '<button type="button" class="tut-dot' +
         (i < cur ? ' done' : i === cur ? ' cur' : '') +
-        '" title="第' +
+        '" data-tut-step="' +
         i +
-        '步"></span>';
+        '" title="跳到第' +
+        i +
+        '步／復位" aria-label="教學第' +
+        i +
+        '步"></button>';
     }
     el.innerHTML =
       '<strong>教學 ' +
@@ -622,6 +680,12 @@
         if (window.__yinlouSkipTutorialStep) window.__yinlouSkipTutorialStep();
       };
     }
+    el.querySelectorAll('.tut-dot[data-tut-step]').forEach((dot) => {
+      dot.onclick = () => {
+        const step1 = parseInt(dot.getAttribute('data-tut-step'), 10) || 1;
+        if (window.__yinlouSetTutorialStep) window.__yinlouSetTutorialStep(step1 - 1);
+      };
+    });
   }
 
   function showFailPanel(opts) {
@@ -762,10 +826,10 @@
           })()
         : '—') +
       '</strong></div>' +
-      '<div class="paper-row"><span>版本</span><strong>v3.2.0｜存檔 v' +
-      (save.version || 30) +
+      '<div class="paper-row"><span>版本</span><strong>v3.3.0｜存檔 v' +
+      (save.version || 33) +
       '</strong></div>' +
-      '<p class="paper-note">v3.2：第15帳鏡夜市＋帳鏡蜃、無盡150+第四池、牆對照可複製、教學進度HUD、成就分類直達。點場上俠客可強化；本地牆本機｜唔做線上排行。</p>' +
+      '<p class="paper-note">v3.3：帳鏡正式圖、鏡稅秒數 HUD、無盡160／五潮同場、教學點步復位、牆對照歷史本機留底。點場上俠客可強化；本地牆本機｜唔做線上排行。</p>' +
       '</div>';
     const btn = $('btn-overlay');
     btn.textContent = '關閉';
@@ -961,7 +1025,7 @@
     const src = id && window.YDSprites && window.YDSprites.urlFor
       ? window.YDSprites.urlFor(id)
       : id
-        ? 'assets/sprites/' + id + '.png?v=3.2.0'
+        ? 'assets/sprites/' + id + '.png?v=3.3.0'
         : '';
     const fallback =
       '<span class="codex-thumb-fallback" style="background:' + c + '"></span>';
@@ -1281,6 +1345,7 @@
           '<button type="button" class="wall-mode-btn" id="wall-compare-btn">對照</button>' +
           '<button type="button" class="wall-mode-btn" id="wall-compare-copy" disabled>複製摘要</button>' +
           '<div class="wall-compare-result card-meta" id="wall-compare-result">本機對照｜唔上線</div>' +
+          '<div class="wall-compare-hist" id="wall-compare-hist"></div>' +
           '</div>' +
           '<span class="card-meta" id="wall-spark-meta">' +
           (spark.label || '') +
@@ -1651,6 +1716,7 @@
     const cmpBtn = $('wall-compare-btn');
     const cmpIn = $('wall-compare-input');
     const cmpOut = $('wall-compare-result');
+    fillWallCompareHist(save);
     if (cmpBtn && cmpIn) {
       const runCmp = () => {
         const other = String(cmpIn.value || '').trim();
@@ -1667,6 +1733,11 @@
           toast(err);
           return;
         }
+        if (typeof recordWallCompare === 'function') {
+          recordWallCompare(save, cmp);
+          if (window.__yinlouPersistWallCompare) window.__yinlouPersistWallCompare();
+        }
+        fillWallCompareHist(save);
         if (cmpOut) {
           cmpOut.innerHTML =
             '<strong style="color:#C9A227">' +

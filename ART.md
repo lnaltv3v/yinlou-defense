@@ -131,3 +131,10 @@
 
 ## v2.9
 - mid／props 無新檔；`CACHE_VER=2.9.0`；牆走勢可匯出 PNG。
+
+
+### v3.3.0 帳鏡蜃
+- `assets/sprites/ledger_mirage.png`（48×48 idle）
+- `ledger_mirage_attack.png`（48×48）
+- `ledger_mirage_sheet.png`（96×48）
+- id=`ledger_mirage`；sprites.js `KNOWN_IDS`＋ensure 路徑與其他 Boss 相同

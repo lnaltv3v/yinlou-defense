@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — Canvas 繪製 v3.2.0
+ * 銀樓防衛 — Canvas 繪製 v3.3.0
  * v1.5：場景四層 ground→mid→wall→props；halt_seal PNG；擊破／暴擊
  */
 (function (global) {

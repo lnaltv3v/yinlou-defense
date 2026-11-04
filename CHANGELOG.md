@@ -1,5 +1,16 @@
 # Changelog
 
+## v3.3.0 — 2026-11-05
+
+- **帳鏡蜃正式 PNG**：`ledger_mirage.png`／`_attack`／`_sheet` 接入 sprites（同其他 Boss 路徑；缺檔仍 fallback 墨影）
+- **鏡稅 HUD**：場上明示剩餘秒數與擊破銀折扣（`#mirage-tax-hud`）
+- **無盡 160+／五潮同場**：里程碑「百六十浪五潮城」；每 80 浪五潮（黑羽＋金邊＋臨停＋墨影＋帳鏡）；`RUN_MODIFIERS_160` 第五池；週挑戰可抽五潮週
+- **教學 HUD 點步復位**：點圓點跳到該步；成就「教學跳步點」
+- **牆對照歷史本機留底**：對照後寫入 `wallCompareHistory`（最多 12）；牆面板顯示最近 6 筆
+- 成就 **103**（+5：endless160／late160_run／penta_tide_clear／wall_compare_hist／tutorial_step_jump）
+- 存檔 **version 33**；`?v=3.3.0`／`CACHE_VER=3.3.0`；Pages 全樹一次 commit；無正式音檔
+
+
 ## v3.2.0 — 2026-11-05
 - **第 15 關「帳鏡夜市」**＋新 Boss **帳鏡蜃**（`ledger_mirage`）：鏡稅封庫（擊殺銀縮／合星凍結）＋降攻抽銀；入場橫幅；推薦卡
 - **無盡 150+**：里程碑「百五十浪鏡城」＋第四池修飾（鏡城銀庫／破鏡護銀／合星破蜃／帳錨定鏡）；晚盤曲線；成就 endless150／late150_run

@@ -22,6 +22,8 @@
     encodeWallShort,
     parseWallShort,
     compareWallShort,
+    recordWallCompare,
+    formatWallCompareHistory,
     recordWallSnapshot,
     formatWallTimeline,
     formatWallSparkline,
@@ -296,7 +298,9 @@
       _circuitKills: 0,
       _haltTideKills: 0,
       _inkKills: 0,
+      _mirageKills: 0,
       _quadTideSeen: 0,
+      _pentaTideSeen: 0,
       _circuitProcs: 0,
       _swanKills: 0,
       _killStreak: 0,
@@ -440,6 +444,19 @@
       !save.ach.quad_tide_clear
     ) {
       save.ach.quad_tide_clear = true;
+    }
+    if (
+      (state._swanKills || 0) >= 1 &&
+      (state._circuitKills || 0) >= 1 &&
+      (state._haltTideKills || 0) >= 1 &&
+      (state._inkKills || 0) >= 1 &&
+      (state._mirageKills || 0) >= 1 &&
+      !save.ach.penta_tide_clear
+    ) {
+      save.ach.penta_tide_clear = true;
+      writeSave(save);
+      notifyAchievements();
+      UI.toast('成就｜五潮過招', 2200);
     }
     if (
       (state._swanKills || 0) >= 1 &&
@@ -804,20 +821,22 @@
       if (enterStage(0, true, false, false)) {
         const lab = modifierLabel(state.modifiers || []);
         const lateMods = (state.modifiers || []).filter(
-          (m) => m.late90 || m.late100 || m.late140 || m.late150
+          (m) => m.late90 || m.late100 || m.late140 || m.late150 || m.late160
         );
         state._lateModBadge = lateMods.length
           ? lateMods.map((m) => m.name).join(' · ')
           : '';
-        state._lateModTier = lateMods.some((m) => m.late150)
-          ? 150
-          : lateMods.some((m) => m.late140)
-            ? 140
-            : lateMods.some((m) => m.late100)
-              ? 100
-              : lateMods.some((m) => m.late90)
-                ? 90
-                : 0;
+        state._lateModTier = lateMods.some((m) => m.late160)
+          ? 160
+          : lateMods.some((m) => m.late150)
+            ? 150
+            : lateMods.some((m) => m.late140)
+              ? 140
+              : lateMods.some((m) => m.late100)
+                ? 100
+                : lateMods.some((m) => m.late90)
+                  ? 90
+                  : 0;
         if ((save.bestEndlessWave || 0) >= 140) {
           if (!save.ach) save.ach = {};
           save.ach.late140_run = true;
@@ -830,16 +849,24 @@
           writeSave(save);
           notifyAchievements();
         }
+        if ((save.bestEndlessWave || 0) >= 160) {
+          if (!save.ach) save.ach = {};
+          save.ach.late160_run = true;
+          writeSave(save);
+          notifyAchievements();
+        }
         if (state._lateModBadge) {
           setTimeout(() => {
             const tag =
-              state._lateModTier >= 150
-                ? '【150+】'
-                : state._lateModTier >= 140
-                  ? '【140+】'
-                  : state._lateModTier >= 100
-                    ? '【100+】'
-                    : '【90+】';
+              state._lateModTier >= 160
+                ? '【160+】'
+                : state._lateModTier >= 150
+                  ? '【150+】'
+                  : state._lateModTier >= 140
+                    ? '【140+】'
+                    : state._lateModTier >= 100
+                      ? '【100+】'
+                      : '【90+】';
             UI.toast(tag + state._lateModBadge, 3000);
           }, 200);
         }
@@ -919,6 +946,8 @@
     if (state._circuitKills) bits.push('熔斷天鵝擊破 ×' + state._circuitKills);
     if (state._haltTideKills) bits.push('停牌潮擊破 ×' + state._haltTideKills);
     if (state._inkKills) bits.push('墨影帳擊破 ×' + state._inkKills);
+    if (state._mirageKills) bits.push('帳鏡擊破 ×' + state._mirageKills);
+    if (state._pentaTideSeen) bits.push('五潮同場 ×' + state._pentaTideSeen);
     if (state._quadTideSeen) bits.push('四潮入場 ×' + state._quadTideSeen);
     if (state._tripleTideEvent) bits.push('三潮市況 ×' + state._tripleTideEvent);
     if (state._tripleTideSeen) bits.push('三潮入場 ×' + state._tripleTideSeen);
@@ -1709,6 +1738,14 @@
             notifyAchievements();
             UI.toast('成就｜牆影出圖', 1800);
           }
+        };
+        window.__yinlouPersistWallCompare = () => {
+          if (!save.ach) save.ach = {};
+          if (save.wallCompareHistory && save.wallCompareHistory.length) {
+            save.ach.wall_compare_hist = true;
+          }
+          writeSave(save);
+          notifyAchievements();
         };
         window.__yinlouMarkWallCompare = () => {
           if (!save.ach) save.ach = {};
@@ -2590,6 +2627,26 @@
     notifyAchievements();
     advanceTutorial();
     UI.toast('已跳過本步', 1600);
+    syncAll();
+  };
+
+  /** v3.3：教學 HUD 點步復位（0-based step） */
+  window.__yinlouSetTutorialStep = (step0) => {
+    const n = Math.max(0, Math.min(4, step0 | 0));
+    save.skipTutorial = false;
+    save.tutorialDone = false;
+    state.tutorialStep = n;
+    if (!save.ach) save.ach = {};
+    if (!save.ach.tutorial_step_jump) {
+      save.ach.tutorial_step_jump = true;
+      writeSave(save);
+      notifyAchievements();
+      UI.toast('成就｜教學跳步點', 1800);
+    } else {
+      writeSave(save);
+    }
+    if (UI.updateTutorialHud) UI.updateTutorialHud(state.tutorialStep);
+    UI.toast('教學復位到第' + (n + 1) + '步', 1800);
     syncAll();
   };
 

@@ -1406,6 +1406,7 @@
     const isCircuit = eid === 'circuit_swan';
     const isTide = eid === 'halt_tide';
     const isInk = eid === 'ink_specter';
+    const isMirage = eid === 'ledger_mirage';
     const isSwan = eid === 'black_swan';
     const aliveBossIds = new Set(
       (state.enemies || [])
@@ -1413,17 +1414,26 @@
         .map((e) => e.id)
         .concat([eid])
     );
+    const penta =
+      aliveBossIds.has('black_swan') &&
+      aliveBossIds.has('circuit_swan') &&
+      aliveBossIds.has('halt_tide') &&
+      aliveBossIds.has('ink_specter') &&
+      aliveBossIds.has('ledger_mirage');
     const quad =
+      !penta &&
       aliveBossIds.has('black_swan') &&
       aliveBossIds.has('circuit_swan') &&
       aliveBossIds.has('halt_tide') &&
       aliveBossIds.has('ink_specter');
     const triple =
+      !penta &&
       !quad &&
       aliveBossIds.has('black_swan') &&
       aliveBossIds.has('circuit_swan') &&
       aliveBossIds.has('halt_tide');
     const dual =
+      !penta &&
       !quad &&
       !triple &&
       ((aliveBossIds.has('black_swan') && aliveBossIds.has('circuit_swan')) ||
@@ -1433,29 +1443,37 @@
           (aliveBossIds.has('black_swan') ||
             aliveBossIds.has('circuit_swan') ||
             aliveBossIds.has('halt_tide'))));
-    const life = quad ? 3.8 : triple ? 3.6 : isCircuit || isTide || isInk ? 3.2 : 2.9;
-    const kind = quad
-      ? 'quad'
-      : triple
-        ? 'triple'
-        : isInk
-          ? 'ink'
-          : isTide
-            ? 'halt_tide'
-            : isCircuit
-              ? 'circuit'
-              : 'boss';
-    const blurb = quad
-      ? '四潮同場 — 黑羽＋金邊＋臨停＋墨影'
-      : triple
-        ? '三潮同場 — 黑羽＋金邊＋臨停'
-        : isInk
-          ? '墨影翻帳 — 降攻抽銀'
-          : isTide
-            ? '停牌潮湧入 — 範圍臨停'
-            : isCircuit
-              ? '熔斷鐘將響 — 俠客短暫停刀'
-              : (enemy.def.skill && enemy.def.skill.blurb) || '';
+    const life = penta ? 4.2 : quad ? 3.8 : triple ? 3.6 : isCircuit || isTide || isInk || isMirage ? 3.2 : 2.9;
+    const kind = penta
+      ? 'penta'
+      : quad
+        ? 'quad'
+        : triple
+          ? 'triple'
+          : isMirage
+            ? 'mirage'
+            : isInk
+              ? 'ink'
+              : isTide
+                ? 'halt_tide'
+                : isCircuit
+                  ? 'circuit'
+                  : 'boss';
+    const blurb = penta
+      ? '五潮同場 — 黑羽＋金邊＋臨停＋墨影＋帳鏡'
+      : quad
+        ? '四潮同場 — 黑羽＋金邊＋臨停＋墨影'
+        : triple
+          ? '三潮同場 — 黑羽＋金邊＋臨停'
+          : isMirage
+            ? '帳鏡蜃現 — 鏡稅抽銀'
+            : isInk
+              ? '墨影翻帳 — 降攻抽銀'
+              : isTide
+                ? '停牌潮湧入 — 範圍臨停'
+                : isCircuit
+                  ? '熔斷鐘將響 — 俠客短暫停刀'
+                  : (enemy.def.skill && enemy.def.skill.blurb) || '';
     state.bossBanner = {
       name: enemy.def.name,
       life: life,
@@ -1465,40 +1483,44 @@
     };
     state.shake = Math.max(
       state.shake || 0,
-      quad ? 0.58 : triple ? 0.52 : isCircuit || isTide || isInk ? 0.42 : 0.32
+      penta ? 0.64 : quad ? 0.58 : triple ? 0.52 : isCircuit || isTide || isInk || isMirage ? 0.42 : 0.32
     );
     state.coreHitFlash = Math.max(
       state.coreHitFlash || 0,
-      quad ? 0.75 : triple ? 0.7 : isCircuit || isTide || isInk ? 0.55 : 0.35
+      penta ? 0.82 : quad ? 0.75 : triple ? 0.7 : isCircuit || isTide || isInk || isMirage ? 0.55 : 0.35
     );
     state.fx.push({
-      type: quad
-        ? 'quadTideWarn'
-        : triple
-          ? 'tripleTideWarn'
-          : isInk
-            ? 'inkWarn'
-            : isTide
-              ? 'haltTideWarn'
-              : isCircuit
-                ? 'circuitWarn'
-                : 'bossWarn',
-      life: quad ? 3.4 : triple ? 3.2 : isCircuit || isTide || isInk ? 2.8 : 2.5,
+      type: penta
+        ? 'pentaTideWarn'
+        : quad
+          ? 'quadTideWarn'
+          : triple
+            ? 'tripleTideWarn'
+            : isMirage
+              ? 'mirageWarn'
+              : isInk
+                ? 'inkWarn'
+                : isTide
+                  ? 'haltTideWarn'
+                  : isCircuit
+                    ? 'circuitWarn'
+                    : 'bossWarn',
+      life: penta ? 3.8 : quad ? 3.4 : triple ? 3.2 : isCircuit || isTide || isInk || isMirage ? 2.8 : 2.5,
     });
-    if (isInk || quad) {
+    if (isInk || isMirage || quad || penta) {
       state.fx.push({
         type: 'inkCrack',
         x: enemy.x || 640,
         y: enemy.y || 270,
-        life: isInk ? 1.35 : 1.1,
-        r: isInk ? 110 : 90,
+        life: isMirage || isInk ? 1.35 : 1.1,
+        r: isMirage || isInk ? 110 : 90,
       });
       state.fx.push({
         type: 'inkCurtain',
         x: enemy.x || 640,
         y: enemy.y || 270,
-        life: isInk ? 1.55 : 1.2,
-        r: isInk ? 95 : 80,
+        life: isMirage || isInk ? 1.55 : 1.2,
+        r: isMirage || isInk ? 95 : 80,
       });
       pushFloat(state.floats, {
         x: (enemy.x || 640) - 18,
@@ -1514,22 +1536,36 @@
     }
     if (triple) state._tripleTideSeen = (state._tripleTideSeen || 0) + 1;
     if (quad) state._quadTideSeen = (state._quadTideSeen || 0) + 1;
-    const title = quad
-      ? '四潮同場'
-      : triple
-        ? '三潮同場'
-        : enemy.def.name + ' 入場';
+    if (penta) state._pentaTideSeen = (state._pentaTideSeen || 0) + 1;
+    const title = penta
+      ? '五潮同場'
+      : quad
+        ? '四潮同場'
+        : triple
+          ? '三潮同場'
+          : enemy.def.name + ' 入場';
     pushFloat(state.floats, {
       x: 480,
       y: 190,
-      text: (quad ? '📜 ' : triple ? '🌊 ' : isInk ? '墨 ' : isTide ? '⛔ ' : isCircuit ? '🔔 ' : '⚠ ') + title,
-      color: quad || triple ? '#C45C4A' : isInk ? '#8A9BB0' : isTide ? '#C4A070' : isCircuit ? '#E8C96A' : '#C9A227',
-      size: quad || triple ? 26 : isCircuit || isTide || isInk ? 24 : 22,
+      text: (penta ? '🪞 ' : quad ? '📜 ' : triple ? '🌊 ' : isMirage ? '鏡 ' : isInk ? '墨 ' : isTide ? '⛔ ' : isCircuit ? '🔔 ' : '⚠ ') + title,
+      color: penta || quad || triple ? '#C45C4A' : isMirage ? '#C9A227' : isInk ? '#8A9BB0' : isTide ? '#C4A070' : isCircuit ? '#E8C96A' : '#C9A227',
+      size: penta || quad || triple ? 26 : isCircuit || isTide || isInk || isMirage ? 24 : 22,
       vy: -10,
-      life: quad || triple ? 2.9 : isCircuit || isTide || isInk ? 2.6 : 2.3,
+      life: penta || quad || triple ? 2.9 : isCircuit || isTide || isInk || isMirage ? 2.6 : 2.3,
       bounce: 0.45,
     });
-    if (quad) {
+    if (penta) {
+      pushFloat(state.floats, {
+        x: 480,
+        y: 230,
+        text: '先鎖倉清符 — 再收羽墨鏡',
+        color: '#C45C4A',
+        size: 15,
+        vy: -8,
+        life: 2.6,
+        bounce: 0,
+      });
+    } else if (quad) {
       pushFloat(state.floats, {
         x: 480,
         y: 230,

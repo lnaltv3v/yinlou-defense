@@ -808,7 +808,7 @@ header.title {
 }
 
 
-/* v3.2.0 */
+/* v3.3.0 */
 .lane-tips {
   display: flex;
   gap: 8px;
@@ -1003,7 +1003,7 @@ header.title {
 .wall-spark-actions-v31 { gap: 6px; }
 
 
-/* v3.2.0 — tutorial HUD / ach jump / wall copy */
+/* v3.3.0 — tutorial HUD / ach jump / wall copy / mirage tax / wall hist */
 .tutorial-hud {
   display: none;
   position: absolute;
@@ -1057,3 +1057,55 @@ button.ach-cat-bar:focus {
   padding: 2px 4px;
 }
 #wall-compare-copy:disabled { opacity: 0.4; cursor: default; }
+
+
+/* v3.3.0 — mirage tax HUD / tut-dot click / wall compare history */
+.mirage-tax-hud {
+  display: none;
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(28, 18, 12, 0.88);
+  border: 1px solid #C9A227;
+  color: #E8D5A3;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+  box-shadow: 0 0 12px rgba(201, 162, 39, 0.35);
+}
+.mirage-tax-hud.show { display: inline-flex; align-items: center; gap: 6px; }
+.tutorial-hud .tut-dot {
+  cursor: pointer;
+  border: 0;
+  padding: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(232, 213, 163, 0.35);
+}
+.tutorial-hud .tut-dot.done { background: #8A9BB0; }
+.tutorial-hud .tut-dot.cur {
+  background: #C9A227;
+  box-shadow: 0 0 6px rgba(201, 162, 39, 0.7);
+  transform: scale(1.15);
+}
+.tutorial-hud .tut-dot:hover { outline: 1px solid #C9A227; }
+.wall-compare-hist {
+  margin-top: 8px;
+  max-height: 120px;
+  overflow: auto;
+  font-size: 11px;
+  line-height: 1.45;
+}
+.wall-hist-list {
+  margin: 4px 0 0;
+  padding-left: 1.1em;
+  list-style: disc;
+}
+.wall-hist-list li { margin: 2px 0; }
+.wall-hist-list .dim { opacity: 0.65; }
