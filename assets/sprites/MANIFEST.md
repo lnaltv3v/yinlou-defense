@@ -43,7 +43,7 @@
 
 
 ## v1.9
-| lock_hermit | 鎖倉居士 | **暫無 PNG** → 幾何 `brush` fallback |
+| lock_hermit | 鎖倉居士 | `lock_hermit.png`／`_attack`／`_sheet`（已有；v2.1 覆寫 attack） |
 
 
 已補：`circuit_swan`（熔斷天鵝）idle／attack／sheet（v1.9）；缺檔仍借黑天鵝幀／幾何。
@@ -56,7 +56,10 @@
 
 ## v2.1
 - `halt_tide`／`halt_tide_attack`／`halt_tide_sheet`：正式 PNG（48×48／sheet 96×48）；程式 `CACHE_VER=2.1.0`。
+- `circuit_swan_attack`／`circuit_swan_sheet`：attack 加厚（翼展／喙刺、電路金線閃、硃紅核更亮）；idle 保留（2026-11-05）。
+- `lock_hermit_attack`／`lock_hermit_sheet`：attack 加厚（杖／鎖印前推、金鎖閃、袍袖揚）；idle 保留（2026-11-05）。改正「暫無 PNG」。
+- 生成：`tools/gen_thicken_v21.py`（Pillow 點陣）。
 
 
 ## v2.2
-- 無新角色 PNG；`CACHE_VER=2.2.0` bust 既有帧。
+- `circuit_swan_attack`／`_sheet`、`lock_hermit_attack`／`_sheet` 覆寫；`CACHE_VER=2.2.0`。

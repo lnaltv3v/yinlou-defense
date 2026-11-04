@@ -109,4 +109,5 @@
 
 
 ## v2.2
-- 無新 mid／props／circuit_swan／lock_hermit 覆寫；畫面反饋以 FX（tripleTideWarn／mergeRing）加厚。
+- `battle_mid`／`battle_props` 再加厚；`circuit_swan`／`lock_hermit` `_attack`／`_sheet` 覆寫接入。
+- 畫面反饋：`tripleTideWarn`／`mergeRing`。
