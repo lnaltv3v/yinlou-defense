@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>銀樓防衛 v4.5.0</title>
+  <link rel="stylesheet" href="css/style.css?v=4.5.0" />
+</head>
+<body>
+  <div id="app">
+    <header class="title">銀樓防衛 · YINLOU DEFENSE</header>
+    <div id="stage-bar" class="tool-bar" aria-label="關卡選擇"></div>
+    <div id="wrap">
+      <canvas id="game" width="960" height="540" aria-label="遊戲畫面"></canvas>
+      <div id="toast"></div>
+      <div id="overlay">
+        <h2 id="overlay-title">準備</h2>
+        <p id="overlay-msg"></p>
+        <button type="button" class="action-btn" id="btn-overlay">開始</button>
+        <div id="overlay-extra" class="overlay-extra"></div>
+      </div>
+    </div>
+    <div id="hud">
+      <div class="stat">銀兩 <strong id="stat-silver">0</strong></div>
+      <div class="stat">核心 <strong id="stat-hp">0</strong></div>
+      <div class="stat">波次 <strong id="stat-wave">0</strong></div>
+      <div class="stat">關卡 <strong id="stat-stage">1</strong></div>
+      <div class="stat">擊殺 <strong id="stat-kills">0</strong></div>
+      <div class="stat bond">羈絆 <strong id="stat-bonds">—</strong></div>
+      <div class="stat lock">鎖倉 <strong id="stat-locks">—</strong></div>
+      <div id="speed-bar" class="tool-bar inline" aria-label="速度"></div>
+    </div>
+    <div id="shop"></div>
+    <p class="hint" id="hint">v4.5.0｜1050十七池｜卸換欄｜自訂雙區間｜吸附調校</p>
+    <div id="orient-hint" class="orient-hint" aria-hidden="true">
+      <div class="orient-card">
+        <div class="orient-icon" aria-hidden="true">▭ → ▭</div>
+        <p><strong>建議橫屏遊玩</strong></p>
+        <p class="orient-sub">銀樓防衛係橫屏佈陣；轉動手機／平板體驗更佳。</p>
+        <button type="button" class="action-btn" id="orient-dismiss">繼續直睇</button>
+      </div>
+    </div>
+  </div>
+  <script src="js/audio.js?v=4.5.0"></script>
+  <script src="js/data.js?v=4.5.0"></script>
+  <script src="js/battle.js?v=4.5.0"></script>
+  <script src="js/sprites.js?v=4.5.0"></script>
+  <script src="js/render.js?v=4.5.0"></script>
+  <script src="js/ui.js?v=4.5.0"></script>
+  <script src="js/game.js?v=4.5.0"></script>
+</body>
+</html>
