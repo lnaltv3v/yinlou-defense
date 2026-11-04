@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 靜態資料 v0.2.0
+ * 銀樓防衛 — 靜態資料 v0.3.0
  * 角色為原創綽號，影射金融江湖氣氛；唔用真人真名／金庸名／Fortias IP。
  */
 (function (global) {
@@ -26,8 +26,9 @@
       name: '多頭刀客',
       blurb: '近戰高傷 · 牛市衝鋒',
       role: 'melee',
-      cost: 25,
+      cost: 22,
       color: '#C45C4A',
+      silhouette: 'blade',
       atk: 14,
       hp: 90,
       range: 78,
@@ -39,8 +40,9 @@
       name: '空頭劍客',
       blurb: '遠程點殺 · 看淡減速',
       role: 'ranged',
-      cost: 30,
+      cost: 28,
       color: '#2A6A6A',
+      silhouette: 'sword',
       atk: 11,
       hp: 55,
       range: 210,
@@ -54,8 +56,9 @@
       name: '槓桿狂僧',
       blurb: '範圍爆炸 · 冷卻長',
       role: 'aoe',
-      cost: 40,
+      cost: 38,
       color: '#5A4060',
+      silhouette: 'staff',
       atk: 22,
       hp: 70,
       range: 120,
@@ -68,22 +71,24 @@
       name: '股息隱士',
       blurb: '治療／回銀光環',
       role: 'support',
-      cost: 35,
+      cost: 32,
       color: '#3A7A6A',
+      silhouette: 'hat',
       atk: 4,
       hp: 60,
       range: 100,
       cooldown: 0.9,
       auraHeal: 6,
-      auraSilver: 0.35,
+      auraSilver: 0.4,
     },
     market_guard: {
       id: 'market_guard',
       name: '莊家鐵衛',
       blurb: '坦克擋路 · 高血',
       role: 'tank',
-      cost: 28,
+      cost: 26,
       color: '#6A6055',
+      silhouette: 'shield',
       atk: 7,
       hp: 160,
       range: 70,
@@ -94,21 +99,89 @@
       name: '細價股刺客',
       blurb: '高速低血 · 打後排',
       role: 'assassin',
-      cost: 32,
+      cost: 30,
       color: '#A04040',
+      silhouette: 'dagger',
       atk: 16,
       hp: 40,
       range: 160,
       cooldown: 0.4,
       preferBack: true,
     },
+    ipo_herald: {
+      id: 'ipo_herald',
+      name: '招股鼓手',
+      blurb: '鄰格加攻 · 開市喊單',
+      role: 'buffer',
+      cost: 34,
+      color: '#C9A227',
+      silhouette: 'drum',
+      atk: 5,
+      hp: 65,
+      range: 90,
+      cooldown: 1.1,
+      buffAtk: 0.18,
+      buffDur: 2.2,
+    },
+    squeeze_blade: {
+      id: 'squeeze_blade',
+      name: '逼空客',
+      blurb: '打高血加成 · 軋空',
+      role: 'hunter',
+      cost: 36,
+      color: '#8A5040',
+      silhouette: 'hook',
+      atk: 13,
+      hp: 75,
+      range: 100,
+      cooldown: 0.65,
+      highHpBonus: 0.4,
+    },
   };
+
+  /** 場上羈絆：同時存在列出嘅 id → 被動 */
+  const BONDS = [
+    {
+      id: 'bull_bear',
+      name: '多空對決',
+      need: ['long_bull', 'short_blade'],
+      blurb: '雙方攻擊 +12%',
+      atkMul: 1.12,
+      applyTo: ['long_bull', 'short_blade'],
+    },
+    {
+      id: 'leverage_pair',
+      name: '槓桿雙煞',
+      need: ['leverage_monk', 'penny_assassin'],
+      blurb: '雙方冷卻 −10%',
+      cdMul: 0.9,
+      applyTo: ['leverage_monk', 'penny_assassin'],
+    },
+    {
+      id: 'vault_wall',
+      name: '銀樓鐵壁',
+      need: ['market_guard', 'dividend_hermit'],
+      blurb: '鐵衛減傷／隱士光環加強',
+      tankDmgMul: 0.82,
+      auraMul: 1.25,
+      applyTo: ['market_guard', 'dividend_hermit'],
+    },
+    {
+      id: 'ipo_squeeze',
+      name: '招股軋空',
+      need: ['ipo_herald', 'squeeze_blade'],
+      blurb: '鼓手加攻更強、逼空加成提升',
+      buffBonus: 0.08,
+      highHpExtra: 0.15,
+      applyTo: ['ipo_herald', 'squeeze_blade'],
+    },
+  ];
 
   const ENEMIES = {
     retail_tide: {
       id: 'retail_tide',
       name: '散戶潮',
-      hp: 32,
+      hp: 30,
       atk: 5,
       speed: 40,
       reward: 5,
@@ -121,7 +194,7 @@
     chase_zombie: {
       id: 'chase_zombie',
       name: '追高殭屍',
-      hp: 70,
+      hp: 68,
       atk: 10,
       speed: 28,
       reward: 8,
@@ -147,7 +220,7 @@
     black_swan: {
       id: 'black_swan',
       name: '黑天鵝',
-      hp: 360,
+      hp: 340,
       atk: 22,
       speed: 20,
       reward: 70,
@@ -161,7 +234,7 @@
     margin_call: {
       id: 'margin_call',
       name: '追保令',
-      hp: 55,
+      hp: 52,
       atk: 8,
       speed: 48,
       reward: 10,
@@ -171,152 +244,230 @@
       attackCd: 0.75,
       preferHero: 0.8,
     },
+    rumor_swarm: {
+      id: 'rumor_swarm',
+      name: '傳聞蚊',
+      hp: 22,
+      atk: 4,
+      speed: 58,
+      reward: 4,
+      color: '#7A6A50',
+      radius: 8,
+      attackRange: 36,
+      attackCd: 0.7,
+      preferHero: 0.4,
+    },
   };
 
   function wavePack(list) {
     return { spawns: list };
   }
 
-  /** 關卡 1–3 + 無盡模式入口用 meta */
   const STAGES = [
     {
       id: 1,
       name: '錢莊初夜',
-      startSilver: 120,
-      coreHp: 150,
+      startSilver: 130,
+      coreHp: 160,
       unlockHeroes: Object.keys(HEROES),
       waves: [
-        wavePack([{ enemy: 'retail_tide', count: 6, lane: 'cycle', interval: 0.85 }]),
+        wavePack([{ enemy: 'retail_tide', count: 5, lane: 'cycle', interval: 0.95 }]),
         wavePack([
-          { enemy: 'retail_tide', count: 8, lane: 'cycle', interval: 0.7 },
-          { enemy: 'chase_zombie', count: 2, lane: 'random', interval: 1.4, delay: 2 },
+          { enemy: 'retail_tide', count: 7, lane: 'cycle', interval: 0.75 },
+          { enemy: 'chase_zombie', count: 1, lane: 'random', interval: 1.5, delay: 2.2 },
         ]),
         wavePack([
-          { enemy: 'retail_tide', count: 6, lane: 'cycle', interval: 0.65 },
-          { enemy: 'chase_zombie', count: 3, lane: 'cycle', interval: 1.1, delay: 1 },
-          { enemy: 'leverage_fiend', count: 1, lane: 1, interval: 0, delay: 4 },
+          { enemy: 'retail_tide', count: 6, lane: 'cycle', interval: 0.7 },
+          { enemy: 'chase_zombie', count: 3, lane: 'cycle', interval: 1.15, delay: 1 },
+          { enemy: 'leverage_fiend', count: 1, lane: 1, interval: 0, delay: 4.5 },
         ]),
         wavePack([
-          { enemy: 'retail_tide', count: 10, lane: 'cycle', interval: 0.55 },
-          { enemy: 'chase_zombie', count: 4, lane: 'random', interval: 0.9, delay: 1.5 },
-          { enemy: 'leverage_fiend', count: 2, lane: 'cycle', interval: 2.2, delay: 3 },
+          { enemy: 'retail_tide', count: 9, lane: 'cycle', interval: 0.58 },
+          { enemy: 'chase_zombie', count: 4, lane: 'random', interval: 0.95, delay: 1.5 },
+          { enemy: 'leverage_fiend', count: 2, lane: 'cycle', interval: 2.3, delay: 3 },
         ]),
         wavePack([
-          { enemy: 'retail_tide', count: 6, lane: 'cycle', interval: 0.55 },
-          { enemy: 'chase_zombie', count: 3, lane: 'random', interval: 0.95, delay: 1 },
-          { enemy: 'black_swan', count: 1, lane: 2, interval: 0, delay: 4 },
+          { enemy: 'retail_tide', count: 6, lane: 'cycle', interval: 0.58 },
+          { enemy: 'chase_zombie', count: 3, lane: 'random', interval: 1.0, delay: 1 },
+          { enemy: 'black_swan', count: 1, lane: 2, interval: 0, delay: 4.5 },
         ]),
       ],
     },
     {
       id: 2,
       name: '午市殺跌',
-      startSilver: 140,
-      coreHp: 170,
+      startSilver: 145,
+      coreHp: 175,
       unlockHeroes: Object.keys(HEROES),
       waves: [
         wavePack([
-          { enemy: 'retail_tide', count: 8, lane: 'cycle', interval: 0.65 },
-          { enemy: 'margin_call', count: 2, lane: 'random', interval: 1.2, delay: 1.5 },
+          { enemy: 'retail_tide', count: 7, lane: 'cycle', interval: 0.7 },
+          { enemy: 'margin_call', count: 2, lane: 'random', interval: 1.25, delay: 1.5 },
         ]),
         wavePack([
-          { enemy: 'retail_tide', count: 8, lane: 'cycle', interval: 0.55 },
-          { enemy: 'chase_zombie', count: 4, lane: 'cycle', interval: 1.0, delay: 0.8 },
-          { enemy: 'margin_call', count: 3, lane: 'random', interval: 1.1, delay: 2 },
+          { enemy: 'retail_tide', count: 8, lane: 'cycle', interval: 0.58 },
+          { enemy: 'chase_zombie', count: 3, lane: 'cycle', interval: 1.05, delay: 0.8 },
+          { enemy: 'margin_call', count: 3, lane: 'random', interval: 1.15, delay: 2 },
         ]),
         wavePack([
-          { enemy: 'chase_zombie', count: 5, lane: 'cycle', interval: 0.85 },
-          { enemy: 'leverage_fiend', count: 2, lane: 'random', interval: 1.8, delay: 2 },
-          { enemy: 'margin_call', count: 4, lane: 'cycle', interval: 0.9, delay: 1 },
+          { enemy: 'chase_zombie', count: 5, lane: 'cycle', interval: 0.9 },
+          { enemy: 'leverage_fiend', count: 2, lane: 'random', interval: 1.85, delay: 2 },
+          { enemy: 'margin_call', count: 3, lane: 'cycle', interval: 0.95, delay: 1 },
         ]),
         wavePack([
-          { enemy: 'retail_tide', count: 12, lane: 'cycle', interval: 0.45 },
-          { enemy: 'chase_zombie', count: 5, lane: 'random', interval: 0.8, delay: 1 },
-          { enemy: 'leverage_fiend', count: 3, lane: 'cycle', interval: 1.6, delay: 2.5 },
+          { enemy: 'retail_tide', count: 11, lane: 'cycle', interval: 0.48 },
+          { enemy: 'chase_zombie', count: 5, lane: 'random', interval: 0.85, delay: 1 },
+          { enemy: 'leverage_fiend', count: 2, lane: 'cycle', interval: 1.7, delay: 2.5 },
         ]),
         wavePack([
-          { enemy: 'margin_call', count: 6, lane: 'cycle', interval: 0.7 },
-          { enemy: 'leverage_fiend', count: 2, lane: 'random', interval: 1.5, delay: 1 },
+          { enemy: 'margin_call', count: 5, lane: 'cycle', interval: 0.75 },
+          { enemy: 'leverage_fiend', count: 2, lane: 'random', interval: 1.55, delay: 1 },
           { enemy: 'black_swan', count: 1, lane: 1, interval: 0, delay: 5 },
         ]),
         wavePack([
-          { enemy: 'retail_tide', count: 10, lane: 'cycle', interval: 0.4 },
-          { enemy: 'chase_zombie', count: 4, lane: 'cycle', interval: 0.75, delay: 0.5 },
-          { enemy: 'black_swan', count: 1, lane: 2, interval: 0, delay: 3 },
-          { enemy: 'margin_call', count: 4, lane: 'random', interval: 0.85, delay: 4 },
+          { enemy: 'retail_tide', count: 10, lane: 'cycle', interval: 0.42 },
+          { enemy: 'chase_zombie', count: 4, lane: 'cycle', interval: 0.8, delay: 0.5 },
+          { enemy: 'black_swan', count: 1, lane: 2, interval: 0, delay: 3.2 },
+          { enemy: 'margin_call', count: 4, lane: 'random', interval: 0.9, delay: 4 },
         ]),
       ],
     },
     {
       id: 3,
       name: '夜盤黑潮',
-      startSilver: 160,
+      startSilver: 165,
       coreHp: 200,
       unlockHeroes: Object.keys(HEROES),
       waves: [
         wavePack([
-          { enemy: 'retail_tide', count: 10, lane: 'cycle', interval: 0.5 },
-          { enemy: 'margin_call', count: 4, lane: 'random', interval: 0.9, delay: 1 },
+          { enemy: 'retail_tide', count: 9, lane: 'cycle', interval: 0.52 },
+          { enemy: 'margin_call', count: 3, lane: 'random', interval: 0.95, delay: 1 },
+          { enemy: 'rumor_swarm', count: 4, lane: 'cycle', interval: 0.55, delay: 0.5 },
         ]),
         wavePack([
-          { enemy: 'chase_zombie', count: 6, lane: 'cycle', interval: 0.75 },
-          { enemy: 'leverage_fiend', count: 3, lane: 'random', interval: 1.4, delay: 1.5 },
-          { enemy: 'margin_call', count: 4, lane: 'cycle', interval: 0.85, delay: 0.5 },
+          { enemy: 'chase_zombie', count: 6, lane: 'cycle', interval: 0.78 },
+          { enemy: 'leverage_fiend', count: 2, lane: 'random', interval: 1.45, delay: 1.5 },
+          { enemy: 'margin_call', count: 4, lane: 'cycle', interval: 0.88, delay: 0.5 },
         ]),
         wavePack([
-          { enemy: 'retail_tide', count: 14, lane: 'cycle', interval: 0.4 },
-          { enemy: 'chase_zombie', count: 6, lane: 'random', interval: 0.7, delay: 1 },
-          { enemy: 'leverage_fiend', count: 3, lane: 'cycle', interval: 1.3, delay: 2 },
+          { enemy: 'retail_tide', count: 12, lane: 'cycle', interval: 0.42 },
+          { enemy: 'rumor_swarm', count: 8, lane: 'random', interval: 0.4, delay: 0.6 },
+          { enemy: 'chase_zombie', count: 5, lane: 'random', interval: 0.75, delay: 1 },
+          { enemy: 'leverage_fiend', count: 3, lane: 'cycle', interval: 1.35, delay: 2 },
         ]),
         wavePack([
-          { enemy: 'margin_call', count: 8, lane: 'cycle', interval: 0.55 },
-          { enemy: 'leverage_fiend', count: 4, lane: 'random', interval: 1.2, delay: 1 },
+          { enemy: 'margin_call', count: 7, lane: 'cycle', interval: 0.58 },
+          { enemy: 'leverage_fiend', count: 3, lane: 'random', interval: 1.25, delay: 1 },
           { enemy: 'black_swan', count: 1, lane: 0, interval: 0, delay: 4 },
         ]),
         wavePack([
-          { enemy: 'retail_tide', count: 12, lane: 'cycle', interval: 0.35 },
-          { enemy: 'chase_zombie', count: 6, lane: 'cycle', interval: 0.65, delay: 0.5 },
-          { enemy: 'margin_call', count: 6, lane: 'random', interval: 0.7, delay: 1 },
+          { enemy: 'retail_tide', count: 12, lane: 'cycle', interval: 0.38 },
+          { enemy: 'chase_zombie', count: 5, lane: 'cycle', interval: 0.7, delay: 0.5 },
+          { enemy: 'margin_call', count: 5, lane: 'random', interval: 0.75, delay: 1 },
           { enemy: 'black_swan', count: 1, lane: 3, interval: 0, delay: 5 },
         ]),
         wavePack([
-          { enemy: 'leverage_fiend', count: 4, lane: 'cycle', interval: 1.0 },
-          { enemy: 'margin_call', count: 8, lane: 'random', interval: 0.6, delay: 0.5 },
-          { enemy: 'black_swan', count: 2, lane: 'cycle', interval: 3.5, delay: 2 },
+          { enemy: 'leverage_fiend', count: 4, lane: 'cycle', interval: 1.05 },
+          { enemy: 'margin_call', count: 7, lane: 'random', interval: 0.65, delay: 0.5 },
+          { enemy: 'black_swan', count: 2, lane: 'cycle', interval: 3.8, delay: 2 },
         ]),
         wavePack([
-          { enemy: 'retail_tide', count: 16, lane: 'cycle', interval: 0.32 },
-          { enemy: 'chase_zombie', count: 8, lane: 'random', interval: 0.55, delay: 0.4 },
-          { enemy: 'leverage_fiend', count: 4, lane: 'cycle', interval: 1.1, delay: 1 },
+          { enemy: 'retail_tide', count: 14, lane: 'cycle', interval: 0.34 },
+          { enemy: 'rumor_swarm', count: 10, lane: 'random', interval: 0.35, delay: 0.3 },
+          { enemy: 'chase_zombie', count: 7, lane: 'random', interval: 0.58, delay: 0.4 },
+          { enemy: 'leverage_fiend', count: 3, lane: 'cycle', interval: 1.15, delay: 1 },
           { enemy: 'black_swan', count: 1, lane: 2, interval: 0, delay: 6 },
-          { enemy: 'margin_call', count: 6, lane: 'random', interval: 0.65, delay: 3 },
+          { enemy: 'margin_call', count: 5, lane: 'random', interval: 0.7, delay: 3 },
+        ]),
+      ],
+    },
+    {
+      id: 4,
+      name: '清算之夜',
+      startSilver: 180,
+      coreHp: 220,
+      unlockHeroes: Object.keys(HEROES),
+      waves: [
+        wavePack([
+          { enemy: 'rumor_swarm', count: 10, lane: 'cycle', interval: 0.4 },
+          { enemy: 'margin_call', count: 4, lane: 'random', interval: 0.85, delay: 1 },
+        ]),
+        wavePack([
+          { enemy: 'retail_tide', count: 12, lane: 'cycle', interval: 0.4 },
+          { enemy: 'chase_zombie', count: 5, lane: 'cycle', interval: 0.75, delay: 0.8 },
+          { enemy: 'leverage_fiend', count: 2, lane: 'random', interval: 1.4, delay: 2 },
+        ]),
+        wavePack([
+          { enemy: 'margin_call', count: 8, lane: 'cycle', interval: 0.55 },
+          { enemy: 'rumor_swarm', count: 12, lane: 'random', interval: 0.32, delay: 0.4 },
+          { enemy: 'chase_zombie', count: 6, lane: 'cycle', interval: 0.7, delay: 1 },
+        ]),
+        wavePack([
+          { enemy: 'leverage_fiend', count: 4, lane: 'cycle', interval: 1.1 },
+          { enemy: 'margin_call', count: 6, lane: 'random', interval: 0.7, delay: 0.8 },
+          { enemy: 'black_swan', count: 1, lane: 1, interval: 0, delay: 3.5 },
+        ]),
+        wavePack([
+          { enemy: 'retail_tide', count: 14, lane: 'cycle', interval: 0.32 },
+          { enemy: 'chase_zombie', count: 6, lane: 'random', interval: 0.65, delay: 0.5 },
+          { enemy: 'rumor_swarm', count: 10, lane: 'cycle', interval: 0.3, delay: 0.2 },
+          { enemy: 'black_swan', count: 1, lane: 2, interval: 0, delay: 4 },
+        ]),
+        wavePack([
+          { enemy: 'leverage_fiend', count: 5, lane: 'cycle', interval: 0.95 },
+          { enemy: 'margin_call', count: 8, lane: 'random', interval: 0.55, delay: 0.5 },
+          { enemy: 'black_swan', count: 2, lane: 'cycle', interval: 3.2, delay: 2 },
+        ]),
+        wavePack([
+          { enemy: 'rumor_swarm', count: 14, lane: 'random', interval: 0.28 },
+          { enemy: 'chase_zombie', count: 8, lane: 'cycle', interval: 0.55, delay: 0.4 },
+          { enemy: 'leverage_fiend', count: 4, lane: 'random', interval: 1.0, delay: 1 },
+          { enemy: 'margin_call', count: 6, lane: 'cycle', interval: 0.6, delay: 1.5 },
+          { enemy: 'black_swan', count: 2, lane: 'cycle', interval: 4, delay: 3 },
+        ]),
+        wavePack([
+          { enemy: 'retail_tide', count: 16, lane: 'cycle', interval: 0.28 },
+          { enemy: 'rumor_swarm', count: 12, lane: 'random', interval: 0.26, delay: 0.2 },
+          { enemy: 'chase_zombie', count: 8, lane: 'cycle', interval: 0.5, delay: 0.5 },
+          { enemy: 'leverage_fiend', count: 5, lane: 'random', interval: 0.9, delay: 1 },
+          { enemy: 'black_swan', count: 2, lane: 0, interval: 2.5, delay: 2 },
+          { enemy: 'black_swan', count: 1, lane: 3, interval: 0, delay: 7 },
+          { enemy: 'margin_call', count: 8, lane: 'random', interval: 0.55, delay: 3 },
         ]),
       ],
     },
   ];
 
-  /** 無盡模式：動態生成波次 */
   const ENDLESS = {
     id: 'endless',
     name: '無盡殺跌',
-    startSilver: 150,
-    coreHp: 180,
+    startSilver: 155,
+    coreHp: 185,
     unlockHeroes: Object.keys(HEROES),
   };
 
   function buildEndlessWave(n) {
-    const mul = 1 + (n - 1) * 0.12;
-    const count = (base) => Math.max(1, Math.round(base * (1 + (n - 1) * 0.08)));
+    const mul = 1 + (n - 1) * 0.11;
+    const count = (base) => Math.max(1, Math.round(base * (1 + (n - 1) * 0.075)));
     const spawns = [
-      { enemy: 'retail_tide', count: count(6 + n), lane: 'cycle', interval: Math.max(0.28, 0.7 - n * 0.02) },
+      { enemy: 'retail_tide', count: count(6 + n), lane: 'cycle', interval: Math.max(0.26, 0.68 - n * 0.018) },
     ];
     if (n >= 2) {
       spawns.push({
         enemy: 'chase_zombie',
         count: count(2 + Math.floor(n / 2)),
         lane: 'random',
-        interval: Math.max(0.5, 1.1 - n * 0.03),
+        interval: Math.max(0.48, 1.05 - n * 0.028),
         delay: 1,
+      });
+    }
+    if (n >= 2) {
+      spawns.push({
+        enemy: 'rumor_swarm',
+        count: count(3 + Math.floor(n / 2)),
+        lane: 'cycle',
+        interval: Math.max(0.28, 0.55 - n * 0.015),
+        delay: 0.4,
       });
     }
     if (n >= 3) {
@@ -324,7 +475,7 @@
         enemy: 'margin_call',
         count: count(2 + Math.floor(n / 3)),
         lane: 'cycle',
-        interval: Math.max(0.45, 0.95 - n * 0.025),
+        interval: Math.max(0.42, 0.92 - n * 0.022),
         delay: 1.5,
       });
     }
@@ -333,7 +484,7 @@
         enemy: 'leverage_fiend',
         count: count(1 + Math.floor(n / 4)),
         lane: 'random',
-        interval: 1.5,
+        interval: 1.45,
         delay: 2.5,
         hpMul: mul,
       });
@@ -368,19 +519,54 @@
 
   const SAVE_KEY = 'yinlou-defense-save-v1';
 
+  /** 合併星級傷害倍率：升星更有價值感 */
   function starMul(star) {
-    return 1 + 0.55 * (star - 1);
+    return 1 + 0.62 * (star - 1);
   }
 
   function heroStats(def, star) {
     const m = starMul(star);
     return {
       atk: Math.round(def.atk * m),
-      hp: Math.round(def.hp * (1 + 0.4 * (star - 1))),
-      maxHp: Math.round(def.hp * (1 + 0.4 * (star - 1))),
-      range: def.range + (star - 1) * 12,
-      cooldown: Math.max(0.28, def.cooldown * (1 - 0.06 * (star - 1))),
+      hp: Math.round(def.hp * (1 + 0.42 * (star - 1))),
+      maxHp: Math.round(def.hp * (1 + 0.42 * (star - 1))),
+      range: def.range + (star - 1) * 14,
+      cooldown: Math.max(0.26, def.cooldown * (1 - 0.07 * (star - 1))),
     };
+  }
+
+  /** 召喚費曲線：同種每多召一次 +8（封頂 +48） */
+  function summonCost(heroId, summonCounts) {
+    const def = HEROES[heroId];
+    if (!def) return 999;
+    const n = (summonCounts && summonCounts[heroId]) || 0;
+    return def.cost + Math.min(48, n * 8);
+  }
+
+  /** 合併回報銀兩（按目標新星級） */
+  function mergeRebate(heroId, newStar) {
+    const def = HEROES[heroId];
+    if (!def) return 0;
+    return Math.round(def.cost * 0.12 * newStar);
+  }
+
+  function activeBonds(heroes) {
+    const ids = new Set(heroes.filter((h) => h.hp > 0).map((h) => h.id));
+    return BONDS.filter((b) => b.need.every((id) => ids.has(id)));
+  }
+
+  function bondModsFor(heroId, bonds) {
+    const mods = { atkMul: 1, cdMul: 1, tankDmgMul: 1, auraMul: 1, buffBonus: 0, highHpExtra: 0 };
+    for (const b of bonds) {
+      if (!b.applyTo.includes(heroId)) continue;
+      if (b.atkMul) mods.atkMul *= b.atkMul;
+      if (b.cdMul) mods.cdMul *= b.cdMul;
+      if (b.tankDmgMul) mods.tankDmgMul *= b.tankDmgMul;
+      if (b.auraMul) mods.auraMul *= b.auraMul;
+      if (b.buffBonus) mods.buffBonus += b.buffBonus;
+      if (b.highHpExtra) mods.highHpExtra += b.highHpExtra;
+    }
+    return mods;
   }
 
   function loadSave() {
@@ -395,12 +581,14 @@
 
   function defaultSave() {
     return {
-      version: 2,
+      version: 3,
       totalSilver: 0,
       maxStageCleared: 0,
       bestEndlessWave: 0,
       unlocked: Object.keys(HEROES),
       lastSpeed: 1,
+      skipTutorial: false,
+      showCellHints: true,
     };
   }
 
@@ -411,6 +599,7 @@
   global.YD = {
     COLORS,
     HEROES,
+    BONDS,
     ENEMIES,
     STAGES,
     ENDLESS,
@@ -421,6 +610,10 @@
     SAVE_KEY,
     starMul,
     heroStats,
+    summonCost,
+    mergeRebate,
+    activeBonds,
+    bondModsFor,
     loadSave,
     writeSave,
     defaultSave,
