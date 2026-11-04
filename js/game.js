@@ -1,6 +1,6 @@
 /**
- * 銀樓防衛 — 主循環 v1.4.0
- * v1.4.0：戰鬥手感／敵方精靈齊（傳聞蚊＋暗盤影）／市況加厚／精靈載入邊角
+ * 銀樓防衛 — 主循環 v1.5.0
+ * v1.5.0：場景四層 ground→mid→wall→props；停牌符 PNG；加厚場景
  */
 (function () {
   const {
@@ -90,6 +90,10 @@
   }
   if (save.version < 14) {
     save.version = 14;
+    writeSave(save);
+  }
+  if (save.version < 15) {
+    save.version = 15;
     writeSave(save);
   }
   if (!save.weekDailyMap) save.weekDailyMap = {};

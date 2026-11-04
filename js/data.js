@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 靜態資料 v1.4.0
+ * 銀樓防衛 — 靜態資料 v1.5.0
  * 角色為原創綽號，影射金融江湖氣氛；唔用真人真名／金庸名／Fortias IP。
  */
 (function (global) {
@@ -1852,7 +1852,7 @@
 
   function defaultSave() {
     return {
-      version: 14,
+      version: 15,
       totalSilver: 0,
       totalKills: 0,
       maxStageCleared: 0,
@@ -1884,7 +1884,7 @@
 
   function exportSaveJson(save) {
     const payload = {
-      meta: { game: 'yinlou-defense', exportedAt: new Date().toISOString(), version: save.version || 14 },
+      meta: { game: 'yinlou-defense', exportedAt: new Date().toISOString(), version: save.version || 15 },
       save: { ...defaultSave(), ...save },
     };
     return JSON.stringify(payload, null, 2);
@@ -1895,7 +1895,7 @@
     const body = data && data.save ? data.save : data;
     if (!body || typeof body !== 'object') throw new Error('無效存檔');
     const merged = { ...defaultSave(), ...body };
-    merged.version = Math.max(14, merged.version || 14);
+    merged.version = Math.max(15, merged.version || 15);
     if (!merged.weekDailyMap) merged.weekDailyMap = {};
     if (!merged.firstClears) merged.firstClears = {};
     if (!merged.seenHeroes) merged.seenHeroes = {};

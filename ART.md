@@ -1,4 +1,4 @@
-# 銀樓防衛 — 美術短規範（v1.4）
+# 銀樓防衛 — 美術短規範（v1.5）
 
 ## 風格名
 **墨點金融江湖（Ink-Pixel Finance）**：宣紙底、墨點色塊、硬邊直角、統一點陣。質感密度可對齊市面 Merge TD／Fortias 級**可讀性**，但**原創構圖與造型，唔抄 IP**。
@@ -70,9 +70,14 @@
 - 正式 PNG 精靈仍後備（建議下輪若繼續加厚角色密度，可申請專職像素美術幫手）
 
 
-## 精靈（v1.4 正式 PNG）
+## 精靈（v1.5 正式 PNG）
 - 路徑：`assets/sprites/{id}.png`（idle）、`{id}_attack.png`、`{id}_sheet.png`（96×48＝idle|attack）
 - 載入：`js/sprites.js`；有圖用圖、無圖／載入失敗 → 幾何剪影 fallback（唔硬依賴）
 - 商店頭像：idle PNG；`onerror` 回幾何
 - 首輪見 `assets/sprites/MANIFEST.md`（墨點銀樓）；`_round1_roster*` 僅 QA，gitignore
-- 未交貨 id（`rumor_swarm`／`dark_tape`／`halt_seal`）繼續色塊；`arb_walker`／`night_broker`／`dip_buyer` 已有 PNG 一併接入
+- 敵方含 `rumor_swarm`／`dark_tape`／`halt_seal` 已齊；俠 11 齊。場景四層見 `assets/scenes/MANIFEST.md`
+
+## 場景分層（v1.5）
+- `assets/scenes/battle_ground.png`／`battle_mid.png`／`core_wall.png`／`battle_props.png`（960×540）
+- 疊加：ground → mid → wall → 單位／FX → props；動態火把／燈籠／受擊／HP 仍程式
+

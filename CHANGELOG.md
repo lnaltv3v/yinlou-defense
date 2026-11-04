@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.5.0 — 2026-11-05
+- **場景四層**：`battle_ground` → `battle_mid` → `core_wall` → 單位／FX → `battle_props`；缺 ground／wall 回退程式像素底，mid／props 缺檔略過；有 wall 時核心靜態改由 PNG，火把／燈籠／受擊／HP 仍程式畫
+- **場景加厚**：覆寫加厚 `battle_ground`／`core_wall`；新層 `battle_mid`／`battle_props`
+- **精靈**：接入**停牌符** `halt_seal` 正式 PNG（idle／attack／sheet）；敵方正式精靈全齊（11 俠＋9 敵）
+- 存檔 **version 15**；DESIGN／ART／README／MANIFEST 同步；Pages title／`?v=1.5.0` → v1.5.0（`pages-clean`）
+
 ## v1.4.0 — 2026-11-05
 - **精靈**：接入 **傳聞蚊** `rumor_swarm`、**暗盤影** `dark_tape` 正式 PNG（idle／attack／sheet）；敵方正式精靈而家齊（停牌符 `halt_seal` 仍幾何 fallback）；商店頭像跟 `YDSprites.urlFor` cache-bust
 - **場景分層**：接入 `assets/scenes/battle_ground.png`＋`core_wall.png`（960×540）；有齊就取代程式像素底，火把／受擊／單位／FX 仍由程式畫；缺檔回退舊底

@@ -29,13 +29,13 @@ python3 -m http.server 8765
 ## 技術
 - 純前端 Vanilla JS，無框架
 - Canvas 960×540，pixelated
-- 存檔：`localStorage` key `yinlou-defense-save-v1`（version 14；可 JSON 匯出／匯入）
+- 存檔：`localStorage` key `yinlou-defense-save-v1`（version 15；可 JSON 匯出／匯入）
 
 ## 版本
-而家 **v1.4.0**（戰鬥手感加厚＋敵方正式精靈齊＋市況／成就小加厚；成就 32；音檔仍後補）。詳見 `CHANGELOG.md`、`DESIGN.md`。
+而家 **v1.5.0**（場景四層＋加厚場景＋停牌符正式精靈；成就 31；音檔仍後補）。詳見 `CHANGELOG.md`、`DESIGN.md`。
 
 ### 已知問題／後補
-- 戰場已接**場景分層 PNG**（ground／core_wall）；俠 11＋敵 8 正式 PNG 已齊；`halt_seal` 走幾何 fallback。
+- 戰場已接**場景四層 PNG**（ground／mid／wall／props）；俠 11＋敵 9 正式 PNG 全齊（含停牌符）。
 - 音效為 Web Audio 蜂鳴，非正式採樣／BGM。
 
 ## 授權說明

@@ -1,13 +1,13 @@
 /**
- * 銀樓防衛 — 正式 PNG 精靈載入（有就用、無就幾何 fallback）v1.4.0
+ * 銀樓防衛 — 正式 PNG 精靈載入（有就用、無就幾何 fallback）v1.5.0
  * sheet 96×48：frame0 idle／frame1 attack；亦可 *_attack.png
- * v1.4：cache-bust、尺寸校驗、loading 等待、missing 可重試、動態收齊 HEROES/ENEMIES id
+ * v1.5：場景 mid／props；halt_seal PNG；cache-bust／尺寸校驗／missing 重試／動態 id
  */
 (function (global) {
   const BASE = 'assets/sprites/';
   const SCENE_BASE = 'assets/scenes/';
   const FRAME = 48;
-  const CACHE_VER = '1.4.0';
+  const CACHE_VER = '1.5.0';
   const KNOWN_IDS = [
     'long_bull',
     'short_blade',
@@ -233,9 +233,11 @@
         retryMissing().catch(function () {});
       }, 2500);
     }).catch(function () {});
-    // 場景分層可選；缺檔唔嘈
+    // 場景分層可選；缺檔唔嘈（ground／mid／wall／props）
     ensureScene('battle_ground').catch(function () {});
+    ensureScene('battle_mid').catch(function () {});
     ensureScene('core_wall').catch(function () {});
+    ensureScene('battle_props').catch(function () {});
   }
 
   if (document.readyState === 'loading') {

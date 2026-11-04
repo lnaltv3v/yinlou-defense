@@ -1,6 +1,6 @@
 /**
- * 銀樓防衛 — Canvas 繪製 v1.4.0
- * v1.4：擊破墨塵／暴擊斬線；場景 PNG 可選；敵方正式精靈齊
+ * 銀樓防衛 — Canvas 繪製 v1.5.0
+ * v1.5：場景四層 ground→mid→wall→props；halt_seal PNG；擊破／暴擊
  */
 (function (global) {
   const { COLORS, GRID, CORE, HEROES, ENEMIES, MAX_STAR, upgradeLabel } = global.YD;
@@ -150,24 +150,44 @@
     return c;
   }
 
+  function sceneReady(name) {
+    try {
+      const Spr = global.YDSprites;
+      return !!(Spr && Spr.getScene && Spr.getScene(name));
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function drawSceneLayer(ctx, name, w, h) {
+    try {
+      const Spr = global.YDSprites;
+      const img = Spr && Spr.getScene && Spr.getScene(name);
+      if (!img) return false;
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(img, 0, 0, w, h);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   function drawBackground(ctx, w, h, state) {
     const t = (state && state._animT) || 0;
-    // 場景分層：battle_ground → core_wall；缺任一則回退程式像素底
+    // 場景分層：ground → mid → core_wall；缺 ground／wall 則回退程式像素底
+    // mid 可選；props 喺單位之後畫
     (function drawSceneOrProc() {
-      try {
-        const Spr = global.YDSprites;
-        const ground = Spr && Spr.getScene && Spr.getScene('battle_ground');
-        const wall = Spr && Spr.getScene && Spr.getScene('core_wall');
-        if (ground && wall) {
-          ctx.imageSmoothingEnabled = false;
-          ctx.drawImage(ground, 0, 0, w, h);
-          ctx.drawImage(wall, 0, 0, w, h);
-          return;
-        }
-      } catch (_) {}
+      const groundOk = sceneReady('battle_ground');
+      const wallOk = sceneReady('core_wall');
+      if (groundOk && wallOk) {
+        drawSceneLayer(ctx, 'battle_ground', w, h);
+        drawSceneLayer(ctx, 'battle_mid', w, h); // 缺檔略過
+        drawSceneLayer(ctx, 'core_wall', w, h);
+        return;
+      }
       ctx.drawImage(ensureBgCache(w, h), 0, 0);
     })();
-    // 動態火把閃爍（輕量）
+    // 動態火把閃爍（輕量；PNG／程式底都加）
     const floorTop = GRID.originY - 14;
     const floorBot = GRID.originY + GRID.lanes * (GRID.cellH + GRID.gapY) + 10;
     const wallX = 108;
@@ -181,13 +201,21 @@
     }
   }
 
+  function drawSceneProps(ctx, w, h) {
+    // 前景 props：單位／FX 之後；缺檔略過
+    drawSceneLayer(ctx, 'battle_props', w, h);
+  }
+
   function drawCore(ctx, state) {
     const { x, y } = CORE;
     const hp = state.coreHp;
     const maxHp = state.coreMax;
     const flash = state.coreHitFlash || 0;
     const t = state._animT || 0;
+    const useSceneWall = sceneReady('core_wall') && sceneReady('battle_ground');
 
+    // 有 core_wall PNG 時略過靜態樓體（由場景層負責），只留動態
+    if (!useSceneWall) {
     // 基座石階
     drawPixelRect(ctx, x - 42, y + 28, 84, 18, '#4A4034');
     drawPixelRect(ctx, x - 38, y + 24, 76, 6, '#5A5040');
@@ -238,6 +266,7 @@
     }
     // 匾額陰影
     drawPixelRect(ctx, x - 22, y - 66, 44, 2, '#1A1510');
+    } // end !useSceneWall static building
 
     // 燈籠微動
     const bob = Math.sin(t * 3) * 1.5;
@@ -1049,12 +1078,13 @@
       const mag = Math.min(state.reduceShake ? 3 : 6, state.shake * (state.reduceShake ? 14 : 28));
       ctx.translate((Math.random() - 0.5) * mag, (Math.random() - 0.5) * mag);
     }
-    drawBackground(ctx, w, h, state);
-    drawCore(ctx, state);
+    drawBackground(ctx, w, h, state); // ground → mid → wall（或缺檔程式底）
+    drawCore(ctx, state); // 場景齊則只動態；否則全畫
     drawGrid(ctx, state);
     for (const e of state.enemies) drawEnemy(ctx, e, state);
     drawDragGhost(ctx, state);
     drawFx(ctx, state);
+    drawSceneProps(ctx, w, h); // 前景 props（缺檔略過）
     drawModStrip(ctx, state);
     drawEventBanner(ctx, state);
     drawBossBanner(ctx, state);
