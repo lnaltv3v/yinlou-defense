@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 靜態資料 v0.5.0
+ * 銀樓防衛 — 靜態資料 v0.6.0
  * 角色為原創綽號，影射金融江湖氣氛；唔用真人真名／金庸名／Fortias IP。
  */
 (function (global) {
@@ -206,6 +206,30 @@
         hpGate: 0.7,
       },
     },
+    arb_walker: {
+      id: 'arb_walker',
+      name: '套利行者',
+      blurb: '跨 lane 點殺 · 價差收割',
+      role: 'arb',
+      cost: 35,
+      color: '#4A7080',
+      silhouette: 'coin',
+      atk: 12,
+      hp: 68,
+      range: 145,
+      cooldown: 0.72,
+      crossLane: 1,
+      skill: {
+        id: 'arb_spread',
+        name: '價差',
+        type: 'active',
+        blurb: '每第 4 擊跨 lane 額外 1.6×，並短暫減速',
+        every: 4,
+        dmgMul: 1.6,
+        slow: 0.35,
+        slowDur: 1.1,
+      },
+    },
   };
 
   /** 場上羈絆：同時存在列出嘅 id → 被動 */
@@ -243,6 +267,15 @@
       buffBonus: 0.08,
       highHpExtra: 0.15,
       applyTo: ['ipo_herald', 'squeeze_blade'],
+    },
+    {
+      id: 'spread_pair',
+      name: '套利對沖',
+      need: ['arb_walker', 'short_blade'],
+      blurb: '雙方射程 +18、冷卻 −6%',
+      rangeBonus: 18,
+      cdMul: 0.94,
+      applyTo: ['arb_walker', 'short_blade'],
     },
   ];
 
@@ -325,6 +358,19 @@
       attackRange: 36,
       attackCd: 0.7,
       preferHero: 0.4,
+    },
+    panic_board: {
+      id: 'panic_board',
+      name: '恐慌盤',
+      hp: 78,
+      atk: 12,
+      speed: 36,
+      reward: 16,
+      color: '#B05040',
+      radius: 13,
+      attackRange: 50,
+      attackCd: 0.95,
+      preferHero: 0.65,
     },
   };
 
@@ -453,8 +499,8 @@
     {
       id: 4,
       name: '清算之夜',
-      startSilver: 195,
-      coreHp: 230,
+      startSilver: 200,
+      coreHp: 235,
       unlockHeroes: Object.keys(HEROES),
       waves: [
         wavePack([
@@ -505,6 +551,65 @@
         ]),
       ],
     },
+
+    {
+      id: 5,
+      name: '熔斷黎明',
+      startSilver: 210,
+      coreHp: 250,
+      unlockHeroes: Object.keys(HEROES),
+      waves: [
+        wavePack([
+          { enemy: 'retail_tide', count: 10, lane: 'cycle', interval: 0.42 },
+          { enemy: 'panic_board', count: 2, lane: 'random', interval: 1.4, delay: 1.2 },
+          { enemy: 'rumor_swarm', count: 6, lane: 'cycle', interval: 0.4, delay: 0.5 },
+        ]),
+        wavePack([
+          { enemy: 'chase_zombie', count: 6, lane: 'cycle', interval: 0.72 },
+          { enemy: 'margin_call', count: 5, lane: 'random', interval: 0.8, delay: 0.8 },
+          { enemy: 'panic_board', count: 3, lane: 'cycle', interval: 1.2, delay: 1.5 },
+        ]),
+        wavePack([
+          { enemy: 'retail_tide', count: 12, lane: 'cycle', interval: 0.36 },
+          { enemy: 'rumor_swarm', count: 10, lane: 'random', interval: 0.3, delay: 0.4 },
+          { enemy: 'leverage_fiend', count: 3, lane: 'cycle', interval: 1.15, delay: 1.5, elite: true },
+          { enemy: 'panic_board', count: 2, lane: 'random', interval: 1.3, delay: 2 },
+        ]),
+        wavePack([
+          { enemy: 'margin_call', count: 8, lane: 'cycle', interval: 0.55 },
+          { enemy: 'chase_zombie', count: 7, lane: 'random', interval: 0.65, delay: 0.6 },
+          { enemy: 'panic_board', count: 4, lane: 'cycle', interval: 1.0, delay: 1 },
+          { enemy: 'black_swan', count: 1, lane: 2, interval: 0, delay: 4 },
+        ]),
+        wavePack([
+          { enemy: 'retail_tide', count: 14, lane: 'cycle', interval: 0.3 },
+          { enemy: 'panic_board', count: 4, lane: 'random', interval: 0.95, delay: 0.5 },
+          { enemy: 'leverage_fiend', count: 4, lane: 'cycle', interval: 1.0, delay: 1 },
+          { enemy: 'rumor_swarm', count: 12, lane: 'random', interval: 0.28, delay: 0.3 },
+        ]),
+        wavePack([
+          { enemy: 'margin_call', count: 9, lane: 'cycle', interval: 0.5 },
+          { enemy: 'panic_board', count: 5, lane: 'random', interval: 0.85, delay: 0.6 },
+          { enemy: 'black_swan', count: 1, lane: 1, interval: 0, delay: 3 },
+          { enemy: 'black_swan', count: 1, lane: 3, interval: 0, delay: 5.5 },
+        ]),
+        wavePack([
+          { enemy: 'chase_zombie', count: 8, lane: 'cycle', interval: 0.55 },
+          { enemy: 'leverage_fiend', count: 5, lane: 'random', interval: 0.95, delay: 0.8 },
+          { enemy: 'panic_board', count: 5, lane: 'cycle', interval: 0.9, delay: 1 },
+          { enemy: 'rumor_swarm', count: 14, lane: 'random', interval: 0.26, delay: 0.2 },
+          { enemy: 'black_swan', count: 1, lane: 0, interval: 0, delay: 4 },
+        ]),
+        wavePack([
+          { enemy: 'retail_tide', count: 16, lane: 'cycle', interval: 0.26 },
+          { enemy: 'panic_board', count: 6, lane: 'random', interval: 0.75, delay: 0.4 },
+          { enemy: 'margin_call', count: 8, lane: 'cycle', interval: 0.5, delay: 0.5 },
+          { enemy: 'leverage_fiend', count: 5, lane: 'random', interval: 0.9, delay: 1 },
+          { enemy: 'black_swan', count: 2, lane: 'cycle', interval: 3.5, delay: 2.5 },
+          { enemy: 'rumor_swarm', count: 12, lane: 'random', interval: 0.24, delay: 0.3 },
+        ]),
+      ],
+    },
   ];
 
   const ENDLESS = {
@@ -522,6 +627,19 @@
       return Math.round(18 + waveIndex * 6.5 + Math.min(40, waveIndex * 1.2));
     }
     return 22 + waveIndex * 8;
+  }
+
+  /** 無盡里程碑獎勵（銀兩）；同一局只領一次 */
+  const ENDLESS_MILESTONES = [
+    { wave: 5, silver: 40, label: '五浪過關' },
+    { wave: 10, silver: 80, label: '十浪長牛' },
+    { wave: 15, silver: 120, label: '十五浪硬頂' },
+    { wave: 20, silver: 180, label: '廿浪封神' },
+    { wave: 30, silver: 260, label: '三十浪傳說' },
+  ];
+
+  function endlessMilestone(waveIndex) {
+    return ENDLESS_MILESTONES.find((m) => m.wave === waveIndex) || null;
   }
 
   /** 香港日曆日字串 YYYY-MM-DD */
@@ -638,12 +756,19 @@
       blurb: '鼓手＋逼空＋劍',
       tip: '對 Boss／高血怪特別強',
     },
+    {
+      id: 'arb_hedge',
+      name: '套利對沖',
+      heroes: ['arb_walker', 'short_blade', 'market_guard'],
+      blurb: '行者＋劍＋坦｜觸發套利對沖',
+      tip: '跨 lane 點殺＋遠程減速',
+    },
   ];
 
   /** 失敗後隨機提示 */
   const FAIL_TIPS = [
     '前排放莊家鐵衛擋路，後排放空頭劍客／細價股刺客。',
-    '同種合併升星通常比亂召一堆 1 星更強；合併有銀兩回報。',
+    '同種合併升星通常比亂召一堆 1 星更強；最高可合到 4 星，合併有銀兩回報。',
     '股息隱士＋莊家鐵衛 → 羈絆「銀樓鐵壁」（減傷＋光環）。',
     '多頭刀客＋空頭劍客 →「多空對決」雙方攻擊 +12%。',
     '波次間用補銀繼續合併；唔好銀兩放住唔用。',
@@ -655,7 +780,10 @@
   const ACHIEVEMENTS = [
     { id: 'first_clear', name: '開張大吉', blurb: '通關第 1 關', check: (s) => (s.maxStageCleared || 0) >= 1 },
     { id: 'stage4', name: '清算達人', blurb: '通關第 4 關', check: (s) => (s.maxStageCleared || 0) >= 4 },
-    { id: 'maxstar', name: '滿星開盤', blurb: '首次合成 3 星', check: (s) => !!s.ach && s.ach.maxstar },
+    { id: 'maxstar', name: '滿星開盤', blurb: '首次合成 4 星', check: (s) => !!s.ach && s.ach.maxstar },
+    { id: 'star3', name: '三星掛牌', blurb: '首次合成 3 星', check: (s) => !!s.ach && s.ach.star3 },
+    { id: 'stage5', name: '熔斷倖存', blurb: '通關第 5 關', check: (s) => (s.maxStageCleared || 0) >= 5 },
+    { id: 'endless20', name: '廿浪長牛', blurb: '無盡最佳 ≥ 20 波', check: (s) => (s.bestEndlessWave || 0) >= 20 },
     { id: 'bond', name: '齊人有行情', blurb: '首次觸發羈絆', check: (s) => !!s.ach && s.ach.bond },
     { id: 'kills100', name: '百人斬', blurb: '累計擊殺 100', check: (s) => (s.totalKills || 0) >= 100 },
     { id: 'kills500', name: '殺跌機器', blurb: '累計擊殺 500', check: (s) => (s.totalKills || 0) >= 500 },
@@ -710,6 +838,16 @@
         hpMul: mul,
       });
     }
+    if (n >= 5) {
+      spawns.push({
+        enemy: 'panic_board',
+        count: count(1 + Math.floor(n / 5)),
+        lane: 'cycle',
+        interval: Math.max(0.7, 1.2 - n * 0.02),
+        delay: 1.8,
+        hpMul: mul * 0.95,
+      });
+    }
     if (n % 5 === 0) {
       spawns.push({
         enemy: 'black_swan',
@@ -740,19 +878,25 @@
 
   const SAVE_KEY = 'yinlou-defense-save-v1';
 
-  /** 合併星級傷害倍率：升星更有價值感 */
+  /** 最高星級（v0.6：可合成至 4 星） */
+  const MAX_STAR = 4;
+
+  /** 合併星級傷害倍率：升星有價值，4 星明顯但唔破關 */
   function starMul(star) {
-    return 1 + 0.62 * (star - 1);
+    // 1→1, 2→1.62, 3→2.24, 4→2.95
+    if (star <= 3) return 1 + 0.62 * (star - 1);
+    return 1 + 0.62 * 2 + 0.71; // 4 星額外一檔
   }
 
   function heroStats(def, star) {
     const m = starMul(star);
+    const hpScale = star <= 3 ? 0.42 * (star - 1) : 0.42 * 2 + 0.38;
     return {
       atk: Math.round(def.atk * m),
-      hp: Math.round(def.hp * (1 + 0.42 * (star - 1))),
-      maxHp: Math.round(def.hp * (1 + 0.42 * (star - 1))),
-      range: def.range + (star - 1) * 14,
-      cooldown: Math.max(0.26, def.cooldown * (1 - 0.07 * (star - 1))),
+      hp: Math.round(def.hp * (1 + hpScale)),
+      maxHp: Math.round(def.hp * (1 + hpScale)),
+      range: def.range + (star - 1) * 14 + (star >= 4 ? 8 : 0),
+      cooldown: Math.max(0.22, def.cooldown * (1 - 0.07 * (star - 1) - (star >= 4 ? 0.04 : 0))),
     };
   }
 
@@ -777,7 +921,7 @@
   }
 
   function bondModsFor(heroId, bonds) {
-    const mods = { atkMul: 1, cdMul: 1, tankDmgMul: 1, auraMul: 1, buffBonus: 0, highHpExtra: 0 };
+    const mods = { atkMul: 1, cdMul: 1, tankDmgMul: 1, auraMul: 1, buffBonus: 0, highHpExtra: 0, rangeBonus: 0 };
     for (const b of bonds) {
       if (!b.applyTo.includes(heroId)) continue;
       if (b.atkMul) mods.atkMul *= b.atkMul;
@@ -786,6 +930,7 @@
       if (b.auraMul) mods.auraMul *= b.auraMul;
       if (b.buffBonus) mods.buffBonus += b.buffBonus;
       if (b.highHpExtra) mods.highHpExtra += b.highHpExtra;
+      if (b.rangeBonus) mods.rangeBonus += b.rangeBonus;
     }
     return mods;
   }
@@ -802,7 +947,7 @@
 
   function defaultSave() {
     return {
-      version: 5,
+      version: 6,
       totalSilver: 0,
       totalKills: 0,
       maxStageCleared: 0,
@@ -826,7 +971,7 @@
 
   function exportSaveJson(save) {
     const payload = {
-      meta: { game: 'yinlou-defense', exportedAt: new Date().toISOString(), version: save.version || 5 },
+      meta: { game: 'yinlou-defense', exportedAt: new Date().toISOString(), version: save.version || 6 },
       save: { ...defaultSave(), ...save },
     };
     return JSON.stringify(payload, null, 2);
@@ -837,7 +982,7 @@
     const body = data && data.save ? data.save : data;
     if (!body || typeof body !== 'object') throw new Error('無效存檔');
     const merged = { ...defaultSave(), ...body };
-    merged.version = Math.max(5, merged.version || 5);
+    merged.version = Math.max(6, merged.version || 6);
     if (!merged.seenHeroes) merged.seenHeroes = {};
     if (!merged.seenEnemies) merged.seenEnemies = {};
     if (!merged.ach) merged.ach = {};
@@ -896,11 +1041,14 @@
     ACHIEVEMENTS,
     LINEUPS,
     FAIL_TIPS,
+    MAX_STAR,
+    ENDLESS_MILESTONES,
     buildEndlessWave,
     buildDailyWaves,
     dailyStageMeta,
     hkDateString,
     waveClearBonus,
+    endlessMilestone,
     GRID,
     CORE,
     SPEED_OPTIONS,

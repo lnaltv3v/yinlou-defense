@@ -3,7 +3,7 @@
  * 場景再加厚、技能 CD 條、精英／羈絆橫幅、單位細節
  */
 (function (global) {
-  const { COLORS, GRID, CORE, HEROES, ENEMIES } = global.YD;
+  const { COLORS, GRID, CORE, HEROES, ENEMIES, MAX_STAR } = global.YD;
 
   function drawPixelRect(ctx, x, y, w, h, color) {
     ctx.fillStyle = color;
@@ -235,6 +235,11 @@
       drawPixelRect(ctx, hx + s + wx, hy - 16 + wy, 10, 4, '#8A5040');
       drawPixelRect(ctx, hx + s + 8 + wx, hy - 14 + wy, 4, 8, ink);
       drawPixelRect(ctx, hx - 12, hy - s - 20, 24, 5, ink);
+    } else if (kind === 'coin' || kind === 'arb') {
+      drawPixelRect(ctx, hx + s - 2 + wx, hy - 8 + wy, 12, 12, '#C9A227');
+      drawPixelRect(ctx, hx + s + wx, hy - 6 + wy, 8, 8, '#4A7080');
+      drawPixelRect(ctx, hx + s + 2 + wx, hy - 4 + wy, 4, 4, '#E8DCC8');
+      drawPixelRect(ctx, hx - 10, hy - s - 20, 20, 5, '#4A7080');
     }
   }
 
@@ -253,7 +258,7 @@
       const from = state.heroes.find((h) => h.uid === state.mergeFromUid);
       if (!from) return null;
       if (!occ) return 'move';
-      if (occ.uid !== from.uid && from.id === occ.id && from.star === occ.star && from.star < 3) {
+      if (occ.uid !== from.uid && from.id === occ.id && from.star === occ.star && from.star < MAX_STAR) {
         return 'merge';
       }
       return null;
@@ -315,8 +320,9 @@
 
     if (h.star >= 3 && !ghost) {
       const pulse = 0.35 + 0.25 * Math.sin(t * 5);
-      ctx.globalAlpha = alpha * pulse;
-      drawPixelRect(ctx, h.x - s - 6 + lean, h.y - s - 22 + idle, s * 2 + 12, s * 2 + 40, '#C9A227');
+      const glow = h.star >= MAX_STAR ? '#E8C96A' : '#C9A227';
+      ctx.globalAlpha = alpha * (h.star >= MAX_STAR ? pulse + 0.1 : pulse);
+      drawPixelRect(ctx, h.x - s - 6 + lean, h.y - s - 22 + idle, s * 2 + 12, s * 2 + 40, glow);
       ctx.globalAlpha = alpha;
     }
 
@@ -334,9 +340,10 @@
     }
 
     ctx.fillStyle = h.star >= 3 ? COLORS.gold : COLORS.silver;
-    ctx.font = '10px sans-serif';
+    ctx.font = h.star >= 4 ? 'bold 10px sans-serif' : '10px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('★'.repeat(h.star), h.x + lean, h.y + 30);
+    const starLabel = h.star >= 4 ? '★★★★' : '★'.repeat(h.star);
+    ctx.fillText(starLabel, h.x + lean, h.y + 30);
 
     if (!ghost) {
       const bw = 36;
@@ -376,11 +383,13 @@
     }
     if (h.star >= 3) {
       ctx.strokeStyle = COLORS.gold;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = h.star >= MAX_STAR ? 3 : 2;
       ctx.strokeRect(h.x - s - 3 + lean, h.y - s - 8 + idle, s * 2 + 6, s * 2 + 14);
-      ctx.fillStyle = COLORS.gold;
-      ctx.font = 'bold 9px sans-serif';
-      ctx.fillText('滿', h.x + lean, h.y - s - 30 + idle);
+      if (h.star >= MAX_STAR) {
+        ctx.fillStyle = COLORS.gold;
+        ctx.font = 'bold 9px sans-serif';
+        ctx.fillText('滿', h.x + lean, h.y - s - 30 + idle);
+      }
     }
     ctx.globalAlpha = 1;
   }

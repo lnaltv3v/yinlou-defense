@@ -2,9 +2,11 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-  <title>銀樓防衛 v0.5.0</title>
-  <link rel="stylesheet" href="css/style.css?v=0.5.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>銀樓防衛 v0.6.0</title>
+  <link rel="stylesheet" href="css/style.css?v=0.6.0" />
 </head>
 <body>
   <div id="app">
@@ -30,12 +32,20 @@
       <div id="speed-bar" class="tool-bar inline" aria-label="速度"></div>
     </div>
     <div id="shop"></div>
-    <p class="hint" id="hint">拖放放置／合併｜技能條｜推薦陣容｜精英波｜圖鑑／每日／存檔匯出</p>
+    <p class="hint" id="hint">拖放放置／合併至 4 星｜第 5 關｜無盡里程碑｜觸控優化｜圖鑑／每日</p>
+    <div id="orient-hint" class="orient-hint" aria-hidden="true">
+      <div class="orient-card">
+        <div class="orient-icon" aria-hidden="true">▭ → ▭</div>
+        <p><strong>建議橫屏遊玩</strong></p>
+        <p class="orient-sub">銀樓防衛係橫屏佈陣；轉動手機／平板體驗更佳。</p>
+        <button type="button" class="action-btn" id="orient-dismiss">繼續直睇</button>
+      </div>
+    </div>
   </div>
-  <script src="js/data.js?v=0.5.0"></script>
-  <script src="js/battle.js?v=0.5.0"></script>
-  <script src="js/render.js?v=0.5.0"></script>
-  <script src="js/ui.js?v=0.5.0"></script>
-  <script src="js/game.js?v=0.5.0"></script>
+  <script src="js/data.js?v=0.6.0"></script>
+  <script src="js/battle.js?v=0.6.0"></script>
+  <script src="js/render.js?v=0.6.0"></script>
+  <script src="js/ui.js?v=0.6.0"></script>
+  <script src="js/game.js?v=0.6.0"></script>
 </body>
 </html>

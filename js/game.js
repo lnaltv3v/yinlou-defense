@@ -1,6 +1,6 @@
 /**
- * 銀樓防衛 — 主循環 v0.5.0
- * 上手／技能條／羈絆提示／精英波／存檔匯出匯入
+ * 銀樓防衛 — 主循環 v0.6.0
+ * 4 星合併／第 5 關／無盡里程碑／觸控拖放／橫屏提示
  */
 (function () {
   const {
@@ -9,6 +9,7 @@
     HEROES,
     SPEED_OPTIONS,
     LINEUPS,
+    MAX_STAR,
     loadSave,
     writeSave,
     defaultSave,
@@ -21,6 +22,7 @@
     dailyStageMeta,
     hkDateString,
     waveClearBonus,
+    endlessMilestone,
     summonCost,
     mergeRebate,
     activeBonds,
@@ -45,8 +47,8 @@
   if (save.showSkillCd == null) save.showSkillCd = true;
   if (save.reduceShake == null) save.reduceShake = false;
   if (save.firstBootDone == null) save.firstBootDone = false;
-  if (save.version < 5) {
-    save.version = 5;
+  if (save.version < 6) {
+    save.version = 6;
     writeSave(save);
   }
 
@@ -124,6 +126,8 @@
       _eliteKills: 0,
       _eliteAnnounced: false,
       eventBanner: null,
+      _milestonesClaimed: {},
+      _touchPad: 0,
     };
   }
 
@@ -171,7 +175,7 @@
       return;
     }
     if (state.tutorialStep === 1) {
-      UI.setHint('② 拖兩名同種同星疊埋 → 合併升星（有銀兩回報）');
+      UI.setHint('② 拖兩名同種同星疊埋 → 合併升星（最高 ' + MAX_STAR + ' 星，有銀兩回報）');
       return;
     }
     if (state.tutorialStep === 2) {
@@ -238,6 +242,46 @@
           ev.dataTransfer.setData('text/plain', 'shop:' + id);
           ev.dataTransfer.effectAllowed = 'copy';
         } catch (_) {}
+      },
+      onShopPointerDown(id, ev, btn) {
+        if (state.phase === 'won' || state.phase === 'lost' || state.paused) return;
+        // 滑鼠交俾 HTML5 DnD；觸控／筆用全域 pointer 拖
+        if (ev.pointerType === 'mouse') return;
+        const cost = summonCost(id, state.summonCounts);
+        if (state.silver < cost) {
+          UI.toast('銀兩不足（而家要 ' + cost + '）');
+          return;
+        }
+        ev.preventDefault();
+        ev.stopPropagation();
+        state.selectedShopId = id;
+        state.mergeFromUid = null;
+        state.selectedHeroUid = null;
+        const { x, y } = canvasPos(ev);
+        ptr = {
+          kind: 'shop',
+          shopId: id,
+          startX: x,
+          startY: y,
+          moved: false,
+          pointerId: ev.pointerId,
+          isTouch: true,
+          fromShopBtn: true,
+        };
+        try {
+          btn.setPointerCapture(ev.pointerId);
+        } catch (_) {}
+        state.drag = {
+          active: false,
+          kind: 'shop',
+          shopId: id,
+          x,
+          y,
+          hoverLane: null,
+          hoverSlot: null,
+          validHover: false,
+        };
+        syncAll();
       },
     }
   );
@@ -429,7 +473,7 @@
           '。累計銀兩帳 ' +
           save.totalSilver +
           '。' +
-          (hasNext ? '\n已解鎖下一關。' : '\n四關皆破！可挑戰無盡／每日。'),
+          (hasNext ? '\n已解鎖下一關。' : '\n五關皆破！可挑戰無盡／每日。'),
         hasNext ? '下一關' : '回第 1 關',
         () => {
           UI.hideOverlay();
@@ -448,6 +492,21 @@
       save.bestEndlessWave = Math.max(save.bestEndlessWave || 0, state.waveIndex);
       writeSave(save);
       notifyAchievements();
+      const ms = endlessMilestone(state.waveIndex);
+      if (ms && !state._milestonesClaimed[ms.wave]) {
+        state._milestonesClaimed[ms.wave] = true;
+        state.silver += ms.silver;
+        UI.toast('里程碑「' + ms.label + '」！＋' + ms.silver + ' 兩', 2400);
+        Battle.pushFloat(state.floats, {
+          x: YD.CORE.x + 40,
+          y: YD.CORE.y - 40,
+          text: '里程碑 +' + ms.silver,
+          color: '#C9A227',
+          size: 16,
+          vy: -30,
+          life: 1.2,
+        });
+      }
     }
 
     state.phase = 'prep';
@@ -723,7 +782,12 @@
       });
     }
     Battle.spawnMergeFx(state, now);
-    if (now.star >= 3 && !save.ach.maxstar) {
+    if (now.star >= 3 && !save.ach.star3) {
+      save.ach.star3 = true;
+      writeSave(save);
+      notifyAchievements();
+    }
+    if (now.star >= MAX_STAR && !save.ach.maxstar) {
       save.ach.maxstar = true;
       writeSave(save);
       notifyAchievements();
@@ -788,7 +852,7 @@
       }
       state.mergeFromUid = occupied.uid;
       state.selectedHeroUid = occupied.uid;
-      UI.toast('再點同種同星合併（而家 ' + occupied.star + ' 星）');
+      UI.toast('再點同種同星合併（而家 ' + occupied.star + '/' + MAX_STAR + ' 星）');
       syncAll();
       return;
     }
@@ -822,7 +886,9 @@
     if (state.phase === 'won' || state.phase === 'lost' || state.paused) return;
     if (ev.button != null && ev.button !== 0) return;
     const { x, y } = canvasPos(ev);
-    const hero = Battle.hitTestHero(state.heroes, x, y);
+    const isTouch = ev.pointerType === 'touch' || ev.pointerType === 'pen';
+    state._touchPad = isTouch ? 14 : 0;
+    const hero = Battle.hitTestHero(state.heroes, x, y, state._touchPad);
     if (hero) {
       ptr = {
         kind: 'hero',
@@ -831,6 +897,7 @@
         startY: y,
         moved: false,
         pointerId: ev.pointerId,
+        isTouch,
       };
       try {
         canvas.setPointerCapture(ev.pointerId);
@@ -859,6 +926,7 @@
         startY: y,
         moved: false,
         pointerId: ev.pointerId,
+        isTouch: ev.pointerType === 'touch' || ev.pointerType === 'pen',
       };
       try {
         canvas.setPointerCapture(ev.pointerId);
@@ -881,7 +949,8 @@
     const { x, y } = canvasPos(ev);
     const dx = x - ptr.startX;
     const dy = y - ptr.startY;
-    if (!ptr.moved && Math.hypot(dx, dy) > 8) {
+    const thresh = ptr.isTouch ? 5 : 8;
+    if (!ptr.moved && Math.hypot(dx, dy) > thresh) {
       ptr.moved = true;
       if (state.drag) state.drag.active = true;
       canvas.classList.add('dragging');
@@ -889,7 +958,8 @@
     if (!state.drag) return;
     state.drag.x = x;
     state.drag.y = y;
-    const cell = Battle.hitTestCell(x, y);
+    const pad = ptr.isTouch ? 10 : 0;
+    const cell = Battle.hitTestCell(x, y, pad);
     if (cell) {
       state.drag.hoverLane = cell.lane;
       state.drag.hoverSlot = cell.slot;
@@ -912,7 +982,7 @@
   function endPointer(ev) {
     if (!ptr) return;
     const { x, y } = canvasPos(ev);
-    const cell = Battle.hitTestCell(x, y);
+    const cell = Battle.hitTestCell(x, y, ptr.isTouch ? 10 : 0);
     const wasDrag = ptr.moved;
 
     if (wasDrag) {
@@ -934,6 +1004,39 @@
 
   canvas.addEventListener('pointerup', endPointer);
   canvas.addEventListener('pointercancel', () => clearDrag());
+
+  // 商店觸控拖：pointer 可能 capt 喺按鈕上，用 window 接力
+  window.addEventListener('pointermove', (ev) => {
+    if (!ptr || !ptr.fromShopBtn) return;
+    const { x, y } = canvasPos(ev);
+    const dx = x - ptr.startX;
+    const dy = y - ptr.startY;
+    if (!ptr.moved && Math.hypot(dx, dy) > 5) {
+      ptr.moved = true;
+      if (state.drag) state.drag.active = true;
+      canvas.classList.add('dragging');
+    }
+    if (!state.drag) return;
+    state.drag.x = x;
+    state.drag.y = y;
+    const cell = Battle.hitTestCell(x, y, ptr.isTouch ? 10 : 0);
+    if (cell) {
+      state.drag.hoverLane = cell.lane;
+      state.drag.hoverSlot = cell.slot;
+      state.drag.validHover = !Battle.findHeroAt(state.heroes, cell.lane, cell.slot);
+    } else {
+      state.drag.hoverLane = null;
+      state.drag.hoverSlot = null;
+      state.drag.validHover = false;
+    }
+  }, { passive: true });
+  window.addEventListener('pointerup', (ev) => {
+    if (!ptr || !ptr.fromShopBtn) return;
+    endPointer(ev);
+  });
+  window.addEventListener('pointercancel', () => {
+    if (ptr && ptr.fromShopBtn) clearDrag();
+  });
 
   canvas.addEventListener('dragover', (ev) => {
     ev.preventDefault();
@@ -1099,6 +1202,33 @@
       UI.toast('已套用提示：' + lu.name + ' — 開始後跟住召', 2000);
     });
   }, 0);
+
+  (function setupOrientHint() {
+    const el = document.getElementById('orient-hint');
+    if (!el) return;
+    let dismissed = false;
+    function update() {
+      if (dismissed) {
+        el.classList.remove('show');
+        return;
+      }
+      const portrait = window.matchMedia('(orientation: portrait)').matches;
+      const narrow = Math.min(window.innerWidth, window.innerHeight) < 720;
+      const show = portrait && narrow;
+      el.classList.toggle('show', show);
+      el.setAttribute('aria-hidden', show ? 'false' : 'true');
+    }
+    update();
+    window.addEventListener('resize', update);
+    window.addEventListener('orientationchange', () => setTimeout(update, 120));
+    const btn = document.getElementById('orient-dismiss');
+    if (btn) {
+      btn.addEventListener('click', () => {
+        dismissed = true;
+        el.classList.remove('show');
+      });
+    }
+  })();
 
   syncAll();
   notifyAchievements();

@@ -1,4 +1,4 @@
-/* 銀樓防衛 v0.4 — 墨點金融江湖 UI */
+/* 銀樓防衛 v0.6 — 墨點金融江湖 UI */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body {
   width: 100%; height: 100%;
@@ -77,6 +77,10 @@ header.title {
   font-size: 12px;
   color: #8A7E6E;
   margin-right: 2px;
+}
+.hero-btn, .speed-btn, .stage-btn, .action-btn {
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
 }
 .speed-btn, .stage-btn {
   border: 2px solid #3A3028;
@@ -278,4 +282,44 @@ header.title {
 }
 #overlay.settings-mode .overlay-extra {
   max-width: 520px;
+}
+
+/* 直屏提示 */
+.orient-hint {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(26, 21, 16, 0.88);
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.orient-hint.show { display: flex; }
+.orient-card {
+  background: #2A241C;
+  border: 3px solid #C9A227;
+  padding: 20px 22px;
+  max-width: 320px;
+  text-align: center;
+  color: #E8DCC8;
+  box-shadow: 0 8px 28px rgba(0,0,0,.5);
+}
+.orient-icon {
+  font-size: 28px;
+  letter-spacing: 0.2em;
+  color: #C9A227;
+  margin-bottom: 10px;
+}
+.orient-card strong { color: #C9A227; font-size: 16px; }
+.orient-sub { font-size: 13px; color: #8A7E6E; margin: 8px 0 14px; line-height: 1.45; }
+.orient-card .action-btn { width: 100%; }
+@media (orientation: landscape) {
+  .orient-hint.show { display: none !important; }
+}
+#game {
+  touch-action: none;
+}
+.hero-btn {
+  touch-action: none; /* 允許由按鈕拖入場 */
 }

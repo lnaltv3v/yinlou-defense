@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔 v0.5.0
+ * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔 v0.6.0
  */
 (function (global) {
   const {
@@ -51,6 +51,8 @@
       gear = '<i class="av-gear" style="background:#C9A227;left:6px;top:18px;width:16px;height:8px"></i>';
     } else if (sil === 'hook' || sil === 'hunter') {
       gear = '<i class="av-gear" style="background:#8A5040;left:20px;top:8px;width:8px;height:4px"></i>';
+    } else if (sil === 'coin' || sil === 'arb') {
+      gear = '<i class="av-gear" style="background:#C9A227;left:18px;top:10px;width:10px;height:10px;border-radius:0"></i>';
     }
     return (
       '<span class="hero-avatar" aria-hidden="true" style="--av:' +
@@ -106,6 +108,13 @@
       btn.addEventListener('click', () => onSelect(id));
       btn.addEventListener('dragstart', (ev) => {
         if (handlers && handlers.onShopDragStart) handlers.onShopDragStart(id, ev);
+      });
+      // 手機：由商店按鈕 pointer 拖入場（HTML5 DnD 喺 iOS 幾乎唔得）
+      btn.addEventListener('pointerdown', (ev) => {
+        if (ev.pointerType === 'mouse' && ev.button !== 0) return;
+        if (handlers && handlers.onShopPointerDown) {
+          handlers.onShopPointerDown(id, ev, btn);
+        }
       });
       shop.appendChild(btn);
     }

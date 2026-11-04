@@ -1,8 +1,8 @@
 /**
- * 銀樓防衛 — 戰鬥／生成／合併邏輯 v0.5.0
+ * 銀樓防衛 — 戰鬥／生成／合併邏輯 v0.6.0
  */
 (function (global) {
-  const { HEROES, ENEMIES, GRID, CORE, heroStats, activeBonds, bondModsFor } = global.YD;
+  const { HEROES, ENEMIES, GRID, CORE, heroStats, activeBonds, bondModsFor, MAX_STAR } = global.YD;
 
   function cellCenter(lane, slot) {
     const x = GRID.originX + slot * (GRID.cellW + GRID.gapX) + GRID.cellW / 2;
@@ -82,7 +82,7 @@
   }
 
   function canMerge(a, b) {
-    return a && b && a.uid !== b.uid && a.id === b.id && a.star === b.star && a.star < 3;
+    return a && b && a.uid !== b.uid && a.id === b.id && a.star === b.star && a.star < MAX_STAR;
   }
 
   function mergeHeroes(heroes, source, target) {
@@ -111,17 +111,21 @@
     return next;
   }
 
-  function pickTarget(hero, enemies) {
+  function pickTarget(hero, enemies, rangeBonus) {
+    const cross = hero.def.crossLane != null ? hero.def.crossLane : (hero.def.role === 'arb' ? 1 : 0);
+    const extraR = rangeBonus || 0;
     const inRange = enemies.filter((e) => {
       if (e.hp <= 0) return false;
       const sameLane = e.lane === hero.lane;
       if (hero.def.role === 'support' || hero.def.role === 'buffer') {
         if (Math.abs(e.lane - hero.lane) > 1) return false;
+      } else if (cross > 0) {
+        if (Math.abs(e.lane - hero.lane) > cross) return false;
       } else if (!sameLane) {
         return false;
       }
       const d = Math.hypot(e.x - hero.x, e.y - hero.y);
-      return d <= hero.range + e.radius;
+      return d <= hero.range + extraR + e.radius;
     });
     if (!inRange.length) return null;
     if (hero.def.preferBack) {
@@ -129,6 +133,14 @@
     }
     if (hero.def.role === 'hunter') {
       return inRange.reduce((a, b) => (a.hp / a.maxHp > b.hp / b.maxHp ? a : b));
+    }
+    if (hero.def.role === 'arb') {
+      // 優先打血厚／跨 lane 價差目標
+      return inRange.reduce((a, b) => {
+        const sa = a.hp + (a.lane !== hero.lane ? 20 : 0);
+        const sb = b.hp + (b.lane !== hero.lane ? 20 : 0);
+        return sa > sb ? a : b;
+      });
     }
     return inRange.reduce((a, b) => (a.x < b.x ? a : b));
   }
@@ -251,7 +263,7 @@
       }
     }
 
-    const target = pickTarget(hero, enemies);
+    const target = pickTarget(hero, enemies, mods.rangeBonus);
     if (!target) return;
 
     let dmg = hero.atk * mods.atkMul;
@@ -314,6 +326,10 @@
           vy: -20,
           life: 0.7,
         });
+      }
+      if (sk.id === 'arb_spread' && sk.slow) {
+        target.slowT = Math.max(target.slowT, sk.slowDur || 1.1);
+        target.speed = target.baseSpeed * (1 - sk.slow);
       }
     }
 
@@ -437,8 +453,8 @@
         const allies = state.heroes.some(
           (o) => o.uid !== h.uid && o.hp > 0 && Math.abs(o.lane - h.lane) <= 1 && Math.abs(o.slot - h.slot) <= 1
         );
-        if (!allies && !pickTarget(h, state.enemies)) continue;
-      } else if (!pickTarget(h, state.enemies)) {
+        if (!allies && !pickTarget(h, state.enemies, mods.rangeBonus)) continue;
+      } else if (!pickTarget(h, state.enemies, mods.rangeBonus)) {
         continue;
       }
       h.cd = h.cooldown * mods.cdMul;
@@ -711,12 +727,13 @@
     return { jobs, laneCycle: 0, done: false, elapsed: 0 };
   }
 
-  function hitTestCell(mx, my) {
+  function hitTestCell(mx, my, pad) {
+    const p = pad || 0;
     for (let lane = 0; lane < GRID.lanes; lane++) {
       for (let slot = 0; slot < GRID.slots; slot++) {
         const x = GRID.originX + slot * (GRID.cellW + GRID.gapX);
         const y = GRID.originY + lane * (GRID.cellH + GRID.gapY);
-        if (mx >= x && mx <= x + GRID.cellW && my >= y && my <= y + GRID.cellH) {
+        if (mx >= x - p && mx <= x + GRID.cellW + p && my >= y - p && my <= y + GRID.cellH + p) {
           return { lane, slot, x, y };
         }
       }
@@ -724,10 +741,11 @@
     return null;
   }
 
-  function hitTestHero(heroes, mx, my) {
+  function hitTestHero(heroes, mx, my, pad) {
+    const px = pad != null ? pad : 0;
     for (let i = heroes.length - 1; i >= 0; i--) {
       const h = heroes[i];
-      if (Math.abs(mx - h.x) < 28 && Math.abs(my - h.y) < 36) return h;
+      if (Math.abs(mx - h.x) < 28 + px && Math.abs(my - h.y) < 36 + px) return h;
     }
     return null;
   }
@@ -736,8 +754,11 @@
   function spawnMergeFx(state, hero) {
     state.fx.push({ type: 'merge', x: hero.x, y: hero.y, star: hero.star, life: 0.55 });
     state.fx.push({ type: 'hit', x: hero.x, y: hero.y, color: '#C9A227', life: 0.4, r: 28 });
-    if (hero.star >= 3) {
-      state.fx.push({ type: 'maxstar', x: hero.x, y: hero.y, life: 0.9 });
+    if (hero.star >= MAX_STAR) {
+      state.fx.push({ type: 'maxstar', x: hero.x, y: hero.y, life: 1.05 });
+      state.fx.push({ type: 'hit', x: hero.x, y: hero.y - 10, color: '#E8DCC8', life: 0.5, r: 36 });
+    } else if (hero.star >= 3) {
+      state.fx.push({ type: 'merge', x: hero.x, y: hero.y - 8, star: hero.star, life: 0.45 });
     }
     if (!state.shake || state.shake < 0.14) state.shake = 0.14;
   }
