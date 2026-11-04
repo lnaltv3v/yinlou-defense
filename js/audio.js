@@ -146,6 +146,20 @@
       buzz(400, 0.025, 'sine', 0.025);
       setTimeout(function () { buzz(560, 0.03, 'triangle', 0.028); }, 30);
     },
+    charm_set_adv: function () {
+      buzz(700, 0.045, 'square', 0.04);
+      setTimeout(function () { buzz(940, 0.06, 'triangle', 0.045); }, 55);
+      setTimeout(function () { buzz(1180, 0.08, 'sine', 0.04); }, 120);
+      setTimeout(function () { buzz(1400, 0.05, 'sine', 0.03); }, 190);
+    },
+    replay_line_png: function () {
+      buzz(500, 0.035, 'triangle', 0.03);
+      setTimeout(function () { buzz(720, 0.05, 'sine', 0.035); }, 40);
+    },
+    fail_share: function () {
+      buzz(620, 0.04, 'square', 0.032);
+      setTimeout(function () { buzz(820, 0.055, 'triangle', 0.035); }, 45);
+    },
     charm_set: function () {
       buzz(660, 0.04, 'square', 0.035);
       setTimeout(function () { buzz(880, 0.05, 'sine', 0.04); }, 50);

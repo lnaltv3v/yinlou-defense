@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v4.0.0
+ * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v4.1.0
  */
 (function (global) {
   const {
@@ -37,6 +37,7 @@
     formatEndlessReplayChart,
     formatEndlessReplayMultiChart,
     formatEndlessReplayTimeline,
+    formatFailShareText,
     toggleEndlessReplayFav,
     upgradeCharmStar,
     getEquippedCharms,
@@ -116,7 +117,7 @@
       ink +
       '"></i>' +
       gear;
-    const src = (window.YDSprites && window.YDSprites.urlFor) ? window.YDSprites.urlFor(def.id) : ('assets/sprites/' + def.id + '.png?v=4.0.0');
+    const src = (window.YDSprites && window.YDSprites.urlFor) ? window.YDSprites.urlFor(def.id) : ('assets/sprites/' + def.id + '.png?v=4.1.0');
     return (
       '<span class="hero-avatar" aria-hidden="true" data-hero="' +
       def.id +
@@ -994,7 +995,7 @@ function fillWallCompareHist(save, dayFilter) {
         });
         ctx.fillStyle = '#A89070';
         ctx.font = '10px sans-serif';
-        ctx.fillText('本機｜唔做線上排行｜v4.0｜短碼見卡面', 24, H - 16);
+        ctx.fillText('本機｜唔做線上排行｜v4.1｜短碼見卡面', 24, H - 16);
         canvas.toBlob(function (blob) {
           if (!blob) {
             toast('PNG 匯出失敗', 1800);
@@ -1038,6 +1039,40 @@ function fillWallCompareHist(save, dayFilter) {
       }
     }
 
+  }
+
+  function updateTutGestureLive(canvasX, canvasY, active) {
+    let trail = $('tut-gesture-trail');
+    if (!trail) return;
+    if (!active) {
+      trail.classList.remove('live');
+      return;
+    }
+    trail.classList.add('show', 'live');
+    const wrap = $('wrap') || document.body;
+    const canvas = $('game');
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const wrapRect = wrap.getBoundingClientRect ? wrap.getBoundingClientRect() : { left: 0, top: 0 };
+    // canvas coords 960×540 → CSS px
+    const sx = rect.width / 960;
+    const sy = rect.height / 540;
+    const left = rect.left - wrapRect.left + canvasX * sx;
+    const top = rect.top - wrapRect.top + canvasY * sy;
+    trail.style.left = left + 'px';
+    trail.style.top = top + 'px';
+    trail.style.bottom = 'auto';
+    trail.style.transform = 'translate(-50%, -50%)';
+    const finger = trail.querySelector('.tut-finger');
+    if (finger) {
+      finger.style.left = '50%';
+      finger.style.top = '50%';
+      finger.style.marginLeft = '-9px';
+      finger.style.marginTop = '-9px';
+      finger.style.animation = 'none';
+    }
+    const lab = trail.querySelector('.tut-gesture-label');
+    if (lab) lab.textContent = '跟住手勢合併';
   }
 
   function updateTutorialHud(step) {
@@ -1118,7 +1153,7 @@ function fillWallCompareHist(save, dayFilter) {
         if (window.__yinlouSetTutorialStep) window.__yinlouSetTutorialStep(step1 - 1);
       };
     });
-    // v4.0：教學全五步箭嘴 — ①底欄／②合併／③強化／④開波／⑤結算
+    // v4.1：教學全五步箭嘴 — ①底欄／②合併／③強化／④開波／⑤結算
     function ensureTutArrow(id, cls, label) {
       let el = $(id);
       if (!el) {
@@ -1151,7 +1186,7 @@ function fillWallCompareHist(save, dayFilter) {
     if (cur === 3 && window.__yinlouMarkTutUpgradeArrow) window.__yinlouMarkTutUpgradeArrow();
     if (cur === 4 && window.__yinlouMarkTutWaveArrow) window.__yinlouMarkTutWaveArrow();
     if (cur === 5 && window.__yinlouMarkTutSettleArrow) window.__yinlouMarkTutSettleArrow();
-    // v4.0：合併步手勢軌跡（行動端／觸控示意）
+    // v4.1：合併步手勢軌跡（行動端／觸控示意）
     let trail = $('tut-gesture-trail');
     if (!trail) {
       trail = document.createElement('div');
@@ -1164,7 +1199,19 @@ function fillWallCompareHist(save, dayFilter) {
       host.appendChild(trail);
     }
     const showTrail = cur === 2;
-    trail.classList.toggle('show', showTrail);
+    if (!trail.classList.contains('live')) {
+      trail.style.left = '';
+      trail.style.top = '';
+      trail.style.bottom = '';
+      trail.style.transform = '';
+      const finger = trail.querySelector('.tut-finger');
+      if (finger) finger.style.cssText = '';
+      const lab = trail.querySelector('.tut-gesture-label');
+      if (lab) lab.textContent = '拖同種合併';
+      trail.classList.remove('live');
+    }
+    if (!showTrail) trail.classList.remove('show', 'live');
+    else trail.classList.add('show');
     if (showTrail && window.__yinlouMarkTutGesture) window.__yinlouMarkTutGesture();
   }
 
@@ -1250,7 +1297,9 @@ function fillWallCompareHist(save, dayFilter) {
           i +
           '"/>';
       });
-      html += '</svg><span class="card-meta">多局折線｜左舊右新｜點圓可 scrub</span></div>';
+      html += '</svg><div class="replay-line-actions">' +
+        '<button type="button" class="wall-mode-btn" id="replay-line-export-png">匯出折線 PNG</button>' +
+        '<span class="card-meta">多局折線｜左舊右新｜點圓可 scrub</span></div></div>';
       if (window.__yinlouMarkReplayTimeline) window.__yinlouMarkReplayTimeline();
     }
 
@@ -1343,7 +1392,7 @@ function fillWallCompareHist(save, dayFilter) {
       });
       html += '</ul>';
     }
-    html += '<p class="paper-note">本機回放｜唔做線上排行｜v4.0 時間線 scrub／多局折線</p></div>';
+    html += '<p class="paper-note">本機回放｜唔做線上排行｜v4.1 時間線 scrub／多局折線</p></div>';
     $('overlay-msg').innerHTML = html;
     const btn = $('btn-overlay');
     btn.textContent = '關閉';
@@ -1409,6 +1458,74 @@ function fillWallCompareHist(save, dayFilter) {
       };
     });
     if (window.__yinlouMarkEndlessReplayList) window.__yinlouMarkEndlessReplayList();
+    const linePng = $('replay-line-export-png');
+    if (linePng && multi && multi.points && multi.points.length) {
+      linePng.onclick = function () {
+        const W = 480;
+        const H = 200;
+        const canvas = document.createElement('canvas');
+        canvas.width = W;
+        canvas.height = H;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#1A1510';
+        ctx.fillRect(0, 0, W, H);
+        ctx.strokeStyle = '#C9A227';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(8, 8, W - 16, H - 16);
+        ctx.fillStyle = '#C9A227';
+        ctx.font = 'bold 16px sans-serif';
+        ctx.fillText('銀樓防衛｜回放折線｜' + (metric === 'kills' ? '擊殺' : '浪次'), 24, 36);
+        const pts = multi.points;
+        const maxV = multi.max || 1;
+        const padL = 36;
+        const padR = 24;
+        const padT = 56;
+        const padB = 36;
+        const plotW = W - padL - padR;
+        const plotH = H - padT - padB;
+        ctx.strokeStyle = '#5A4A38';
+        ctx.beginPath();
+        ctx.moveTo(padL, padT);
+        ctx.lineTo(padL, H - padB);
+        ctx.lineTo(W - padR, H - padB);
+        ctx.stroke();
+        ctx.strokeStyle = '#C9A227';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        pts.forEach(function (p, i) {
+          const x = padL + (pts.length > 1 ? (i / (pts.length - 1)) * plotW : plotW / 2);
+          const y = H - padB - (p.v / maxV) * plotH;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+        pts.forEach(function (p, i) {
+          const x = padL + (pts.length > 1 ? (i / (pts.length - 1)) * plotW : plotW / 2);
+          const y = H - padB - (p.v / maxV) * plotH;
+          ctx.fillStyle = p.fav ? '#C9A227' : '#8A7A60';
+          ctx.beginPath();
+          ctx.arc(x, y, 4, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        ctx.fillStyle = '#A89070';
+        ctx.font = '10px sans-serif';
+        ctx.fillText('本機｜唔做線上排行｜v4.1', 24, H - 14);
+        canvas.toBlob(function (blob) {
+          if (!blob) {
+            toast('折線 PNG 失敗', 1800);
+            return;
+          }
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'yinlou-replay-line.png';
+          a.click();
+          setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+          if (window.__yinlouMarkReplayLinePng) window.__yinlouMarkReplayLinePng();
+          toast('已匯出折線 PNG', 1800);
+        }, 'image/png');
+      };
+    }
   }
 
   function showFailPanel(opts) {
@@ -1467,7 +1584,7 @@ function fillWallCompareHist(save, dayFilter) {
       '<div class="fail-actions-hint card-thick">' +
       '<strong style="color:#C9A227">下一步</strong>' +
       '<span class="card-meta">① 重開本關　② 跟推薦芯片重整　③ 回選關　④ 無盡可睇回放時間線</span></div>' +
-      '<p class="paper-note">重開保留關卡進度帳；跟推薦芯片可快速重整旗鼓｜v4.0 結算面板</p></div>';
+      '<p class="paper-note">重開保留關卡進度帳；跟推薦芯片可快速重整旗鼓｜v4.1 結算面板</p></div>';
     $('overlay-msg').innerHTML = html;
     const btn = $('btn-overlay');
     btn.textContent = '重開本關';
@@ -1500,6 +1617,11 @@ function fillWallCompareHist(save, dayFilter) {
     if (opts.onOpenReplay) {
       mk('無盡回放列表', () => {
         opts.onOpenReplay();
+      }, true);
+    }
+    if (opts.onShareFail) {
+      mk('一鍵分享', () => {
+        opts.onShareFail();
       }, true);
     }
     ov.classList.add('show');
@@ -1604,10 +1726,10 @@ function fillWallCompareHist(save, dayFilter) {
         return eqLab + setLab + '｜庫 ' + owned.length + '/' + (list.length || 4);
       })() +
       '</strong></div>' +
-      '<div class="paper-row"><span>版本</span><strong>v4.0.0｜存檔 v' +
-      (save.version || 40) +
+      '<div class="paper-row"><span>版本</span><strong>v4.1.0｜存檔 v' +
+      (save.version || 41) +
       '</strong></div>' +
-      '<p class="paper-note">v4.0：十二池550–600、符咒三欄／套裝共鳴、分享卡短碼一鍵、回放 scrub／折線、手勢軌跡／結算打磨。本地牆本機｜唔做線上排行。</p>' +
+      '<p class="paper-note">v4.1：十三池650–700、套裝第三件進階共鳴、折線 PNG、跟手軌跡、結算一鍵分享。本地牆本機｜唔做線上排行。</p>' +
       '<div id="charm-equip-bar" class="charm-equip-bar"></div>' +
       '</div>';
     const btn = $('btn-overlay');
@@ -1752,7 +1874,7 @@ function fillWallCompareHist(save, dayFilter) {
     if (onSnapWall) mk('留下牆快照', () => onSnapWall(), false, true);
     if (onWallTimeline) mk('牆快照時間軸', () => onWallTimeline(), false, true);
     if (onEndlessReplay) mk('無盡回放列表', () => onEndlessReplay(), false, true);
-    // v4.0 符咒三欄＋升星＋套裝共鳴
+    // v4.1 符咒三欄＋升星＋套裝共鳴
     (function wireCharmBar() {
       const bar = $('charm-equip-bar');
       if (!bar || typeof listOwnedCharms !== 'function') return;
@@ -1875,7 +1997,7 @@ function fillWallCompareHist(save, dayFilter) {
     const src = id && window.YDSprites && window.YDSprites.urlFor
       ? window.YDSprites.urlFor(id)
       : id
-        ? 'assets/sprites/' + id + '.png?v=4.0.0'
+        ? 'assets/sprites/' + id + '.png?v=4.1.0'
         : '';
     const fallback =
       '<span class="codex-thumb-fallback" style="background:' + c + '"></span>';
@@ -2768,6 +2890,7 @@ function fillWallCompareHist(save, dayFilter) {
     hideOverlay,
     showSettings,
     showFailPanel,
+    updateTutGestureLive,
     showEndlessReplay,
     updateTutorialHud,
     showStory,

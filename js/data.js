@@ -1773,6 +1773,8 @@
     { wave: 500, silver: 8200, label: '五百浪封池城' },
     { wave: 550, silver: 9000, label: '五百五十浪十二池' },
     { wave: 600, silver: 9800, label: '六百浪不朽池' },
+    { wave: 650, silver: 10600, label: '六百五十浪十三池' },
+    { wave: 700, silver: 11400, label: '七百浪長池' },
   ];
 
   function endlessMilestone(waveIndex) {
@@ -2686,6 +2688,27 @@
         state._dualCharmMergeMul = (state._dualCharmMergeMul || 1) * 1.25;
       },
     },
+    {
+      id: 'charm_prism_echo',
+      name: '棱鏡回聲',
+      blurb: '鏡叠第三件：鏡稅地板 −0.03；叠層延長',
+      kind: 'debuff',
+      set: 'mirror',
+      apply: (state) => {
+        state._dualCharmTaxFloor = (state._dualCharmTaxFloor || 0) - 0.03;
+        state._dualCharmTaxExtend = Math.max(state._dualCharmTaxExtend || 1, 1.1);
+      },
+    },
+    {
+      id: 'charm_vault_knot',
+      name: '銀庫結印',
+      blurb: '護合第三件：抽銀 ×0.85；核心護盾感',
+      kind: 'buff',
+      set: 'ward',
+      apply: (state) => {
+        state._dualCharmDrainMul = (state._dualCharmDrainMul || 1) * 0.85;
+      },
+    },
   ];
 
   function pickDualPentaCharm(seed) {
@@ -2826,6 +2849,49 @@
     },
   ];
 
+  const RUN_MODIFIERS_650 = [
+    {
+      id: 'thirteen_vault',
+      name: '十三池銀庫',
+      blurb: '開局銀 +36%；核心 HP +20%',
+      late650: true,
+      apply: (ctx) => {
+        ctx.silverMul = (ctx.silverMul || 1) * 1.36;
+        ctx.coreMul = (ctx.coreMul || 1) * 1.2;
+      },
+    },
+    {
+      id: 'thirteen_mirror',
+      name: '十三池鏡淵',
+      blurb: '鏡稅地板 +0.18；抽銀 ×0.1',
+      late650: true,
+      apply: (ctx) => {
+        ctx.mirageTaxFloorBonus = (ctx.mirageTaxFloorBonus || 0) + 0.18;
+        ctx.silverDrainMul = (ctx.silverDrainMul || 1) * 0.1;
+      },
+    },
+    {
+      id: 'thirteen_adv_set',
+      name: '十三池進階套',
+      blurb: '套裝共鳴 ×1.25；進階共鳴再 ×1.1',
+      late650: true,
+      apply: (ctx) => {
+        ctx.charmSetMul = (ctx.charmSetMul || 1) * 1.25;
+        ctx.charmSetAdvMul = (ctx.charmSetAdvMul || 1) * 1.1;
+      },
+    },
+    {
+      id: 'thirteen_seal',
+      name: '十三池印陣',
+      blurb: '敵速 −13%；俠客冷卻 −11%',
+      late650: true,
+      apply: (ctx) => {
+        ctx.enemySpeedMul = (ctx.enemySpeedMul || 1) * 0.87;
+        ctx.heroCdMul = (ctx.heroCdMul || 1) * 0.89;
+      },
+    },
+  ];
+
   /** 符咒 → 本局修飾欄項目（可裝備） */
   const CHARM_MAX_STAR = 3;
   const CHARM_EQUIP_SLOTS = 3;
@@ -2862,6 +2928,12 @@
           ctx.silverDrainMul = (ctx.silverDrainMul || 1) * Math.max(0.4, 1 - 0.28 * sc);
         } else if (charm.id === 'charm_merge_seal') {
           ctx.mergeRebateMul = (ctx.mergeRebateMul || 1) * (1 + 0.25 * sc);
+        } else if (charm.id === 'charm_prism_echo') {
+          ctx.mirageTaxFloorBonus = (ctx.mirageTaxFloorBonus || 0) - 0.03 * sc;
+          ctx.enemySpeedMul = (ctx.enemySpeedMul || 1) * (1 + 0.03 * sc);
+        } else if (charm.id === 'charm_vault_knot') {
+          ctx.silverDrainMul = (ctx.silverDrainMul || 1) * Math.max(0.45, 1 - 0.15 * sc);
+          ctx.coreMul = (ctx.coreMul || 1) * (1 + 0.06 * sc);
         }
       },
     };
@@ -2958,10 +3030,19 @@
       name: '鏡叠共鳴',
       blurb: '雙鏡＋叠帳：鏡稅地板 −0.04；敵速壓力 +4%',
       need: 2,
+      needAdv: 3,
+      nameAdv: '鏡叠·進階',
+      blurbAdv: '三件鏡叠：鏡稅地板 −0.08；敵速壓力 +7%；抽銀 ×0.95',
       apply: function (ctx, mul) {
         const m = mul || 1;
         ctx.mirageTaxFloorBonus = (ctx.mirageTaxFloorBonus || 0) - 0.04 * m;
         ctx.enemySpeedMul = (ctx.enemySpeedMul || 1) * (1 + 0.04 * m);
+      },
+      applyAdv: function (ctx, mul) {
+        const m = mul || 1;
+        ctx.mirageTaxFloorBonus = (ctx.mirageTaxFloorBonus || 0) - 0.08 * m;
+        ctx.enemySpeedMul = (ctx.enemySpeedMul || 1) * (1 + 0.07 * m);
+        ctx.silverDrainMul = (ctx.silverDrainMul || 1) * Math.max(0.5, 1 - 0.05 * m);
       },
     },
     ward: {
@@ -2969,10 +3050,19 @@
       name: '護合共鳴',
       blurb: '護銀＋合星：抽銀 ×0.9；合星 ×1.12',
       need: 2,
+      needAdv: 3,
+      nameAdv: '護合·進階',
+      blurbAdv: '三件護合：抽銀 ×0.82；合星 ×1.2；核心 HP +8%',
       apply: function (ctx, mul) {
         const m = mul || 1;
         ctx.silverDrainMul = (ctx.silverDrainMul || 1) * Math.max(0.5, 1 - 0.1 * m);
         ctx.mergeRebateMul = (ctx.mergeRebateMul || 1) * (1 + 0.12 * m);
+      },
+      applyAdv: function (ctx, mul) {
+        const m = mul || 1;
+        ctx.silverDrainMul = (ctx.silverDrainMul || 1) * Math.max(0.45, 1 - 0.18 * m);
+        ctx.mergeRebateMul = (ctx.mergeRebateMul || 1) * (1 + 0.2 * m);
+        ctx.coreMul = (ctx.coreMul || 1) * (1 + 0.08 * m);
       },
     },
   };
@@ -2988,16 +3078,17 @@
     const active = [];
     Object.keys(counts).forEach(function (set) {
       const def = CHARM_SET_DEFS[set];
-      if (def && counts[set] >= (def.need || 2)) {
-        active.push({
-          set: set,
-          count: counts[set],
-          name: def.name,
-          blurb: def.blurb,
-          id: def.id,
-          apply: def.apply,
-        });
-      }
+      if (!def || counts[set] < (def.need || 2)) return;
+      const adv = !!(def.needAdv && counts[set] >= def.needAdv && def.applyAdv);
+      active.push({
+        set: set,
+        count: counts[set],
+        advanced: adv,
+        name: adv ? def.nameAdv || def.name + '·進階' : def.name,
+        blurb: adv ? def.blurbAdv || def.blurb : def.blurb,
+        id: adv ? def.id + '_adv' : def.id,
+        apply: adv ? def.applyAdv : def.apply,
+      });
     });
     return active;
   }
@@ -3009,9 +3100,11 @@
         name: '套·' + r.name,
         blurb: r.blurb,
         charmSet: true,
+        charmSetAdv: !!r.advanced,
         setId: r.set,
         apply: function (ctx) {
-          const mul = ctx.charmSetMul || 1;
+          let mul = ctx.charmSetMul || 1;
+          if (r.advanced) mul *= ctx.charmSetAdvMul || 1;
           r.apply(ctx, mul);
         },
       };
@@ -3388,6 +3481,14 @@
       if (!mods.some((m) => m.id === late12.id)) {
         if (mods.length >= 3) mods[0] = late12;
         else mods.push(late12);
+      }
+    }
+    if (best >= 650 && RUN_MODIFIERS_650.length) {
+      const h14 = (seed ^ 0x650cafe) >>> 0;
+      const late13 = RUN_MODIFIERS_650[h14 % RUN_MODIFIERS_650.length];
+      if (!mods.some((m) => m.id === late13.id)) {
+        if (mods.length >= 3) mods[mods.length - 1] = late13;
+        else mods.push(late13);
       }
     }
     return mods;
@@ -4068,6 +4169,11 @@
     { id: 'endless500', cat: 'combat', name: '五百浪封池城', blurb: '無盡最佳 ≥ 500 波', check: (s) => (s.bestEndlessWave || 0) >= 500 },
     { id: 'late450_run', cat: 'meta', name: '十一池開盤', blurb: '曾達 450 浪後再開無盡（抽第十一池修飾）', check: (s) => !!s.ach && !!s.ach.late450_run },
     { id: 'late550_run', cat: 'meta', name: '十二池開盤', blurb: '曾達 550 浪後再開無盡（抽第十二池修飾）', check: (s) => !!s.ach && !!s.ach.late550_run },
+    { id: 'late650_run', cat: 'meta', name: '十三池開盤', blurb: '曾達 650 浪後再開無盡（抽第十三池修飾）', check: (s) => !!s.ach && !!s.ach.late650_run },
+    { id: 'charm_set_adv', cat: 'meta', name: '進階共鳴', blurb: '觸發套裝第三件進階共鳴', check: (s) => !!s.ach && !!s.ach.charm_set_adv },
+    { id: 'replay_line_png', cat: 'meta', name: '折線 PNG', blurb: '匯出回放折線 PNG', check: (s) => !!s.ach && !!s.ach.replay_line_png },
+    { id: 'fail_share', cat: 'meta', name: '結算分享', blurb: '從失敗／結算面板一鍵分享短碼或文字', check: (s) => !!s.ach && !!s.ach.fail_share },
+    { id: 'tut_gesture_live', cat: 'meta', name: '跟手軌跡', blurb: '教學合併步跟住真實拖拽軌跡', check: (s) => !!s.ach && !!s.ach.tut_gesture_live },
     { id: 'charm_triple', cat: 'meta', name: '三欄符咒', blurb: '同時裝備 3 枚符咒', check: (s) => !!(s.equippedCharmIds && s.equippedCharmIds.filter(Boolean).length >= 3) },
     { id: 'charm_set', cat: 'meta', name: '套裝共鳴', blurb: '觸發一次符咒套裝共鳴', check: (s) => !!s.ach && !!s.ach.charm_set },
     { id: 'wall_code_copy', cat: 'meta', name: '短碼一鍵', blurb: '從分享卡一鍵複製牆短碼', check: (s) => !!s.ach && !!s.ach.wall_code_copy },
@@ -4144,7 +4250,9 @@
     const late500 = n >= 500 ? Math.min(0.06, (n - 500) * 0.0012) : 0;
     const late550 = n >= 550 ? Math.min(0.06, (n - 550) * 0.0011) : 0;
     const late600 = n >= 600 ? Math.min(0.05, (n - 600) * 0.001) : 0;
-    const mul = 1 + (n - 1) * 0.105 + late50 + late75 + late90 + late120 + late130 + late140 + late150 + late160 + late180 + late200 + late220 + late250 + late300 + late350 + late400 + late450 + late500 + late550 + late600;
+    const late650 = n >= 650 ? Math.min(0.05, (n - 650) * 0.0009) : 0;
+    const late700 = n >= 700 ? Math.min(0.04, (n - 700) * 0.0008) : 0;
+    const mul = 1 + (n - 1) * 0.105 + late50 + late75 + late90 + late120 + late130 + late140 + late150 + late160 + late180 + late200 + late220 + late250 + late300 + late350 + late400 + late450 + late500 + late550 + late600 + late650 + late700;
     const countLate = n >= 50 ? Math.min(n - 50, 25) * 0.01 + (n >= 75 ? (n - 75) * 0.006 : 0) : 0;
     const count = (base) => {
       let raw = Math.max(1, Math.round(base * (1 + (n - 1) * 0.072 + countLate)));
@@ -4617,7 +4725,7 @@
       s.equippedCharmIds = s.equippedCharmId ? [s.equippedCharmId] : [];
     }
     if (!s.endlessReplayFav || typeof s.endlessReplayFav !== 'object') s.endlessReplayFav = {};
-    s.version = Math.max(40, from, base.version || 40);
+    s.version = Math.max(41, from, base.version || 41);
     return s;
   }
 
@@ -4633,7 +4741,7 @@
 
   function defaultSave() {
     return {
-      version: 40,
+      version: 41,
       totalSilver: 0,
       totalKills: 0,
       maxStageCleared: 0,
@@ -4871,6 +4979,21 @@
   }
 
   /** 多局折線對照（浪次／擊殺） */
+  function formatFailShareText(save, opts) {
+    opts = opts || {};
+    const code = typeof encodeWallShort === 'function' ? encodeWallShort(save) : '';
+    const wall = typeof formatLocalBestWall === 'function' ? formatLocalBestWall(save) : null;
+    const lines = [
+      '銀樓防衛｜結算分享 v4.1',
+      opts.title || '銀樓失守',
+      opts.summary || '',
+      wall && wall.label ? '牆：' + wall.label : '',
+      code ? '短碼：' + code : '',
+      '本機｜唔做線上排行｜https://lnaltv3v.github.io/yinlou-defense/',
+    ].filter(Boolean);
+    return lines.join('\n');
+  }
+
   function formatEndlessReplayMultiChart(save, opts) {
     opts = opts || {};
     const metric = opts.metric || 'wave';
@@ -5623,6 +5746,7 @@
     RUN_MODIFIERS_400,
     RUN_MODIFIERS_450,
     RUN_MODIFIERS_550,
+    RUN_MODIFIERS_650,
     DUAL_PENTA_CHARMS,
     pickDualPentaCharm,
     charmAsModifier,
@@ -5697,6 +5821,7 @@
     compareEndlessReplay,
     formatEndlessReplayChart,
     formatEndlessReplayMultiChart,
+    formatFailShareText,
     formatEndlessReplayTimeline,
     toggleEndlessReplayFav,
     recordWallSnapshot,

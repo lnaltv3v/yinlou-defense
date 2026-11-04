@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 主循環 v4.0.0
+ * 銀樓防衛 — 主循環 v4.1.0
  * v1.9.0：第7關／鎖倉居士／週連續＋本地最佳牆／手感平衡
  */
 (function () {
@@ -89,6 +89,7 @@
     toggleEndlessReplayFav,
     charmSetAsModifiers,
     charmSetResonance,
+    formatFailShareText,
   } = YD;
   const AudioSfx = window.YDAudio;
   const Battle = YDBattle;
@@ -273,9 +274,10 @@
             names.push(sm.name);
             if (!save.ach) save.ach = {};
             save.ach.charm_set = true;
+            if (sm.charmSetAdv) save.ach.charm_set_adv = true;
             try {
               const A = window.YDAudio;
-              if (A && A.play) A.play('charm_set');
+              if (A && A.play) A.play(sm.charmSetAdv ? 'charm_set_adv' : 'charm_set');
             } catch (_) {}
           }
         }
@@ -940,18 +942,21 @@
             m.late350 ||
             m.late400 ||
             m.late450 ||
-            m.late550
+            m.late550 ||
+            m.late650
         );
         state._lateModBadge = lateMods.length
           ? lateMods.map((m) => m.name).join(' · ')
           : '';
-        state._lateModTier = lateMods.some((m) => m.late550)
-          ? 550
-          : lateMods.some((m) => m.late450)
-            ? 450
-            : lateMods.some((m) => m.late400)
-              ? 400
-              : lateMods.some((m) => m.late350)
+        state._lateModTier = lateMods.some((m) => m.late650)
+          ? 650
+          : lateMods.some((m) => m.late550)
+            ? 550
+            : lateMods.some((m) => m.late450)
+              ? 450
+              : lateMods.some((m) => m.late400)
+                ? 400
+                : lateMods.some((m) => m.late350)
             ? 350
             : lateMods.some((m) => m.late300)
             ? 300
@@ -1030,6 +1035,12 @@
           writeSave(save);
           notifyAchievements();
         }
+        if ((save.bestEndlessWave || 0) >= 650) {
+          if (!save.ach) save.ach = {};
+          save.ach.late650_run = true;
+          writeSave(save);
+          notifyAchievements();
+        }
         if (save._equipCharmToast) {
           const nm = save._equipCharmToast;
           save._equipCharmToast = '';
@@ -1040,13 +1051,15 @@
         if (state._lateModBadge) {
           setTimeout(() => {
             const tag =
-              state._lateModTier >= 550
-                ? '【550+】'
-                : state._lateModTier >= 450
-                  ? '【450+】'
-                  : state._lateModTier >= 400
-                    ? '【400+】'
-                    : state._lateModTier >= 350
+              state._lateModTier >= 650
+                ? '【650+】'
+                : state._lateModTier >= 550
+                  ? '【550+】'
+                  : state._lateModTier >= 450
+                    ? '【450+】'
+                    : state._lateModTier >= 400
+                      ? '【400+】'
+                      : state._lateModTier >= 350
                   ? '【350+】'
                   : state._lateModTier >= 300
                   ? '【300+】'
@@ -1717,6 +1730,57 @@
               if (UI.showEndlessReplay) UI.showEndlessReplay(() => save, () => syncAll());
             }
           : null,
+        onShareFail: () => {
+          const text =
+            typeof formatFailShareText === 'function'
+              ? formatFailShareText(save, {
+                  title: '銀樓失守',
+                  summary:
+                    (state.endless
+                      ? '無盡第' + (state.waveIndex || 0) + '浪'
+                      : '關卡') +
+                    '｜擊殺 ' +
+                    (state.kills || 0),
+                })
+              : '';
+          const done = () => {
+            if (!save.ach) save.ach = {};
+            if (!save.ach.fail_share) {
+              save.ach.fail_share = true;
+              writeSave(save);
+              notifyAchievements();
+            }
+            try {
+              const A = window.YDAudio;
+              if (A && A.play) A.play('fail_share');
+            } catch (_) {}
+            UI.toast('已複製結算分享', 1800);
+          };
+          if (navigator.share) {
+            navigator
+              .share({ title: '銀樓防衛', text: text })
+              .then(done)
+              .catch(() => {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                  navigator.clipboard.writeText(text).then(done).catch(() => {
+                    prompt('結算分享', text);
+                    done();
+                  });
+                } else {
+                  prompt('結算分享', text);
+                  done();
+                }
+              });
+          } else if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done).catch(() => {
+              prompt('結算分享', text);
+              done();
+            });
+          } else {
+            prompt('結算分享', text);
+            done();
+          }
+        },
         onRetry: () => {
           UI.hideOverlay();
           resetRun(state.endless, state.daily, state.weekly);
@@ -2129,6 +2193,19 @@
     try {
       const A = window.YDAudio;
       if (A && A.play) A.play('wall_code');
+    } catch (_) {}
+  };
+  window.__yinlouMarkReplayLinePng = function () {
+    if (!save.ach) save.ach = {};
+    if (!save.ach.replay_line_png) {
+      save.ach.replay_line_png = true;
+      writeSave(save);
+      notifyAchievements();
+      UI.toast('成就｜折線 PNG', 1800);
+    }
+    try {
+      const A = window.YDAudio;
+      if (A && A.play) A.play('replay_line_png');
     } catch (_) {}
   };
   window.__yinlouMarkReplayTimeline = function () {
@@ -2777,6 +2854,20 @@
     if (!state.drag) return;
     state.drag.x = x;
     state.drag.y = y;
+
+    if (typeof UI !== 'undefined' && UI.updateTutGestureLive) {
+      const mergeTut =
+        state.tutorialStep === 1 || state.tutorialStep === 2;
+      if (mergeTut && state.drag && state.drag.active) {
+        UI.updateTutGestureLive(state.drag.x, state.drag.y, true);
+        if (!save.ach) save.ach = {};
+        if (!save.ach.tut_gesture_live) {
+          save.ach.tut_gesture_live = true;
+          writeSave(save);
+          notifyAchievements();
+        }
+      }
+    }
     const pad = ptr.isTouch ? 16 : 0;
     const cell = Battle.hitTestCell(x, y, pad);
     if (cell) {
@@ -2858,6 +2949,20 @@
     if (!state.drag) return;
     state.drag.x = x;
     state.drag.y = y;
+
+    if (typeof UI !== 'undefined' && UI.updateTutGestureLive) {
+      const mergeTut =
+        state.tutorialStep === 1 || state.tutorialStep === 2;
+      if (mergeTut && state.drag && state.drag.active) {
+        UI.updateTutGestureLive(state.drag.x, state.drag.y, true);
+        if (!save.ach) save.ach = {};
+        if (!save.ach.tut_gesture_live) {
+          save.ach.tut_gesture_live = true;
+          writeSave(save);
+          notifyAchievements();
+        }
+      }
+    }
     const cell = Battle.hitTestCell(x, y, 16);
     if (cell) {
       state.drag.hoverLane = cell.lane;
@@ -2912,6 +3017,20 @@
     } else {
       state.drag.x = x;
       state.drag.y = y;
+
+    if (typeof UI !== 'undefined' && UI.updateTutGestureLive) {
+      const mergeTut =
+        state.tutorialStep === 1 || state.tutorialStep === 2;
+      if (mergeTut && state.drag && state.drag.active) {
+        UI.updateTutGestureLive(state.drag.x, state.drag.y, true);
+        if (!save.ach) save.ach = {};
+        if (!save.ach.tut_gesture_live) {
+          save.ach.tut_gesture_live = true;
+          writeSave(save);
+          notifyAchievements();
+        }
+      }
+    }
       if (cell) {
         state.drag.hoverLane = cell.lane;
         state.drag.hoverSlot = cell.slot;
