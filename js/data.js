@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 靜態資料 v1.2.0
+ * 銀樓防衛 — 靜態資料 v1.3.0
  * 角色為原創綽號，影射金融江湖氣氛；唔用真人真名／金庸名／Fortias IP。
  */
 (function (global) {
@@ -30,10 +30,10 @@
       cost: 22,
       color: '#C45C4A',
       silhouette: 'blade',
-      atk: 14,
-      hp: 90,
+      atk: 15,
+      hp: 92,
       range: 78,
-      cooldown: 0.52,
+      cooldown: 0.5,
       speed: 0,
       skill: {
         id: 'bull_charge',
@@ -539,6 +539,30 @@
         dur: 1.6,
       },
     },
+
+    halt_seal: {
+      id: 'halt_seal',
+      name: '停牌符',
+      lore: '一紙臨停貼上城門——刀客亦要收手三息。專咬前排，命中短暫停牌（無法出手）。',
+      hp: 34,
+      atk: 6,
+      speed: 46,
+      reward: 7,
+      color: '#6A5040',
+      radius: 9,
+      attackRange: 38,
+      attackCd: 0.82,
+      preferHero: 0.88,
+      stunSec: 1.15,
+      skill: {
+        id: 'trading_halt',
+        name: '臨停',
+        every: 1,
+        blurb: '普攻附帶短暫停牌（俠客無法出手）',
+        type: 'stun',
+        dur: 1.15,
+      },
+    },
   };
 
   function wavePack(list) {
@@ -550,8 +574,8 @@
       id: 1,
       name: '錢莊初夜',
       story: '夜雨初歇，錢莊門楣掛起「銀樓」燈籠。櫃檯後頭算盤未停，門外已有腳步聲——散戶潮聞風而至。掌櫃話：開市前唔擺好第一盤棋，天亮只剩空倉同空城。',
-      startSilver: 190,
-      coreHp: 200,
+      startSilver: 195,
+      coreHp: 205,
       unlockHeroes: Object.keys(HEROES),
       waves: [
         wavePack([{ enemy: 'retail_tide', count: 3, lane: 'cycle', interval: 1.2 }]),
@@ -591,7 +615,8 @@
         wavePack([
           { enemy: 'retail_tide', count: 8, lane: 'cycle', interval: 0.58 },
           { enemy: 'chase_zombie', count: 3, lane: 'cycle', interval: 1.05, delay: 0.8 },
-          { enemy: 'margin_call', count: 3, lane: 'random', interval: 1.15, delay: 2 },
+          { enemy: 'margin_call', count: 2, lane: 'random', interval: 1.15, delay: 2 },
+          { enemy: 'halt_seal', count: 2, lane: 'cycle', interval: 1.3, delay: 2.4 },
         ]),
         wavePack([
           { enemy: 'chase_zombie', count: 5, lane: 'cycle', interval: 0.9 },
@@ -876,6 +901,106 @@
   function endlessMilestone(waveIndex) {
     return ENDLESS_MILESTONES.find((m) => m.wave === waveIndex) || null;
   }
+
+  /** 開波市況事件（小概率；v1.3） */
+  const WAVE_EVENTS = [
+    {
+      id: 'silver_rain',
+      name: '銀雨忽至',
+      blurb: '天上掉銅錢 — 銀兩 +28',
+      color: '#C9A227',
+      weight: 3,
+      apply: (state) => {
+        state.silver += 28;
+      },
+    },
+    {
+      id: 'inner_breath',
+      name: '內息回湧',
+      blurb: '全體俠客回血 20%',
+      color: '#3A7A6A',
+      weight: 3,
+      apply: (state) => {
+        for (const h of state.heroes) {
+          if (h.hp <= 0) continue;
+          h.hp = Math.min(h.maxHp, h.hp + Math.round(h.maxHp * 0.2));
+        }
+      },
+    },
+    {
+      id: 'bull_cheer',
+      name: '多頭鼓噪',
+      blurb: '場上短暫加攻（8 秒）',
+      color: '#C45C4A',
+      weight: 2,
+      apply: (state) => {
+        for (const h of state.heroes) {
+          if (h.hp <= 0) continue;
+          h.atkBuff = Math.max(h.atkBuff || 0, 0.18);
+          h.atkBuffT = Math.max(h.atkBuffT || 0, 8);
+        }
+      },
+    },
+    {
+      id: 'rumor_burst',
+      name: '巷口風聲',
+      blurb: '額外湧出傳聞蚊 ×4',
+      color: '#7A6A50',
+      weight: 2,
+      apply: (state, Battle) => {
+        if (!Battle || !state.spawner) return;
+        state.spawner.jobs.push({
+          enemy: 'rumor_swarm',
+          left: 4,
+          interval: 0.45,
+          delay: 0.8,
+          timer: 0,
+          started: false,
+          laneMode: 'cycle',
+          fixedLane: null,
+          hpMul: 1,
+          elite: false,
+        });
+      },
+    },
+    {
+      id: 'halt_notice',
+      name: '臨停通告',
+      blurb: '停牌符混入本波 ×2',
+      color: '#6A5040',
+      weight: 2,
+      apply: (state) => {
+        if (!state.spawner) return;
+        state.spawner.jobs.push({
+          enemy: 'halt_seal',
+          left: 2,
+          interval: 0.9,
+          delay: 1.6,
+          timer: 0,
+          started: false,
+          laneMode: 'random',
+          fixedLane: null,
+          hpMul: 1,
+          elite: false,
+        });
+      },
+    },
+  ];
+
+  function pickWaveEvent(rng) {
+    const r = typeof rng === 'function' ? rng : Math.random;
+    // 約 32% 觸發（第 1 波唔出，由呼叫方控制）
+    if (r() > 0.32) return null;
+    let total = 0;
+    for (const e of WAVE_EVENTS) total += e.weight || 1;
+    let roll = r() * total;
+    for (const e of WAVE_EVENTS) {
+      roll -= e.weight || 1;
+      if (roll <= 0) return e;
+    }
+    return WAVE_EVENTS[0];
+  }
+
 
   /** 香港日曆日字串 YYYY-MM-DD */
   function hkDateString(d) {
@@ -1420,6 +1545,8 @@
         return n >= 3 && !!s.weeklyCleared && s.weeklyKey === wk;
       },
     },
+    { id: 'market_event', cat: 'combat', name: '市況警報', blurb: '首次觸發開波市況事件', check: (s) => !!s.ach && s.ach.market_event },
+    { id: 'halt_seen', cat: 'combat', name: '臨停過招', blurb: '圖鑑見過停牌符', check: (s) => !!(s.seenEnemies && s.seenEnemies.halt_seal) },
   ];
 
   /** 首通銀兩獎勵（入累計帳） */
@@ -1482,6 +1609,13 @@
         lane: 'cycle',
         interval: Math.max(0.42, 0.92 - n * 0.022),
         delay: 1.5,
+      });
+      spawns.push({
+        enemy: 'halt_seal',
+        count: count(1 + Math.floor(n / 4)),
+        lane: 'random',
+        interval: Math.max(0.5, 1.0 - n * 0.02),
+        delay: 1.8,
       });
     }
     if (n >= 4) {
@@ -1631,7 +1765,7 @@
   function mergeRebate(heroId, newStar) {
     const def = HEROES[heroId];
     if (!def) return 0;
-    return Math.round(def.cost * 0.14 * newStar);
+    return Math.round(def.cost * 0.145 * newStar);
   }
 
   function activeBonds(heroes) {
@@ -1669,7 +1803,7 @@
 
   function defaultSave() {
     return {
-      version: 12,
+      version: 13,
       totalSilver: 0,
       totalKills: 0,
       maxStageCleared: 0,
@@ -1701,7 +1835,7 @@
 
   function exportSaveJson(save) {
     const payload = {
-      meta: { game: 'yinlou-defense', exportedAt: new Date().toISOString(), version: save.version || 12 },
+      meta: { game: 'yinlou-defense', exportedAt: new Date().toISOString(), version: save.version || 13 },
       save: { ...defaultSave(), ...save },
     };
     return JSON.stringify(payload, null, 2);
@@ -1712,7 +1846,7 @@
     const body = data && data.save ? data.save : data;
     if (!body || typeof body !== 'object') throw new Error('無效存檔');
     const merged = { ...defaultSave(), ...body };
-    merged.version = Math.max(12, merged.version || 12);
+    merged.version = Math.max(13, merged.version || 13);
     if (!merged.weekDailyMap) merged.weekDailyMap = {};
     if (!merged.firstClears) merged.firstClears = {};
     if (!merged.seenHeroes) merged.seenHeroes = {};
@@ -1870,6 +2004,8 @@
     hkDateString,
     waveClearBonus,
     endlessMilestone,
+    WAVE_EVENTS,
+    pickWaveEvent,
     GRID,
     CORE,
     SPEED_OPTIONS,

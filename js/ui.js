@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v1.2.0
+ * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v1.3.0
  */
 (function (global) {
   const {
@@ -36,7 +36,7 @@
     toast._t = setTimeout(() => el.classList.remove('show'), ms || 1600);
   }
 
-  /** 商店可讀像素頭像（硬邊色塊，唔用外圖） */
+  /** 商店頭像：有正式 PNG idle 就用；否則幾何色塊 */
   function avatarHtml(def) {
     const c = def.color;
     const ink = '#1A1510';
@@ -70,10 +70,7 @@
         '<i class="av-gear" style="background:#508070;left:18px;top:8px;width:10px;height:12px"></i>' +
         '<i class="av-gear" style="background:#C9A227;left:20px;top:4px;width:6px;height:5px"></i>';
     }
-    return (
-      '<span class="hero-avatar" aria-hidden="true" style="--av:' +
-      c +
-      '">' +
+    const fallback =
       '<i class="av-body" style="background:' +
       c +
       '"></i>' +
@@ -86,7 +83,22 @@
       '<i class="av-eye" style="left:16px;background:' +
       ink +
       '"></i>' +
-      gear +
+      gear;
+    const src = 'assets/sprites/' + def.id + '.png';
+    return (
+      '<span class="hero-avatar" aria-hidden="true" data-hero="' +
+      def.id +
+      '" style="--av:' +
+      c +
+      '">' +
+      '<img class="av-png" src="' +
+      src +
+      '" width="28" height="28" alt="" decoding="async" ' +
+      "onload=\"this.parentNode.classList.add('has-png')\" " +
+      'onerror="this.remove()" />' +
+      '<span class="av-fallback">' +
+      fallback +
+      '</span>' +
       '</span>'
     );
   }

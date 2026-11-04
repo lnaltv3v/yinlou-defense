@@ -6,6 +6,5 @@ node_modules/
 # 版權／內部參考圖：唔入 git（Pages／公開 repo）
 assets/_ref/
 
-# 未接入正式精靈草稿（本機／後備）
-assets/sprites/
-tools/gen_round1_sprites.py
+# QA roster 預覽（唔入遊戲／可唔 commit）
+assets/sprites/_round1_roster*

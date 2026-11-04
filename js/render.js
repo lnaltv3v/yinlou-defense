@@ -1,6 +1,6 @@
 /**
- * 銀樓防衛 — Canvas 繪製 v1.2.0
- * v1.2.0：抄底居士葫蘆剪影
+ * 銀樓防衛 — Canvas 繪製 v1.3.0
+ * v1.3.0：正式 PNG 精靈（有就用／無幾何 fallback）＋市況事件橫幅
  */
 (function (global) {
   const { COLORS, GRID, CORE, HEROES, ENEMIES, MAX_STAR, upgradeLabel } = global.YD;
@@ -251,6 +251,26 @@
     ctx.fillText(Math.max(0, Math.ceil(hp)) + '/' + maxHp, x, y + 72);
   }
 
+
+  /** 畫正式 PNG（48 原生）；失敗回 false → 呼叫方用幾何 */
+  function drawUnitSprite(ctx, id, cx, cy, size, attacking, alpha) {
+    const Spr = global.YDSprites;
+    if (!Spr) return false;
+    const frame = Spr.getFrame(id, !!attacking);
+    if (!frame) {
+      // 觸發懶載（唔等）
+      try { Spr.ensure(id); } catch (_) {}
+      return false;
+    }
+    const prev = ctx.imageSmoothingEnabled;
+    ctx.imageSmoothingEnabled = false;
+    ctx.globalAlpha = alpha == null ? 1 : alpha;
+    const s = Math.round(size);
+    ctx.drawImage(frame, Math.round(cx - s / 2), Math.round(cy - s / 2), s, s);
+    ctx.imageSmoothingEnabled = prev;
+    return true;
+  }
+
   function drawSilhouette(ctx, h, def, s, ox, oy) {
     const kind = def.silhouette || def.role;
     const ink = '#1A1510';
@@ -434,15 +454,27 @@
       ctx.globalAlpha = alpha;
     }
 
-    drawSilhouette(ctx, h, def, s, lean, idle);
-    // 單字門派標（辨識）
-    if (!ghost && def.name) {
-      ctx.fillStyle = '#1A1510';
-      ctx.font = 'bold 9px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText(def.name.charAt(0), h.x + lean - s - 2, h.y - s - 8 + idle);
-      ctx.fillStyle = def.color;
-      ctx.fillText(def.name.charAt(0), h.x + lean - s - 3, h.y - s - 9 + idle);
+    const sprSize = 36 + h.star * 4;
+    const usedSpr = drawUnitSprite(
+      ctx,
+      h.id,
+      h.x + lean,
+      h.y - 4 + idle,
+      sprSize,
+      h.swingT > 0,
+      alpha
+    );
+    if (!usedSpr) {
+      drawSilhouette(ctx, h, def, s, lean, idle);
+      // 單字門派標（辨識；PNG 自身已夠辨識就唔疊）
+      if (!ghost && def.name) {
+        ctx.fillStyle = '#1A1510';
+        ctx.font = 'bold 9px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(def.name.charAt(0), h.x + lean - s - 2, h.y - s - 8 + idle);
+        ctx.fillStyle = def.color;
+        ctx.fillText(def.name.charAt(0), h.x + lean - s - 3, h.y - s - 9 + idle);
+      }
     }
 
     if (h.atkBuffT > 0 && !ghost) {
@@ -501,6 +533,17 @@
       }
     }
 
+    if (h.stunT > 0 && !ghost) {
+      ctx.globalAlpha = alpha * 0.85;
+      ctx.strokeStyle = '#C9A227';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(h.x - s - 8 + lean, h.y - s - 26 + idle, s * 2 + 16, s * 2 + 44);
+      ctx.fillStyle = '#C9A227';
+      ctx.font = 'bold 10px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('停', h.x + lean, h.y - s - 30 + idle);
+      ctx.globalAlpha = alpha;
+    }
     if (selected || mergeMark) {
       ctx.strokeStyle = mergeMark ? COLORS.gold : COLORS.cinnabar;
       ctx.lineWidth = 2;
@@ -530,16 +573,28 @@
     }
     if (e.hitFlash > 0) ctx.globalAlpha = baseA * (0.55 + Math.sin(e.hitFlash * 50) * 0.3);
     else ctx.globalAlpha = baseA;
-    // 身體＋簡單特徵
-    drawPixelRect(ctx, e.x - r, e.y - r + bob, r * 2, r * 2, e.def.color);
-    drawPixelRect(ctx, e.x - r + 2, e.y - r + 4 + bob, r * 2 - 4, 3, '#1A1510');
-    drawPixelRect(ctx, e.x - r + 2, e.y - r + 2 + bob, 3, 3, '#1A1510');
-    drawPixelRect(ctx, e.x + r - 5, e.y - r + 2 + bob, 3, 3, '#1A1510');
-    drawPixelRect(ctx, e.x - 3, e.y + 2 + bob, 6, 2, '#E8DCC8');
-    if (e.def && e.def.stealth) {
-      drawPixelRect(ctx, e.x - r - 4, e.y - 2 + bob, 4, 8, '#1A1510');
-      drawPixelRect(ctx, e.x + r, e.y - 2 + bob, 4, 8, '#1A1510');
-      drawPixelRect(ctx, e.x - 2, e.y - r - 4 + bob, 4, 3, '#5A4060');
+    const eSize = Math.max(28, r * 2 + 8 + (e.boss ? 10 : 0) + (e.elite ? 4 : 0));
+    const eSpr = drawUnitSprite(
+      ctx,
+      e.id || (e.def && e.def.id),
+      e.x,
+      e.y + bob,
+      eSize,
+      e.mode === 'fight',
+      ctx.globalAlpha
+    );
+    if (!eSpr) {
+      // 身體＋簡單特徵（無 PNG）
+      drawPixelRect(ctx, e.x - r, e.y - r + bob, r * 2, r * 2, e.def.color);
+      drawPixelRect(ctx, e.x - r + 2, e.y - r + 4 + bob, r * 2 - 4, 3, '#1A1510');
+      drawPixelRect(ctx, e.x - r + 2, e.y - r + 2 + bob, 3, 3, '#1A1510');
+      drawPixelRect(ctx, e.x + r - 5, e.y - r + 2 + bob, 3, 3, '#1A1510');
+      drawPixelRect(ctx, e.x - 3, e.y + 2 + bob, 6, 2, '#E8DCC8');
+      if (e.def && e.def.stealth) {
+        drawPixelRect(ctx, e.x - r - 4, e.y - 2 + bob, 4, 8, '#1A1510');
+        drawPixelRect(ctx, e.x + r, e.y - 2 + bob, 4, 8, '#1A1510');
+        drawPixelRect(ctx, e.x - 2, e.y - r - 4 + bob, 4, 3, '#5A4060');
+      }
     }
     if (e.darkMarkT > 0) {
       ctx.strokeStyle = '#3A4060';
@@ -791,6 +846,27 @@
     ctx.globalAlpha = 1;
   }
 
+
+  function drawEventBanner(ctx, state) {
+    const b = state.eventBanner;
+    if (!b || b.life <= 0) return;
+    const p = Math.min(1, b.life / (b.maxLife || 2.4));
+    const alpha = p > 0.85 ? (1 - p) / 0.15 : p < 0.2 ? p / 0.2 : 1;
+    ctx.globalAlpha = Math.min(1, alpha);
+    drawPixelRect(ctx, 180, 118, 600, 52, '#1A1510');
+    ctx.strokeStyle = b.color || '#3A7A6A';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(182, 120, 596, 48);
+    ctx.fillStyle = b.color || '#3A7A6A';
+    ctx.font = 'bold 18px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('市況 · ' + (b.name || '事件'), 480, 142);
+    ctx.fillStyle = '#E8DCC8';
+    ctx.font = '12px sans-serif';
+    ctx.fillText(b.blurb || '', 480, 160);
+    ctx.globalAlpha = 1;
+  }
+
   function drawBossBanner(ctx, state) {
     const b = state.bossBanner;
     if (!b || b.life <= 0) return;
@@ -918,6 +994,7 @@
     drawDragGhost(ctx, state);
     drawFx(ctx, state);
     drawModStrip(ctx, state);
+    drawEventBanner(ctx, state);
     drawBossBanner(ctx, state);
     drawMilestoneBanner(ctx, state);
     drawBondBanner(ctx, state);

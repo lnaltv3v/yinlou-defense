@@ -1,6 +1,6 @@
 /**
- * 銀樓防衛 — 主循環 v1.2.0
- * v1.2.0：抄底居士／週進度／結算清晰／小平衡
+ * 銀樓防衛 — 主循環 v1.3.0
+ * v1.3.0：正式 PNG 精靈／市況事件／停牌符／小平衡
  */
 (function () {
   const {
@@ -48,6 +48,7 @@
     recommendForStage,
     formatRunModifiers,
     ENDLESS_MILESTONES,
+    pickWaveEvent,
   } = YD;
   const AudioSfx = window.YDAudio;
   const Battle = YDBattle;
@@ -81,6 +82,10 @@
   if (save.version < 12) {
     save.version = 12;
     if (!save.weekDailyMap) save.weekDailyMap = {};
+    writeSave(save);
+  }
+  if (save.version < 13) {
+    save.version = 13;
     writeSave(save);
   }
   if (!save.weekDailyMap) save.weekDailyMap = {};
@@ -635,6 +640,28 @@
         state.waveIndex +
         ' 波來襲！'
     );
+    // 市況事件：第 2 波起機率觸發（教學波略過）
+    if (state.waveIndex >= 2 && typeof pickWaveEvent === 'function') {
+      const ev = pickWaveEvent();
+      if (ev) {
+        try {
+          ev.apply(state, Battle);
+        } catch (_) {}
+        state.eventBanner = {
+          name: ev.name,
+          blurb: ev.blurb,
+          color: ev.color || '#3A7A6A',
+          life: 2.5,
+          maxLife: 2.5,
+        };
+        UI.toast('市況｜' + ev.name + ' — ' + ev.blurb, 2400);
+        if (!save.ach.market_event) {
+          save.ach.market_event = true;
+          writeSave(save);
+          notifyAchievements();
+        }
+      }
+    }
     syncAll();
     const btn = document.getElementById('btn-wave');
     if (btn) btn.disabled = true;
@@ -1670,6 +1697,10 @@
       state.milestoneBanner.life -= rawDt;
       if (state.milestoneBanner.life <= 0) state.milestoneBanner = null;
     }
+    if (state.eventBanner && state.eventBanner.life > 0) {
+      state.eventBanner.life -= rawDt;
+      if (state.eventBanner.life <= 0) state.eventBanner = null;
+    }
     state._bonds = activeBonds(state.heroes);
     state._animT = (state._animT || 0) + rawDt;
     YDRender.render(ctx, state);
@@ -1695,9 +1726,9 @@
     : null;
   UI.showOverlay(
     '銀樓防衛',
-    '合併塔防 v1.2.0\n' +
+    '合併塔防 v1.3.0\n' +
       '三步上手：① 拖俠客落場 ② 同種合併升星 ③ 開波守銀樓。\n' +
-      '新：抄底居士｜本週進度條｜每日／週結算更清晰。\n' +
+      '新：首輪正式像素精靈｜開波市況事件｜停牌符。\n' +
       '失敗必出推薦陣容；卡關提示／閃光／震屏可喺設定關。\n' +
       (bonus > 0 ? '新手首局加銀 +' + bonus + ' 兩\n' : '') +
       (bootRec

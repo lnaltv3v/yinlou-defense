@@ -1,4 +1,4 @@
-/* 銀樓防衛 v1.2.0 — 墨點金融江湖 UI */
+/* 銀樓防衛 v1.3.0 — 墨點金融江湖 UI */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body {
   width: 100%; height: 100%;
@@ -243,6 +243,29 @@ header.title {
   top: 7px;
   width: 2px; height: 2px;
 }
+.hero-avatar .av-png {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  display: none;
+  pointer-events: none;
+}
+.hero-avatar.has-png .av-png { display: block; }
+.hero-avatar.has-png .av-fallback { display: none; }
+.hero-avatar .av-fallback {
+  position: absolute;
+  inset: 0;
+}
+.hero-avatar .av-fallback i {
+  position: absolute;
+  display: block;
+  image-rendering: pixelated;
+}
+
 .lineup-chips {
   display: flex;
   flex-wrap: wrap;

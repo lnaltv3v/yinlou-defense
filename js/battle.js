@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 戰鬥／生成／合併邏輯 v1.2.0
+ * 銀樓防衛 — 戰鬥／生成／合併邏輯 v1.3.0
  */
 (function (global) {
   const { HEROES, ENEMIES, GRID, CORE, heroStats, activeBonds, bondModsFor, MAX_STAR, UPGRADE_PATHS, upgradeCost } = global.YD;
@@ -43,6 +43,7 @@
       atkBuffT: 0,
       atkCount: 0,
       swingT: 0,
+      stunT: 0,
       idlePhase: Math.random() * Math.PI * 2,
       guardProcT: 0,
       upAtk: up.upAtk || 0,
@@ -561,6 +562,7 @@
       if (h.hp <= 0) continue;
       if (h.hitFlash > 0) h.hitFlash -= dt;
       if (h.swingT > 0) h.swingT = Math.max(0, h.swingT - dt);
+      if (h.stunT > 0) h.stunT = Math.max(0, h.stunT - dt);
       if (h.guardProcT > 0) h.guardProcT = Math.max(0, h.guardProcT - dt);
       if (h.atkBuffT > 0) {
         h.atkBuffT -= dt;
@@ -572,6 +574,7 @@
       tickSupport(h, state.heroes, state, dt);
       const mods = bondModsFor(h.id, state._bonds);
       h.cd -= dt;
+      if (h.stunT > 0) continue;
       if (h.cd > 0) continue;
       if (h.def.role === 'buffer') {
         const allies = state.heroes.some(
@@ -707,6 +710,8 @@
       // 傷害加成喺呼叫處處理
     } else if (sk.type === 'lifesteal') {
       // 回血喺呼叫處處理
+    } else if (sk.type === 'stun') {
+      if (hero) hero.stunT = Math.max(hero.stunT || 0, sk.dur || 1);
     }
   }
 
@@ -770,6 +775,19 @@
             if (global.YDAudio) global.YDAudio.play('skill');
           }
           applyHeroDamage(hero, dmg, state.floats, state);
+          const stunSec = (e.def && e.def.stunSec) || (canSkill && sk && sk.type === 'stun' ? sk.dur : 0);
+          if (stunSec) {
+            hero.stunT = Math.max(hero.stunT || 0, stunSec);
+            pushFloat(state.floats, {
+              x: hero.x,
+              y: hero.y - 26,
+              text: '停牌',
+              color: '#C9A227',
+              size: 12,
+              vy: -22,
+              life: 0.7,
+            });
+          }
           if (canSkill && sk.type === 'lifesteal') {
             const heal = Math.round(dmg * (sk.healRatio || 0.4));
             e.hp = Math.min(e.maxHp, e.hp + heal);

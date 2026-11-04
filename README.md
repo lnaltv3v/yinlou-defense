@@ -29,13 +29,13 @@ python3 -m http.server 8765
 ## 技術
 - 純前端 Vanilla JS，無框架
 - Canvas 960×540，pixelated
-- 存檔：`localStorage` key `yinlou-defense-save-v1`（v10；可 JSON 匯出／匯入）
+- 存檔：`localStorage` key `yinlou-defense-save-v1`（version 13；可 JSON 匯出／匯入）
 
 ## 版本
-而家 **v1.2.0**（抄底居士／本週進度／結算清晰／成就 26；程式側完整一局；正式精靈 PNG／音檔可後補）。詳見 `CHANGELOG.md`、`DESIGN.md`。
+而家 **v1.3.0**（首輪正式像素精靈＋市況事件＋停牌符；成就 28；音檔仍後補）。詳見 `CHANGELOG.md`、`DESIGN.md`。
 
 ### 已知問題／後補
-- 單位與場景仍係**程式像素**，非最終美術稿。
+- 場景仍係**程式像素**；俠／敵已接首輪 PNG（未齊 id 走幾何 fallback）。
 - 音效為 Web Audio 蜂鳴，非正式採樣／BGM。
 
 ## 授權說明
