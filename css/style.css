@@ -1584,3 +1584,9 @@ button.set-badge { appearance: none; -webkit-appearance: none; }
 /* v4.8 lock short */
 .lock-short-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 8px 0; }
 .lock-short-row .dual-short-input { flex: 1 1 180px; }
+
+/* v4.9 star legend / lock summary */
+.snap-star-legend { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 4px; }
+.snap-star-swatch { font-size: 11px; padding: 2px 6px; border: 1px solid; border-radius: 4px; background: rgba(26,21,16,0.35); }
+.snap-star-swatch.fail { font-weight: 600; }
+.lock-summary-line { margin: 2px 0 8px; color: #A89070; }

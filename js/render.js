@@ -550,7 +550,7 @@
       ctx.arc(cb.x, cb.y, 3, 0, Math.PI * 2);
       ctx.fill();
     });
-    // v4.8：吸附環按星級上色＋合法合高亮＋目標環
+    // v4.9：吸附環按星級上色＋合法合高亮＋目標環
     const drag = state.drag;
     if (drag && drag.active) {
       function hexAlpha(hex, a) {
@@ -594,6 +594,36 @@
         ctx.textAlign = 'center';
         ctx.fillText('★' + (snap.star || '') + '吸附', sc.x, sc.y - ring - 6);
         if (window.__yinlouMarkTutMergeSnap) window.__yinlouMarkTutMergeSnap();
+      }
+    }
+    // v4.9：合失敗紅閃環
+    const fail = state.mergeFailFlash;
+    if (fail) {
+      const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+      if (now > fail.until) {
+        state.mergeFailFlash = null;
+      } else {
+        const sc = cellCenter(fail.lane, fail.slot);
+        const age = (now - (fail.born || now)) / 520;
+        const alpha = Math.max(0, 1 - age);
+        const ring = 16 + 10 * age;
+        ctx.save();
+        ctx.setLineDash([]);
+        ctx.strokeStyle = 'rgba(204,68,68,' + (0.85 * alpha).toFixed(2) + ')';
+        ctx.lineWidth = 3.5;
+        ctx.beginPath();
+        ctx.arc(sc.x, sc.y, ring, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.strokeStyle = 'rgba(255,120,100,' + (0.45 * alpha).toFixed(2) + ')';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(sc.x, sc.y, ring + 6, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(255,180,170,' + (0.7 * alpha).toFixed(2) + ')';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('合失敗', sc.x, sc.y - ring - 6);
+        ctx.restore();
       }
     }
     ctx.restore();
