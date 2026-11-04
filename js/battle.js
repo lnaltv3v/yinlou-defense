@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 戰鬥／生成／合併邏輯 v1.0.0
+ * 銀樓防衛 — 戰鬥／生成／合併邏輯 v1.0.1
  */
 (function (global) {
   const { HEROES, ENEMIES, GRID, CORE, heroStats, activeBonds, bondModsFor, MAX_STAR, UPGRADE_PATHS, upgradeCost } = global.YD;
@@ -835,6 +835,17 @@
     state.heroes = state.heroes.filter((h) => h.hp > 0);
   }
 
+  function compactAlive(arr, maxLen) {
+    let w = 0;
+    for (let i = 0; i < arr.length; i++) {
+      if (arr[i].life > 0) {
+        if (w !== i) arr[w] = arr[i];
+        w++;
+      }
+    }
+    arr.length = maxLen != null && w > maxLen ? maxLen : w;
+  }
+
   function tickFloats(state, dt) {
     for (const f of state.floats) {
       f.life -= dt;
@@ -843,11 +854,9 @@
       f.y += (f.vy || -20) * dt;
       f._bounceY = bounce;
     }
-    state.floats = state.floats.filter((f) => f.life > 0);
-    if (state.floats.length > 48) state.floats.length = 48;
+    compactAlive(state.floats, 48);
     for (const fx of state.fx) fx.life -= dt;
-    state.fx = state.fx.filter((fx) => fx.life > 0);
-    if (state.fx.length > 36) state.fx.length = 36;
+    compactAlive(state.fx, 36);
     if (state.shake > 0) state.shake = Math.max(0, state.shake - dt);
     if (state.coreHitFlash > 0) state.coreHitFlash = Math.max(0, state.coreHitFlash - dt);
     if (state.bossBanner && state.bossBanner.life > 0) {
@@ -952,25 +961,45 @@
 
   function hitTestCell(mx, my, pad) {
     const p = pad || 0;
+    let best = null;
+    let bestD = Infinity;
     for (let lane = 0; lane < GRID.lanes; lane++) {
       for (let slot = 0; slot < GRID.slots; slot++) {
         const x = GRID.originX + slot * (GRID.cellW + GRID.gapX);
         const y = GRID.originY + lane * (GRID.cellH + GRID.gapY);
         if (mx >= x - p && mx <= x + GRID.cellW + p && my >= y - p && my <= y + GRID.cellH + p) {
-          return { lane, slot, x, y };
+          if (!p) return { lane, slot, x, y };
+          const cx = x + GRID.cellW * 0.5;
+          const cy = y + GRID.cellH * 0.5;
+          const d = (mx - cx) * (mx - cx) + (my - cy) * (my - cy);
+          if (d < bestD) {
+            bestD = d;
+            best = { lane, slot, x, y };
+          }
         }
       }
     }
-    return null;
+    return best;
   }
 
   function hitTestHero(heroes, mx, my, pad) {
     const px = pad != null ? pad : 0;
+    let best = null;
+    let bestD = Infinity;
     for (let i = heroes.length - 1; i >= 0; i--) {
       const h = heroes[i];
-      if (Math.abs(mx - h.x) < 28 + px && Math.abs(my - h.y) < 36 + px) return h;
+      const dx = Math.abs(mx - h.x);
+      const dy = Math.abs(my - h.y);
+      if (dx < 28 + px && dy < 36 + px) {
+        if (!px) return h;
+        const d = dx * dx + dy * dy;
+        if (d < bestD) {
+          bestD = d;
+          best = h;
+        }
+      }
     }
-    return null;
+    return best;
   }
 
   /** 合併成功特效包 */

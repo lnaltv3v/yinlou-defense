@@ -32,7 +32,7 @@ python3 -m http.server 8765
 - 存檔：`localStorage` key `yinlou-defense-save-v1`（v10；可 JSON 匯出／匯入）
 
 ## 版本
-而家 **v1.0.0**（程式側完整一局；正式精靈 PNG／音檔可後補）。詳見 `CHANGELOG.md`、`DESIGN.md`。
+而家 **v1.0.1**（程式側完整一局；正式精靈 PNG／音檔可後補）。詳見 `CHANGELOG.md`、`DESIGN.md`。
 
 ### 已知問題／後補
 - 單位與場景仍係**程式像素**，非最終美術稿。

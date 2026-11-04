@@ -1,6 +1,6 @@
 /**
- * 銀樓防衛 — 主循環 v1.0.0
- * v1.0：新手打磨／曲線／修飾結算／圖鑑 lore／成就／推薦／像素加厚
+ * 銀樓防衛 — 主循環 v1.0.1
+ * v1.0.1：觸控命中／商店拖誤點／效能小優化
  */
 (function () {
   const {
@@ -277,6 +277,7 @@
   shopApi = UI.buildShop(
     (id) => {
       if (state.phase === 'won' || state.phase === 'lost') return;
+      if (state._suppressShopClick) return;
       state.selectedShopId = state.selectedShopId === id ? null : id;
       state.selectedHeroUid = null;
       state.mergeFromUid = null;
@@ -1176,7 +1177,7 @@
     if (ev.button != null && ev.button !== 0) return;
     const { x, y } = canvasPos(ev);
     const isTouch = ev.pointerType === 'touch' || ev.pointerType === 'pen';
-    state._touchPad = isTouch ? 14 : 0;
+    state._touchPad = isTouch ? 18 : 0;
     const hero = Battle.hitTestHero(state.heroes, x, y, state._touchPad);
     if (hero) {
       ptr = {
@@ -1238,7 +1239,7 @@
     const { x, y } = canvasPos(ev);
     const dx = x - ptr.startX;
     const dy = y - ptr.startY;
-    const thresh = ptr.isTouch ? 5 : 8;
+    const thresh = ptr.isTouch ? 6 : 8;
     if (!ptr.moved && Math.hypot(dx, dy) > thresh) {
       ptr.moved = true;
       if (state.drag) state.drag.active = true;
@@ -1247,7 +1248,7 @@
     if (!state.drag) return;
     state.drag.x = x;
     state.drag.y = y;
-    const pad = ptr.isTouch ? 10 : 0;
+    const pad = ptr.isTouch ? 16 : 0;
     const cell = Battle.hitTestCell(x, y, pad);
     if (cell) {
       state.drag.hoverLane = cell.lane;
@@ -1271,8 +1272,10 @@
   function endPointer(ev) {
     if (!ptr) return;
     const { x, y } = canvasPos(ev);
-    const cell = Battle.hitTestCell(x, y, ptr.isTouch ? 10 : 0);
+    const cell = Battle.hitTestCell(x, y, ptr.isTouch ? 16 : 0);
     const wasDrag = ptr.moved;
+    const fromShop = !!ptr.fromShopBtn;
+    const pid = ptr.pointerId;
 
     if (wasDrag) {
       state._suppressClick = true;
@@ -1288,19 +1291,37 @@
         }
       }
     }
+    // 商店觸控拖完（有移動）才擋按鈕殘餘 click；純點選仍要 click 選俠
+    if (fromShop && wasDrag) {
+      state._suppressShopClick = true;
+      setTimeout(() => {
+        state._suppressShopClick = false;
+      }, 420);
+    }
+    try {
+      if (pid != null && canvas.hasPointerCapture && canvas.hasPointerCapture(pid)) {
+        canvas.releasePointerCapture(pid);
+      }
+    } catch (_) {}
     clearDrag();
   }
 
   canvas.addEventListener('pointerup', endPointer);
-  canvas.addEventListener('pointercancel', () => clearDrag());
+  canvas.addEventListener('pointercancel', () => {
+    if (ptr && ptr.moved) state._suppressClick = true;
+    clearDrag();
+  });
 
   // 商店觸控拖：pointer 可能 capt 喺按鈕上，用 window 接力
   window.addEventListener('pointermove', (ev) => {
     if (!ptr || !ptr.fromShopBtn) return;
+    if (ptr.moved) {
+      try { ev.preventDefault(); } catch (_) {}
+    }
     const { x, y } = canvasPos(ev);
     const dx = x - ptr.startX;
     const dy = y - ptr.startY;
-    if (!ptr.moved && Math.hypot(dx, dy) > 5) {
+    if (!ptr.moved && Math.hypot(dx, dy) > 6) {
       ptr.moved = true;
       if (state.drag) state.drag.active = true;
       canvas.classList.add('dragging');
@@ -1308,7 +1329,7 @@
     if (!state.drag) return;
     state.drag.x = x;
     state.drag.y = y;
-    const cell = Battle.hitTestCell(x, y, ptr.isTouch ? 10 : 0);
+    const cell = Battle.hitTestCell(x, y, 16);
     if (cell) {
       state.drag.hoverLane = cell.lane;
       state.drag.hoverSlot = cell.slot;
@@ -1318,14 +1339,31 @@
       state.drag.hoverSlot = null;
       state.drag.validHover = false;
     }
-  }, { passive: true });
+  }, { passive: false });
   window.addEventListener('pointerup', (ev) => {
     if (!ptr || !ptr.fromShopBtn) return;
     endPointer(ev);
   });
   window.addEventListener('pointercancel', () => {
-    if (ptr && ptr.fromShopBtn) clearDrag();
+    if (ptr && ptr.fromShopBtn) {
+      if (ptr.moved) {
+        state._suppressShopClick = true;
+        setTimeout(() => {
+          state._suppressShopClick = false;
+        }, 420);
+      }
+      clearDrag();
+    }
   });
+  // iOS：額外擋 touchmove 捲動（部分機 pointermove preventDefault 唔夠）
+  window.addEventListener(
+    'touchmove',
+    (ev) => {
+      if (ptr && ptr.fromShopBtn && ptr.moved && ev.cancelable) ev.preventDefault();
+      if (state.drag && state.drag.active && ev.cancelable) ev.preventDefault();
+    },
+    { passive: false }
+  );
 
   canvas.addEventListener('dragover', (ev) => {
     ev.preventDefault();
@@ -1485,6 +1523,7 @@
       if (state.milestoneBanner.life <= 0) state.milestoneBanner = null;
     }
     state._bonds = activeBonds(state.heroes);
+    state._animT = (state._animT || 0) + rawDt;
     YDRender.render(ctx, state);
     // HUD 唔使每幀 DOM 寫入（敵人多時穩 60fps）
     if (!frame._hudAcc) frame._hudAcc = 0;
@@ -1507,7 +1546,7 @@
     : null;
   UI.showOverlay(
     '銀樓防衛',
-    '合併塔防 v1.0.0\n' +
+    '合併塔防 v1.0.1\n' +
       '三步上手：① 拖俠客落場 ② 同種合併升星 ③ 開波守銀樓。\n' +
       '失敗必出推薦陣容；卡關提示／閃光／震屏可喺設定關。\n' +
       (bonus > 0 ? '新手首局加銀 +' + bonus + ' 兩\n' : '') +
@@ -1560,6 +1599,9 @@
     const el = document.getElementById('orient-hint');
     if (!el) return;
     let dismissed = false;
+    try {
+      dismissed = sessionStorage.getItem('yinlou-orient-dismiss') === '1';
+    } catch (_) {}
     function update() {
       if (dismissed) {
         el.classList.remove('show');
@@ -1578,6 +1620,9 @@
     if (btn) {
       btn.addEventListener('click', () => {
         dismissed = true;
+        try {
+          sessionStorage.setItem('yinlou-orient-dismiss', '1');
+        } catch (_) {}
         el.classList.remove('show');
       });
     }

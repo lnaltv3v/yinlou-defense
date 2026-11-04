@@ -1,4 +1,4 @@
-/* 銀樓防衛 v0.9 — 墨點金融江湖 UI */
+/* 銀樓防衛 v1.0.1 — 墨點金融江湖 UI */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body {
   width: 100%; height: 100%;
@@ -6,8 +6,10 @@ html, body {
   color: #E8DCC8;
   font-family: "PingFang HK", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
   overflow: hidden;
+  overscroll-behavior: none;
   user-select: none;
   -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 #app {
   width: 100%; height: 100%;

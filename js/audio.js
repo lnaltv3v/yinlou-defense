@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — Web Audio 極簡蜂鳴 v1.0.0
+ * 銀樓防衛 — Web Audio 極簡蜂鳴 v1.0.1
  * 可關；正式 ogg／wav 仍後備。
  */
 (function (global) {

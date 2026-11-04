@@ -1,6 +1,6 @@
 /**
- * 銀樓防衛 — Canvas 繪製 v1.0.0
- * v1.0：里程碑橫幅／閃光可關／像素再加厚
+ * 銀樓防衛 — Canvas 繪製 v1.0.1
+ * v1.0.1：少重複計算／跟主循環 dt
  */
 (function (global) {
   const { COLORS, GRID, CORE, HEROES, ENEMIES, MAX_STAR, upgradeLabel } = global.YD;
@@ -895,10 +895,8 @@
   function render(ctx, state) {
     const w = ctx.canvas.width;
     const h = ctx.canvas.height;
-    state._animT = (state._animT || 0) + 0.016;
-    if (global.YD && global.YD.activeBonds) {
-      state._bonds = global.YD.activeBonds(state.heroes || []);
-    }
+    // _animT／_bonds 由主循環更新，避免每幀重算羈絆
+    if (state._animT == null) state._animT = 0;
     ctx.save();
     if (state.shake > 0 && !state.paused) {
       const mag = Math.min(state.reduceShake ? 3 : 6, state.shake * (state.reduceShake ? 14 : 28));
