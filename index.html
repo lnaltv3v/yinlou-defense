@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>銀樓防衛 v0.1.0</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="title">銀樓防衛 · YINLOU DEFENSE</header>
+    <div id="wrap">
+      <canvas id="game" width="960" height="540" aria-label="遊戲畫面"></canvas>
+      <div id="toast"></div>
+      <div id="overlay">
+        <h2 id="overlay-title">準備</h2>
+        <p id="overlay-msg"></p>
+        <button type="button" class="action-btn" id="btn-overlay">開始</button>
+      </div>
+    </div>
+    <div id="hud">
+      <div class="stat">銀兩 <strong id="stat-silver">0</strong></div>
+      <div class="stat">核心 <strong id="stat-hp">0</strong></div>
+      <div class="stat">波次 <strong id="stat-wave">0</strong></div>
+      <div class="stat">關卡 <strong id="stat-stage">1</strong></div>
+    </div>
+    <div id="shop"></div>
+    <p class="hint">點底欄俠客 → 點空格放置｜點兩名同種同星合併升星｜開波守銀樓｜最高 3 星</p>
+  </div>
+  <script src="js/data.js"></script>
+  <script src="js/battle.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>

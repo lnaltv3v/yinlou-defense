@@ -1,0 +1,120 @@
+/* 銀樓防衛 v0.1 — 墨點金融江湖 UI */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  width: 100%; height: 100%;
+  background: #1A1510;
+  color: #E8DCC8;
+  font-family: "PingFang HK", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+#app {
+  width: 100%; height: 100%;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 8px;
+  padding: 8px;
+}
+header.title {
+  font-size: 18px; letter-spacing: 0.12em;
+  color: #C9A227;
+  text-shadow: 0 1px 0 #1A1510;
+}
+#wrap {
+  position: relative;
+  line-height: 0;
+  border: 3px solid #3A3028;
+  box-shadow: 0 0 0 1px #C45C4A, 0 8px 24px rgba(0,0,0,.45);
+  max-width: 100%;
+}
+#game {
+  display: block;
+  width: 960px; height: 540px;
+  max-width: 100%;
+  height: auto;
+  aspect-ratio: 960 / 540;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  background: #2A241C;
+  cursor: crosshair;
+}
+#hud {
+  width: min(960px, 100%);
+  display: flex; flex-wrap: wrap; gap: 8px;
+  align-items: center; justify-content: space-between;
+  font-size: 13px;
+}
+#hud .stat {
+  background: #2A241C;
+  border: 2px solid #3A3028;
+  padding: 6px 10px;
+  color: #E8DCC8;
+}
+#hud .stat strong { color: #D4AF37; }
+#shop {
+  width: min(960px, 100%);
+  display: flex; flex-wrap: wrap; gap: 6px;
+  align-items: stretch;
+}
+.hero-btn, .action-btn {
+  flex: 1 1 110px;
+  min-height: 52px;
+  border: 2px solid #3A3028;
+  background: #2A241C;
+  color: #E8DCC8;
+  font-size: 12px;
+  padding: 6px 8px;
+  cursor: pointer;
+  text-align: left;
+}
+.hero-btn:hover, .action-btn:hover { border-color: #C9A227; }
+.hero-btn.selected {
+  border-color: #C45C4A;
+  box-shadow: inset 0 0 0 1px #C45C4A;
+}
+.hero-btn .cost { color: #D4AF37; }
+.hero-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.action-btn {
+  flex: 0 0 auto;
+  background: #3A7A6A;
+  border-color: #2A6A6A;
+  color: #E8DCC8;
+  font-weight: 600;
+  text-align: center;
+  min-width: 96px;
+}
+.action-btn.danger { background: #A04040; border-color: #C45C4A; }
+.action-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+#toast {
+  position: absolute; left: 50%; top: 12%;
+  transform: translateX(-50%);
+  background: rgba(26,21,16,.92);
+  border: 2px solid #C9A227;
+  color: #E8DCC8;
+  padding: 8px 14px;
+  font-size: 14px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .2s;
+  z-index: 5;
+}
+#toast.show { opacity: 1; }
+#overlay {
+  position: absolute; inset: 0;
+  background: rgba(26,21,16,.82);
+  display: none;
+  align-items: center; justify-content: center;
+  flex-direction: column; gap: 12px;
+  z-index: 6;
+  line-height: 1.4;
+}
+#overlay.show { display: flex; }
+#overlay h2 { color: #C9A227; font-size: 28px; letter-spacing: .1em; }
+#overlay p { color: #E8DCC8; font-size: 14px; max-width: 420px; text-align: center; white-space: pre-line; }
+.hint {
+  width: min(960px, 100%);
+  font-size: 11px;
+  color: #8A7E6E;
+  text-align: center;
+}
