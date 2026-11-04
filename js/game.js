@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 主循環 v1.9.0
+ * 銀樓防衛 — 主循環 v2.0.0
  * v1.9.0：第7關／鎖倉居士／週連續＋本地最佳牆／手感平衡
  */
 (function () {
@@ -17,6 +17,8 @@
     writeSave,
     defaultSave,
     exportSaveJson,
+    exportLocalWallJson,
+    exportLocalWallText,
     importSaveJson,
     pickFailTip,
     firstRunBonus,
@@ -266,6 +268,7 @@
       lockProcs: 0,
       lockKills: 0,
       _circuitKills: 0,
+      _haltTideKills: 0,
       _circuitProcs: 0,
       _swanKills: 0,
       _killStreak: 0,
@@ -345,6 +348,9 @@
       save.ach.endless_triple = true;
       writeSave(save);
       notifyAchievements();
+    }
+    if ((state._haltTideKills || 0) >= 1 && !save.ach.halt_tide_kill) {
+      save.ach.halt_tide_kill = true;
     }
     if ((state._circuitKills || 0) >= 1 && !save.ach.circuit_kill) {
       save.ach.circuit_kill = true;
@@ -691,6 +697,7 @@
     if (state.lockProcs) bits.push('鎖倉印 ×' + state.lockProcs);
     if (state.lockKills) bits.push('鎖倉擊殺 ' + state.lockKills);
     if (state._circuitKills) bits.push('熔斷天鵝擊破 ×' + state._circuitKills);
+    if (state._haltTideKills) bits.push('停牌潮擊破 ×' + state._haltTideKills);
     if (state._bonds && state._bonds.length) {
       bits.push('羈絆：' + state._bonds.map((b) => b.name).join('、'));
     }
@@ -937,7 +944,7 @@
         save.firstClears.all = true;
         finaleBonus = (YD.STAGE_FIRST_CLEAR && YD.STAGE_FIRST_CLEAR.all) || 250;
         save.totalSilver += finaleBonus;
-        rewardLines.push('七關皆破！終局獎勵 +' + finaleBonus + ' 兩');
+        rewardLines.push('十一關皆破！終局獎勵 +' + finaleBonus + ' 兩');
       }
       if (save.localBest) {
         save.localBest.stageClears = Math.max(save.localBest.stageClears || 0, save.maxStageCleared || 0);
@@ -977,27 +984,31 @@
         },
       });
       const title =
-        stageId >= 10
+        stageId >= 11
           ? hasNext
-            ? '雙天鵝夜'
-            : '十關皆破'
-          : stageId >= 9
+            ? '停牌潮夜'
+            : '十一關皆破'
+          : stageId >= 10
             ? hasNext
-              ? '開年軋空'
-              : '十關皆破'
-            : stageId >= 8
+              ? '雙天鵝夜'
+              : '十一關皆破'
+            : stageId >= 9
               ? hasNext
-                ? '銀樓守歲'
-                : '十關皆破'
-              : stageId >= 7
+                ? '開年軋空'
+                : '十一關皆破'
+              : stageId >= 8
                 ? hasNext
-                  ? '斷索開市'
-                  : '十關皆破'
-                : stageId >= 6
-                  ? '暗盤破曉'
-                  : hasNext
-                    ? '銀樓倖存'
-                    : '十關皆破';
+                  ? '銀樓守歲'
+                  : '十一關皆破'
+                : stageId >= 7
+                  ? hasNext
+                    ? '斷索開市'
+                    : '十一關皆破'
+                  : stageId >= 6
+                    ? '暗盤破曉'
+                    : hasNext
+                      ? '銀樓倖存'
+                      : '十一關皆破';
       const rewardBlock = rewardLines.length ? '\n' + rewardLines.join('\n') + '。' : '';
       UI.showOverlay(
         title,
@@ -1012,7 +1023,7 @@
           runModBlock() + settleExtraBlock() +
           (hasNext
             ? '\n已解鎖下一關' + (wasNew ? '「' + STAGES[nextIdx].name + '」' : '') + '。'
-            : '\n主線全破！可挑戰無盡／每日／週挑戰，或重溫雙天鵝／軋空。'),
+            : '\n主線全破！可挑戰無盡／每日／週挑戰，或重溫停牌潮／雙天鵝。'),
         hasNext ? '下一關' : '回第 1 關',
         () => {
           UI.hideOverlay();
@@ -1241,6 +1252,51 @@
         writeSave(save);
         state.tutorialStep = save.skipTutorial ? 99 : 0;
         syncAll();
+      },
+
+      onExportWallJson: () => {
+        try {
+          const json = typeof exportLocalWallJson === 'function' ? exportLocalWallJson(save) : '{}';
+          const blob = new Blob([json], { type: 'application/json' });
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = 'yinlou-local-wall.json';
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(() => {
+            URL.revokeObjectURL(a.href);
+            a.remove();
+          }, 500);
+          if (!save.ach) save.ach = {};
+          save.ach.wall_export = true;
+          writeSave(save);
+          notifyAchievements();
+          UI.toast('已匯出本地牆 JSON');
+        } catch (err) {
+          UI.toast('牆匯出失敗');
+        }
+      },
+      onExportWallText: () => {
+        try {
+          const text = typeof exportLocalWallText === 'function' ? exportLocalWallText(save) : '';
+          const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = 'yinlou-local-wall.txt';
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(() => {
+            URL.revokeObjectURL(a.href);
+            a.remove();
+          }, 500);
+          if (!save.ach) save.ach = {};
+          save.ach.wall_export = true;
+          writeSave(save);
+          notifyAchievements();
+          UI.toast('已匯出本地牆文字');
+        } catch (err) {
+          UI.toast('牆匯出失敗');
+        }
       },
       onExportSave: () => {
         try {

@@ -615,3 +615,35 @@ header.title {
 }
 .wall-cell span { display: block; color: #A89880; font-size: 11px; }
 .wall-cell strong { color: #C9A227; font-size: 13px; }
+
+
+/* v2.0 圖鑑／羈絆卡片加厚 */
+#overlay.paper-panel .paper-entry.card-thick {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid #5A4030;
+  background: rgba(26, 21, 16, 0.35);
+  margin-bottom: 8px;
+}
+#overlay.paper-panel .paper-entry.card-thick .card-meta {
+  font-size: 12px;
+  color: #E8DCC8;
+  opacity: 0.9;
+}
+#overlay.paper-panel .paper-entry.card-thick .card-skill {
+  font-size: 12px;
+  color: #C9A227;
+  line-height: 1.35;
+}
+#overlay.paper-panel .paper-entry.card-thick .card-skill b {
+  color: #E8C96A;
+}
+#overlay.paper-panel .paper-entry.bond-card {
+  border-color: #C9A227;
+}
+#overlay.codex-mode p,
+#overlay.codex-mode .paper-body {
+  max-height: 400px;
+}

@@ -47,3 +47,8 @@
 
 
 已補：`circuit_swan`（熔斷天鵝）idle／attack／sheet（v1.9）；缺檔仍借黑天鵝幀／幾何。
+
+
+## v2.0
+- `halt_tide`（停牌潮）：未派正式 PNG；執行時借 `halt_seal` idle／attack，否則幾何。
+- `circuit_swan`／`lock_hermit` 維持既有正式 PNG。

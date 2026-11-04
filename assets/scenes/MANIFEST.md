@@ -21,3 +21,8 @@ Canvas **960×540**，硬邊／嚴格色盤，PNG RGBA。
 
 ## v1.8
 - `battle_mid.png`／`battle_props.png` 覆寫加厚（2026-11-05）；cache bust 跟 `sprites.js` CACHE_VER。
+
+
+## v2.0
+- `battle_ground.png`／`core_wall.png` 覆寫加厚（2026-11-05）；`CACHE_VER=2.0.0`。
+- 疊加仍：ground → mid → wall → 單位／FX → props；缺 ground／wall 回退程式底。

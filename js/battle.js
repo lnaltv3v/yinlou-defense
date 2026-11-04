@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 戰鬥／生成／合併邏輯 v1.9.0
+ * 銀樓防衛 — 戰鬥／生成／合併邏輯 v2.0.0
  * v1.4：擊退／超殺／擊破爆點／陣亡墨塵
  */
 (function (global) {
@@ -828,6 +828,62 @@
         r: 28,
       });
       state._circuitProcs = (state._circuitProcs || 0) + 1;
+    } else if (sk.type === 'halt_tide') {
+      const stunDur = sk.stunDur || 1.1;
+      const rad = sk.stunRad || 150;
+      const pad = sk.heroCdPad || 0.8;
+      for (const h of state.heroes) {
+        if (h.hp <= 0) continue;
+        if (Math.hypot(h.x - enemy.x, h.y - enemy.y) > rad) continue;
+        h.stunT = Math.max(h.stunT || 0, stunDur);
+        h.cd = Math.max(h.cd || 0, pad);
+        h.hitFlash = Math.max(h.hitFlash || 0, 0.35);
+      }
+      if (sk.sealRush) {
+        for (const o of state.enemies) {
+          if (o.hp <= 0 || o.uid === enemy.uid) continue;
+          if (o.id !== 'halt_seal' && !(o.def && o.def.id === 'halt_seal')) continue;
+          if (Math.hypot(o.x - enemy.x, o.y - enemy.y) > rad + 40) continue;
+          o.speed = o.baseSpeed * (sk.sealRushMul || 1.18);
+          o.rushT = Math.max(o.rushT || 0, sk.sealRush);
+        }
+      }
+      if (sk.coreDmg) {
+        state.coreHp -= sk.coreDmg;
+        state.coreHitFlash = 0.55;
+        state.shake = Math.max(state.shake || 0, 0.36);
+        pushFloat(state.floats, {
+          x: CORE.x,
+          y: CORE.y - 52,
+          text: '臨停潮 -' + sk.coreDmg,
+          color: '#C4A070',
+          size: 16,
+          vy: -32,
+          life: 1.15,
+          bounce: 1.2,
+        });
+      }
+      pushFloat(state.floats, {
+        x: enemy.x,
+        y: enemy.y - 40,
+        text: '⛔ 停牌潮！',
+        color: '#C4A070',
+        size: 15,
+        vy: -26,
+        life: 1.0,
+        bounce: 1.1,
+      });
+      pushFx(state, { type: 'haltTideWarn', life: 1.2 });
+      pushFx(state, {
+        type: 'skill',
+        x: enemy.x,
+        y: enemy.y,
+        color: '#6A5040',
+        life: 0.55,
+        text: sk.name,
+        r: 30,
+      });
+      state._haltTideProcs = (state._haltTideProcs || 0) + 1;
     }
   }
 
@@ -1002,6 +1058,7 @@
         if (e.id === 'rumor_swarm') state._rumorKills = (state._rumorKills || 0) + 1;
         if (e.id === 'dark_tape') state._darkKills = (state._darkKills || 0) + 1;
         if (e.id === 'circuit_swan') state._circuitKills = (state._circuitKills || 0) + 1;
+        if (e.id === 'halt_tide') state._haltTideKills = (state._haltTideKills || 0) + 1;
         if (e.id === 'black_swan') state._swanKills = (state._swanKills || 0) + 1;
         if (e.elite) {
           state._eliteKills = (state._eliteKills || 0) + 1;
@@ -1121,30 +1178,40 @@
   }
 
   function announceBoss(state, enemy) {
-    const isCircuit = enemy.id === 'circuit_swan' || (enemy.def && enemy.def.id === 'circuit_swan');
+    const eid = enemy.id || (enemy.def && enemy.def.id);
+    const isCircuit = eid === 'circuit_swan';
+    const isTide = eid === 'halt_tide';
+    const life = isCircuit || isTide ? 3.2 : 2.9;
     state.bossBanner = {
       name: enemy.def.name,
-      life: isCircuit ? 3.2 : 2.9,
-      maxLife: isCircuit ? 3.2 : 2.9,
-      kind: isCircuit ? 'circuit' : 'boss',
-      blurb: isCircuit ? '熔斷鐘將響 — 俠客短暫停刀' : (enemy.def.skill && enemy.def.skill.blurb) || '',
+      life: life,
+      maxLife: life,
+      kind: isTide ? 'halt_tide' : isCircuit ? 'circuit' : 'boss',
+      blurb: isTide
+        ? '停牌潮湧入 — 範圍臨停'
+        : isCircuit
+          ? '熔斷鐘將響 — 俠客短暫停刀'
+          : (enemy.def.skill && enemy.def.skill.blurb) || '',
     };
-    state.shake = Math.max(state.shake || 0, isCircuit ? 0.4 : 0.32);
-    state.coreHitFlash = Math.max(state.coreHitFlash || 0, isCircuit ? 0.55 : 0.35);
-    state.fx.push({ type: isCircuit ? 'circuitWarn' : 'bossWarn', life: isCircuit ? 2.8 : 2.5 });
+    state.shake = Math.max(state.shake || 0, isCircuit || isTide ? 0.4 : 0.32);
+    state.coreHitFlash = Math.max(state.coreHitFlash || 0, isCircuit || isTide ? 0.55 : 0.35);
+    state.fx.push({
+      type: isTide ? 'haltTideWarn' : isCircuit ? 'circuitWarn' : 'bossWarn',
+      life: isCircuit || isTide ? 2.8 : 2.5,
+    });
     pushFloat(state.floats, {
       x: 480,
       y: 190,
-      text: (isCircuit ? '🔔 ' : '⚠ ') + enemy.def.name + ' 入場',
-      color: isCircuit ? '#E8C96A' : '#C9A227',
-      size: isCircuit ? 24 : 22,
+      text: (isTide ? '⛔ ' : isCircuit ? '🔔 ' : '⚠ ') + enemy.def.name + ' 入場',
+      color: isTide ? '#C4A070' : isCircuit ? '#E8C96A' : '#C9A227',
+      size: isCircuit || isTide ? 24 : 22,
       vy: -10,
-      life: isCircuit ? 2.6 : 2.3,
+      life: isCircuit || isTide ? 2.6 : 2.3,
       bounce: 0.4,
     });
     if (isCircuit) {
       const dual = (state.enemies || []).some(
-        (e) => e.hp > 0 && e.boss && e.uid !== enemy.uid && (e.id === 'black_swan' || e.id === 'circuit_swan')
+        (e) => e.hp > 0 && e.boss && e.uid !== enemy.uid && (e.id === 'black_swan' || e.id === 'circuit_swan' || e.id === 'halt_tide')
       );
       pushFloat(state.floats, {
         x: 480,
@@ -1160,6 +1227,17 @@
         state.bossBanner.blurb = '雙天鵝夜 — 黑羽＋金邊同時在場';
         state.bossBanner.kind = 'dual';
       }
+    } else if (isTide) {
+      pushFloat(state.floats, {
+        x: 480,
+        y: 230,
+        text: '臨停潮頭 — 先鎖倉再清符',
+        color: '#C45C4A',
+        size: 14,
+        vy: -8,
+        life: 2.2,
+        bounce: 0,
+      });
     }
   }
 

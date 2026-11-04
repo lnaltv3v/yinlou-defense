@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v1.9.0
+ * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v2.0.0
  */
 (function (global) {
   const {
@@ -19,6 +19,8 @@
     hkWeekKey,
     formatWeekProgress,
     formatLocalBestWall,
+    exportLocalWallJson,
+    exportLocalWallText,
     pickFailTip,
     UPGRADE_PATHS,
     upgradeCost,
@@ -471,6 +473,8 @@
       onOpenAch,
       onExportSave,
       onImportSave,
+      onExportWallJson,
+      onExportWallText,
     } = opts;
     const save = getSave();
     const ov = $('overlay');
@@ -508,7 +512,10 @@
       '<div class="paper-row"><span>本週</span><strong>' +
       (typeof formatWeekProgress === 'function' ? formatWeekProgress(save).label : '—') +
       '</strong></div>' +
-      '<p class="paper-note">點場上俠客可強化（刀利／甲厚／內息）。圖鑑／成就請用下方按鈕。</p>' +
+      '<div class="paper-row"><span>本地牆</span><strong>' +
+      (typeof formatLocalBestWall === 'function' ? formatLocalBestWall(save).short : '—') +
+      '</strong></div>' +
+      '<p class="paper-note">點場上俠客可強化（刀利／甲厚／內息）。圖鑑卡片已加厚；本地牆可匯出 JSON／文字（本機｜唔做線上排行）。</p>' +
       '</div>';
     const btn = $('btn-overlay');
     btn.textContent = '關閉';
@@ -611,6 +618,9 @@
     if (onOpenAch) mk('成就', () => onOpenAch(), false, true);
     if (onExportSave) mk('匯出存檔', () => onExportSave(), false, true);
     if (onImportSave) mk('匯入存檔', () => onImportSave(), false, true);
+    section('本地最佳牆');
+    if (onExportWallJson) mk('匯出牆 JSON', () => onExportWallJson(), false, true);
+    if (onExportWallText) mk('匯出牆文字', () => onExportWallText(), false, true);
     section('本關');
     mk(
       '重開本關',
@@ -672,19 +682,33 @@
       const def = HEROES[id];
       const seen = save.seenHeroes && save.seenHeroes[id];
       if (seen) {
+        const sk = def.skill
+          ? '<div class="card-skill"><b>' +
+            def.skill.name +
+            '</b> ' +
+            (def.skill.blurb || '') +
+            '</div>'
+          : '';
         parts.push(
-          '<div class="paper-entry"><strong style="color:' +
+          '<div class="paper-entry card-thick"><strong style="color:' +
             def.color +
             '">' +
             def.name +
-            '</strong><span>' +
+            '</strong><span class="card-meta">' +
             def.blurb +
-            (def.skill ? ' · ' + def.skill.name : '') +
-            (def.lore ? '<br><em class="lore">' + def.lore + '</em>' : '') +
-            '</span></div>'
+            ' · 召 ' +
+            def.cost +
+            '兩 · 攻' +
+            def.atk +
+            '／血' +
+            def.hp +
+            '</span>' +
+            sk +
+            (def.lore ? '<em class="lore">' + def.lore + '</em>' : '') +
+            '</div>'
         );
       } else {
-        parts.push('<div class="paper-entry dim"><strong>？？？</strong><span>尚未召喚</span></div>');
+        parts.push('<div class="paper-entry dim card-thick"><strong>？？？</strong><span>尚未召喚</span></div>');
       }
     }
     parts.push('<div class="paper-sec">敵人</div>');
@@ -692,23 +716,48 @@
       const def = ENEMIES[id];
       const seen = save.seenEnemies && save.seenEnemies[id];
       if (seen) {
+        const sk = def.skill
+          ? '<div class="card-skill"><b>' +
+            def.skill.name +
+            '</b> ' +
+            (def.skill.blurb || '') +
+            '</div>'
+          : '';
         parts.push(
-          '<div class="paper-entry"><strong style="color:' +
+          '<div class="paper-entry card-thick"><strong style="color:' +
             (def.color || '#E8DCC8') +
             '">' +
             def.name +
-            '</strong><span>HP' +
+            (def.boss ? ' · Boss' : '') +
+            '</strong><span class="card-meta">HP' +
             def.hp +
             '／攻' +
             def.atk +
-            (def.boss ? ' · Boss' : '') +
-            (def.skill ? ' · ' + def.skill.name : '') +
-            (def.lore ? '<br><em class="lore">' + def.lore + '</em>' : '') +
-            '</span></div>'
+            '／速' +
+            def.speed +
+            ' · 賞' +
+            def.reward +
+            '</span>' +
+            sk +
+            (def.lore ? '<em class="lore">' + def.lore + '</em>' : '') +
+            '</div>'
         );
       } else {
-        parts.push('<div class="paper-entry dim"><strong>？？？</strong><span>尚未遭遇</span></div>');
+        parts.push('<div class="paper-entry dim card-thick"><strong>？？？</strong><span>尚未遭遇</span></div>');
       }
+    }
+    parts.push('<div class="paper-sec">羈絆（' + BONDS.length + '）</div>');
+    for (const b of BONDS) {
+      const names = b.need.map((id) => (HEROES[id] ? HEROES[id].name : id)).join('＋');
+      parts.push(
+        '<div class="paper-entry card-thick bond-card"><strong style="color:#C9A227">' +
+          b.name +
+          '</strong><span class="card-meta">' +
+          names +
+          '</span><em class="lore">' +
+          (b.blurb || '') +
+          '</em></div>'
+      );
     }
     parts.push('</div>');
     $('overlay-msg').innerHTML = parts.join('');

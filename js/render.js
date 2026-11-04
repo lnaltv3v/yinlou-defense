@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — Canvas 繪製 v1.9.0
+ * 銀樓防衛 — Canvas 繪製 v2.0.0
  * v1.5：場景四層 ground→mid→wall→props；halt_seal PNG；擊破／暴擊
  */
 (function (global) {
@@ -908,6 +908,15 @@
         ctx.lineWidth = 4;
         ctx.strokeRect(40, 40, ctx.canvas.width - 80, ctx.canvas.height - 80);
         ctx.globalAlpha = 1;
+      } else if (fx.type === 'haltTideWarn') {
+        const pulse = 0.12 + 0.1 * Math.sin((fx.life || 0) * 12);
+        ctx.globalAlpha = Math.min(state.reduceFlash ? 0.1 : pulse + 0.16, 0.36);
+        drawPixelRect(ctx, 0, 0, ctx.canvas.width, ctx.canvas.height, '#3A2A18');
+        ctx.globalAlpha = Math.min(0.55, fx.life);
+        ctx.strokeStyle = '#C4A070';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(48, 48, ctx.canvas.width - 96, ctx.canvas.height - 96);
+        ctx.globalAlpha = 1;
       } else if (fx.type === 'eliteWarn') {
         ctx.globalAlpha = Math.min(state.reduceFlash ? 0.08 : 0.2, fx.life * 0.18);
         drawPixelRect(ctx, 0, 0, ctx.canvas.width, ctx.canvas.height, '#C45C4A');
@@ -1011,12 +1020,13 @@
     const elite = b.kind === 'elite';
     const circuit = b.kind === 'circuit' || b.kind === 'dual';
     const dual = b.kind === 'dual';
+    const tide = b.kind === 'halt_tide';
     const h = b.blurb ? 72 : 56;
     drawPixelRect(ctx, 140, 188, 680, h, '#1A1510');
-    ctx.strokeStyle = elite ? '#C45C4A' : dual ? '#E8C96A' : circuit ? '#E8C96A' : '#C9A227';
-    ctx.lineWidth = circuit || dual ? 4 : 3;
+    ctx.strokeStyle = elite ? '#C45C4A' : dual || circuit ? '#E8C96A' : tide ? '#C4A070' : '#C9A227';
+    ctx.lineWidth = circuit || dual || tide ? 4 : 3;
     ctx.strokeRect(142, 190, 676, h - 4);
-    ctx.fillStyle = elite ? '#C45C4A' : dual ? '#E8C96A' : circuit ? '#E8C96A' : '#C9A227';
+    ctx.fillStyle = elite ? '#C45C4A' : dual || circuit ? '#E8C96A' : tide ? '#C4A070' : '#C9A227';
     ctx.font = 'bold 22px sans-serif';
     ctx.textAlign = 'center';
     const prefix = elite
@@ -1025,7 +1035,9 @@
         ? '🦢🦢 雙天鵝 — '
         : circuit
           ? '🔔 熔斷 Boss — '
-          : '⚠ Boss 入場 — ';
+          : tide
+            ? '⛔ 停牌潮 — '
+            : '⚠ Boss 入場 — ';
     ctx.fillText(prefix + b.name, 480, 222);
     if (b.blurb) {
       ctx.fillStyle = '#E8DCC8';
@@ -1108,25 +1120,30 @@
     drawLockStatus(ctx, state);
   }
 
-  /** v1.7 羈絆狀態列：芯片式可讀 */
+  /** v2.0 羈絆狀態列：加厚芯片＋副標 */
   function drawBondStrip(ctx, state) {
     const bonds = state._bonds || [];
     if (!bonds.length) return;
-    const chipW = Math.min(118, Math.floor(560 / bonds.length));
+    const chipW = Math.min(132, Math.floor(620 / bonds.length));
+    const chipH = 28;
     const total = bonds.length * chipW;
     let x = 480 - total / 2;
-    const y = 46;
+    const y = 44;
     for (let i = 0; i < bonds.length; i++) {
       const b = bonds[i];
-      drawPixelRect(ctx, x + 1, y, chipW - 4, 16, '#1A1510');
+      drawPixelRect(ctx, x + 1, y, chipW - 4, chipH, '#1A1510');
       ctx.strokeStyle = '#C9A227';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(x + 1, y, chipW - 4, 16);
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x + 1, y, chipW - 4, chipH);
       ctx.fillStyle = '#C9A227';
-      ctx.font = 'bold 10px sans-serif';
+      ctx.font = 'bold 11px sans-serif';
       ctx.textAlign = 'center';
-      const label = b.name.length > 5 ? b.name.slice(0, 5) : b.name;
+      const label = b.name.length > 6 ? b.name.slice(0, 6) : b.name;
       ctx.fillText(label, x + chipW / 2 - 1, y + 12);
+      ctx.fillStyle = '#E8DCC8';
+      ctx.font = '9px sans-serif';
+      const sub = (b.blurb || '').length > 8 ? (b.blurb || '').slice(0, 8) + '…' : (b.blurb || '');
+      ctx.fillText(sub, x + chipW / 2 - 1, y + 23);
       x += chipW;
     }
   }
@@ -1139,7 +1156,7 @@
     }
     const hasLocker = (state.heroes || []).some((h) => h.hp > 0 && h.id === 'lock_hermit');
     if (!locked && !hasLocker) return;
-    const y = (state._bonds && state._bonds.length) ? 66 : 48;
+    const y = (state._bonds && state._bonds.length) ? 78 : 48;
     drawPixelRect(ctx, 780, y, 160, 20, '#1A1510');
     ctx.strokeStyle = '#406858';
     ctx.lineWidth = 2;
