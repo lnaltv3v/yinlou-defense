@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — Canvas 繪製 v2.3.0
+ * 銀樓防衛 — Canvas 繪製 v2.5.0
  * v1.5：場景四層 ground→mid→wall→props；halt_seal PNG；擊破／暴擊
  */
 (function (global) {
@@ -961,14 +961,79 @@
         ctx.strokeRect(44, 44, ctx.canvas.width - 88, ctx.canvas.height - 88);
         ctx.globalAlpha = 1;
       } else if (fx.type === 'inkWarn') {
-        const pulse = 0.12 + 0.1 * Math.sin((fx.life || 0) * 13);
-        ctx.globalAlpha = Math.min(state.reduceFlash ? 0.1 : pulse + 0.16, 0.38);
+        const pulse = 0.14 + 0.12 * Math.sin((fx.life || 0) * 14);
+        ctx.globalAlpha = Math.min(state.reduceFlash ? 0.12 : pulse + 0.18, 0.42);
         drawPixelRect(ctx, 0, 0, ctx.canvas.width, ctx.canvas.height, '#1A2438');
-        ctx.globalAlpha = Math.min(0.55, fx.life);
+        ctx.globalAlpha = Math.min(0.6, fx.life);
         ctx.strokeStyle = '#8A9BB0';
         ctx.lineWidth = 4;
         ctx.strokeRect(52, 52, ctx.canvas.width - 104, ctx.canvas.height - 104);
+        // 邊框帳幔裂縫閃
+        ctx.strokeStyle = '#C9A227';
+        ctx.lineWidth = 2;
+        const j = Math.sin((fx.life || 0) * 22) * 6;
+        ctx.beginPath();
+        ctx.moveTo(70, 80 + j);
+        ctx.lineTo(78, 140);
+        ctx.lineTo(66, 200 - j);
+        ctx.lineTo(74, 280);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(ctx.canvas.width - 70, 90 - j);
+        ctx.lineTo(ctx.canvas.width - 78, 160);
+        ctx.lineTo(ctx.canvas.width - 66, 230 + j);
+        ctx.stroke();
         ctx.globalAlpha = 1;
+      } else if (fx.type === 'inkCrack') {
+        const t = Math.max(0, fx.life || 0);
+        const x = fx.x || 480;
+        const y = fx.y || 270;
+        const rr = fx.r || 90;
+        ctx.save();
+        ctx.globalAlpha = Math.min(state.reduceFlash ? 0.35 : 0.85, t * 1.4);
+        ctx.strokeStyle = '#C9A227';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x - 4, y - rr);
+        ctx.lineTo(x + 6, y - rr * 0.4);
+        ctx.lineTo(x - 8, y);
+        ctx.lineTo(x + 5, y + rr * 0.45);
+        ctx.lineTo(x - 3, y + rr);
+        ctx.stroke();
+        ctx.strokeStyle = '#8A9BB0';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x + 14, y - rr * 0.7);
+        ctx.lineTo(x + 20, y - rr * 0.1);
+        ctx.lineTo(x + 10, y + rr * 0.5);
+        ctx.stroke();
+        ctx.globalAlpha = Math.min(0.35, t);
+        drawPixelRect(ctx, x - 18, y - rr, 6, rr * 2, '#2A3040');
+        ctx.restore();
+      } else if (fx.type === 'inkCurtain') {
+        const t = Math.max(0, fx.life || 0);
+        const x = fx.x || 480;
+        const y = fx.y || 270;
+        const rr = fx.r || 80;
+        ctx.save();
+        ctx.globalAlpha = Math.min(state.reduceFlash ? 0.18 : 0.42, t * 0.55);
+        drawPixelRect(ctx, x - rr, y - rr * 1.1, rr * 2, rr * 2.2, '#1A2030');
+        ctx.globalAlpha = Math.min(0.55, t);
+        ctx.strokeStyle = '#8A9BB0';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x - rr, y - rr * 1.1, rr * 2, rr * 2.2);
+        // 帳頁橫裂
+        ctx.strokeStyle = '#C9A227';
+        ctx.beginPath();
+        ctx.moveTo(x - rr + 8, y - 10);
+        ctx.lineTo(x + rr - 8, y + 4);
+        ctx.stroke();
+        ctx.globalAlpha = Math.min(0.5, t * 0.8);
+        ctx.fillStyle = '#A8B8D0';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('墨帳', x, y - rr * 1.1 - 6);
+        ctx.restore();
       } else if (fx.type === 'eliteWarn') {
         ctx.globalAlpha = Math.min(state.reduceFlash ? 0.08 : 0.2, fx.life * 0.18);
         drawPixelRect(ctx, 0, 0, ctx.canvas.width, ctx.canvas.height, '#C45C4A');

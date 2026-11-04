@@ -896,22 +896,37 @@
         if (Math.hypot(h.x - enemy.x, h.y - enemy.y) > rad) continue;
         h.atkDebuff = Math.max(h.atkDebuff || 0, deb);
         h.atkDebuffT = Math.max(h.atkDebuffT || 0, dur);
-        h.hitFlash = Math.max(h.hitFlash || 0, 0.32);
+        h.hitFlash = Math.max(h.hitFlash || 0, 0.38);
       }
       if (sk.silverDrain) {
-        const drain = Math.min(state.silver || 0, sk.silverDrain);
+        let drainAmt = sk.silverDrain;
+        if (state.modCtx && state.modCtx.silverDrainMul) {
+          drainAmt = Math.max(1, Math.round(drainAmt * state.modCtx.silverDrainMul));
+        }
+        const drain = Math.min(state.silver || 0, drainAmt);
         state.silver = Math.max(0, (state.silver || 0) - drain);
         if (drain > 0) {
           pushFloat(state.floats, {
-            x: enemy.x,
-            y: enemy.y - 56,
-            text: '抽銀 -' + drain,
-            color: '#8A9BB0',
-            size: 14,
-            vy: -24,
-            life: 1.0,
-            bounce: 0.9,
+            x: enemy.x - 10,
+            y: enemy.y - 58,
+            text: '抽銀 −' + drain,
+            color: '#A8B8D0',
+            size: 16,
+            vy: -28,
+            life: 1.25,
+            bounce: 1.05,
           });
+          pushFloat(state.floats, {
+            x: enemy.x + 28,
+            y: enemy.y - 44,
+            text: '墨銀飛散',
+            color: '#6A8098',
+            size: 12,
+            vy: -18,
+            life: 1.05,
+            bounce: 0.85,
+          });
+          state._inkDrainShown = (state._inkDrainShown || 0) + 1;
         }
       }
       if (sk.tapeRush) {
@@ -925,17 +940,17 @@
       }
       if (sk.coreDmg) {
         state.coreHp -= sk.coreDmg;
-        state.coreHitFlash = 0.55;
-        state.shake = Math.max(state.shake || 0, 0.38);
+        state.coreHitFlash = 0.62;
+        state.shake = Math.max(state.shake || 0, 0.44);
         pushFloat(state.floats, {
           x: CORE.x,
           y: CORE.y - 52,
-          text: '墨影 -' + sk.coreDmg,
+          text: '墨影 −' + sk.coreDmg,
           color: '#8A9BB0',
-          size: 16,
-          vy: -32,
-          life: 1.15,
-          bounce: 1.2,
+          size: 17,
+          vy: -34,
+          life: 1.25,
+          bounce: 1.25,
         });
       }
       pushFloat(state.floats, {
@@ -943,22 +958,47 @@
         y: enemy.y - 40,
         text: '墨 翻帳！',
         color: '#8A9BB0',
-        size: 15,
-        vy: -26,
-        life: 1.0,
-        bounce: 1.1,
+        size: 16,
+        vy: -28,
+        life: 1.15,
+        bounce: 1.15,
       });
-      pushFx(state, { type: 'inkWarn', life: 1.4 });
+      pushFloat(state.floats, {
+        x: enemy.x - 22,
+        y: enemy.y - 72,
+        text: '帳幔裂縫',
+        color: '#C9A227',
+        size: 13,
+        vy: -20,
+        life: 1.05,
+        bounce: 0.95,
+      });
+      pushFx(state, { type: 'inkWarn', life: 1.65 });
+      pushFx(state, {
+        type: 'inkCrack',
+        x: enemy.x,
+        y: enemy.y,
+        life: 0.95,
+        r: Math.min(120, rad * 0.5),
+      });
+      pushFx(state, {
+        type: 'inkCurtain',
+        x: enemy.x,
+        y: enemy.y,
+        life: 1.15,
+        r: rad * 0.42,
+      });
       pushFx(state, {
         type: 'skill',
         x: enemy.x,
         y: enemy.y,
         color: '#2A3040',
-        life: 0.55,
+        life: 0.6,
         text: sk.name,
-        r: 30,
+        r: 34,
       });
       state._inkProcs = (state._inkProcs || 0) + 1;
+      state._inkCurtain = (state._inkCurtain || 0) + 1;
     }
   }
 
@@ -1337,6 +1377,33 @@
                 : 'bossWarn',
       life: quad ? 3.4 : triple ? 3.2 : isCircuit || isTide || isInk ? 2.8 : 2.5,
     });
+    if (isInk || quad) {
+      state.fx.push({
+        type: 'inkCrack',
+        x: enemy.x || 640,
+        y: enemy.y || 270,
+        life: isInk ? 1.35 : 1.1,
+        r: isInk ? 110 : 90,
+      });
+      state.fx.push({
+        type: 'inkCurtain',
+        x: enemy.x || 640,
+        y: enemy.y || 270,
+        life: isInk ? 1.55 : 1.2,
+        r: isInk ? 95 : 80,
+      });
+      pushFloat(state.floats, {
+        x: (enemy.x || 640) - 18,
+        y: (enemy.y || 270) - 70,
+        text: '帳幔裂縫',
+        color: '#C9A227',
+        size: 14,
+        vy: -16,
+        life: 1.4,
+        bounce: 0.9,
+      });
+      state._inkCurtain = (state._inkCurtain || 0) + 1;
+    }
     if (triple) state._tripleTideSeen = (state._tripleTideSeen || 0) + 1;
     if (quad) state._quadTideSeen = (state._quadTideSeen || 0) + 1;
     const title = quad

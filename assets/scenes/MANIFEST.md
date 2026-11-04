@@ -37,3 +37,6 @@ Canvas **960×540**，硬邊／嚴格色盤，PNG RGBA。
 
 ## v2.2
 - `battle_mid.png`／`battle_props.png` 再加厚（ground／wall 維持 v2.0）。
+
+## v2.5
+- mid／props 無新加厚；程式 FX 加厚墨影帳幔／裂縫；`CACHE_VER=2.5.0`。

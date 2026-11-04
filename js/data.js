@@ -599,7 +599,7 @@
         type: 'ink_specter',
         atkDebuff: 0.22,
         atkDebuffDur: 3.2,
-        silverDrain: 8,
+        silverDrain: 9,
         coreDmg: 15,
         blotRad: 170,
         tapeRush: 0.65,
@@ -1479,6 +1479,7 @@
     { wave: 60, silver: 520, label: '六十浪四潮' },
     { wave: 75, silver: 700, label: '七十五浪硬頂' },
     { wave: 90, silver: 820, label: '九十浪長城' },
+    { wave: 100, silver: 1000, label: '百浪墨城' },
   ];
 
   function endlessMilestone(waveIndex) {
@@ -1953,6 +1954,50 @@
     },
   ];
 
+  /** 無盡 90+ 專屬修飾（曾達 90 浪後開無盡必帶其一） */
+  const RUN_MODIFIERS_90 = [
+    {
+      id: 'ink_ward',
+      name: '墨衛護銀',
+      blurb: '核心 HP +9%；墨影抽銀 ×0.55',
+      late90: true,
+      apply: (ctx) => {
+        ctx.coreMul = (ctx.coreMul || 1) * 1.09;
+        ctx.silverDrainMul = (ctx.silverDrainMul || 1) * 0.55;
+      },
+    },
+    {
+      id: 'ledger_seal',
+      name: '帳印鎖倉',
+      blurb: '鎖倉持續 ×1.18；合併回報 ×1.14',
+      late90: true,
+      apply: (ctx) => {
+        ctx.lockDurMul = (ctx.lockDurMul || 1) * 1.18;
+        ctx.mergeRebateMul = (ctx.mergeRebateMul || 1) * 1.14;
+      },
+    },
+    {
+      id: 'ninety_bastion',
+      name: '九十堡壘',
+      blurb: '核心 HP +12%；敵人移速 −5%',
+      late90: true,
+      apply: (ctx) => {
+        ctx.coreMul = (ctx.coreMul || 1) * 1.12;
+        ctx.enemySpeedMul = (ctx.enemySpeedMul || 1) * 0.95;
+      },
+    },
+    {
+      id: 'blot_tax',
+      name: '墨稅緩徵',
+      blurb: '墨影抽銀 ×0.7；波次補銀 +8%',
+      late90: true,
+      apply: (ctx) => {
+        ctx.silverDrainMul = (ctx.silverDrainMul || 1) * 0.7;
+        ctx.waveBonusMul = (ctx.waveBonusMul || 1) * 1.08;
+      },
+    },
+  ];
+
   function hashStr(s) {
     let h = 0;
     for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
@@ -1977,6 +2022,7 @@
       summonCostMul: 1,
       silverMul: 1,
       coreMul: 1,
+      silverDrainMul: 1,
       enemySpeedMul: 1,
       rewardMul: 1,
       mergeRebateMul: 1,
@@ -2198,11 +2244,21 @@
   }
 
   /** 無盡：每次開局抽 1–3 個修飾詞（v1.7 加厚；跟香港日＋開局次數） */
-  function endlessModifiers(extraSeed) {
+  function endlessModifiers(extraSeed, opts) {
     const day = hashStr(hkDateString());
     const seed = (day ^ ((extraSeed || 0) * 2654435761)) >>> 0;
     const count = 1 + (seed % 3); // 1、2 或 3
-    return pickModifiers(seed, count);
+    const mods = pickModifiers(seed, count);
+    const best = (opts && opts.bestWave) || 0;
+    if (best >= 90 && RUN_MODIFIERS_90.length) {
+      const h2 = (seed ^ 0x90abcdef) >>> 0;
+      const late = RUN_MODIFIERS_90[h2 % RUN_MODIFIERS_90.length];
+      if (!mods.some((m) => m.id === late.id)) {
+        if (mods.length >= 3) mods[mods.length - 1] = late;
+        else mods.push(late);
+      }
+    }
+    return mods;
   }
 
   /** ISO 週鍵（香港時區）例：2026-W45 */
@@ -2250,6 +2306,10 @@
       { name: '三潮同場週', focus: 'triple_tide', blurb: '黑羽＋金邊＋臨停｜三潮壓境' },
       { name: '墨影帳週', focus: 'ink_specter', blurb: '墨影翻帳壓軸｜第四潮' },
       { name: '四潮同場週', focus: 'quad_tide', blurb: '黑羽＋金邊＋臨停＋墨影｜四潮壓境' },
+      { name: '墨霧翻帳週', focus: 'ink_specter', blurb: '墨影＋暗盤霧｜護銀抗抽' },
+      { name: '帳幔裂縫週', focus: 'ink_specter', blurb: '墨影壓軸｜裂縫抽銀' },
+      { name: '暗墨抽銀週', focus: 'dark_tape', blurb: '暗盤影潮＋墨影預警｜清影護銀' },
+      { name: '墨影四潮週', focus: 'quad_tide', blurb: '四潮同場偏墨｜先鎖倉再護銀' },
     ];
     const theme = themes[h % themes.length];
     const base = STAGES[2 + (h % Math.max(1, STAGES.length - 2))]; // 3–末關難度帶
@@ -2567,6 +2627,8 @@
     '主線十一關：雙天鵝後試停牌潮；推薦「臨停鎖倉／軋空鎖倉」。',
     '第 12 關「三潮同場」後無盡每 60 波「四潮同場」——先鎖倉清符，再收雙羽同墨影。',
     '墨影帳抽銀降攻：護住銀袋，暗盤影優先清，再軋帳心。',
+    '無盡 90+ 會抽專屬修飾（墨衛護銀／九十堡壘等）；百浪有里程碑。',
+    '牆時間軸有差值走勢條——本機對盤，唔做線上排行。',
     '無盡 75+：潮變密但血量增速略收；合 3–4 星＋鎖倉鐵壁優先於亂召。',
     '牆快照時間軸可對照上一筆差值（本機｜唔做線上排行）。',
   ];
@@ -2675,6 +2737,10 @@
     { id: 'endless75', cat: 'combat', name: '七十五浪硬頂', blurb: '無盡最佳 ≥ 75 波', check: (s) => (s.bestEndlessWave || 0) >= 75 },
     { id: 'wall_delta', cat: 'meta', name: '牆影對盤', blurb: '喺時間軸睇過快照差值', check: (s) => !!s.ach && !!s.ach.wall_delta },
     { id: 'quad_lesson', cat: 'meta', name: '四潮入門', blurb: '讀完一次四潮教學', check: (s) => !!s.ach && !!s.ach.quad_lesson },
+    { id: 'endless90', cat: 'combat', name: '九十浪長城', blurb: '無盡最佳 ≥ 90 波', check: (s) => (s.bestEndlessWave || 0) >= 90 },
+    { id: 'endless100', cat: 'combat', name: '百浪墨城', blurb: '無盡最佳 ≥ 100 波', check: (s) => (s.bestEndlessWave || 0) >= 100 },
+    { id: 'ink_curtain', cat: 'combat', name: '帳幔裂縫', blurb: '見過墨影帳幔／裂縫特效', check: (s) => !!s.ach && !!s.ach.ink_curtain },
+    { id: 'wall_spark', cat: 'meta', name: '牆影走勢', blurb: '喺時間軸睇過差值走勢', check: (s) => !!s.ach && !!s.ach.wall_spark },
   ];
 
   /** 首通銀兩獎勵（入累計帳） */
@@ -2720,7 +2786,8 @@
     // v2.4：50–74 加厚；75+ 密度續升但血量增速略收，避免軟鎖
     const late50 = n >= 50 ? Math.min(n - 50, 25) * 0.018 : 0;
     const late75 = n >= 75 ? (n - 75) * 0.011 : 0;
-    const mul = 1 + (n - 1) * 0.105 + late50 + late75;
+    const late90 = n >= 90 ? (n - 90) * 0.008 : 0;
+    const mul = 1 + (n - 1) * 0.105 + late50 + late75 + late90;
     const countLate = n >= 50 ? Math.min(n - 50, 25) * 0.01 + (n >= 75 ? (n - 75) * 0.006 : 0) : 0;
     const count = (base) => {
       let raw = Math.max(1, Math.round(base * (1 + (n - 1) * 0.072 + countLate)));
@@ -3006,7 +3073,7 @@
   function mergeRebate(heroId, newStar) {
     const def = HEROES[heroId];
     if (!def) return 0;
-    return Math.round(def.cost * 0.178 * newStar);
+    return Math.round(def.cost * 0.18 * newStar);
   }
 
   function activeBonds(heroes) {
@@ -3046,7 +3113,7 @@
 
   function defaultSave() {
     return {
-      version: 24,
+      version: 25,
       totalSilver: 0,
       totalKills: 0,
       maxStageCleared: 0,
@@ -3209,6 +3276,48 @@
     });
   }
 
+
+  function formatWallSparkline(save) {
+    const snaps = Array.isArray(save && save.wallSnapshots) ? save.wallSnapshots.slice() : [];
+    if (!snaps.length) {
+      return { bars: '', label: '尚無快照', endless: [], week: [], stages: [] };
+    }
+    // 舊→新
+    const chron = snaps.slice();
+    const chars = '▁▂▃▄▅▆▇█';
+    function barsFor(key) {
+      const vals = chron.map((s) => Number(s[key]) || 0);
+      const max = Math.max.apply(null, vals.concat([1]));
+      const bars = vals
+        .map((v) => chars[Math.min(7, Math.floor((v / max) * 7))])
+        .join('');
+      return { bars: bars, vals: vals };
+    }
+    const e = barsFor('endless');
+    const w = barsFor('weekStreakBest');
+    const m = barsFor('stages');
+    const last = chron[chron.length - 1] || {};
+    const first = chron[0] || {};
+    const dE = (last.endless || 0) - (first.endless || 0);
+    const label =
+      '無盡 ' +
+      e.bars +
+      '（' +
+      e.vals.join('→') +
+      '）｜連週 ' +
+      w.bars +
+      '｜主線 ' +
+      m.bars +
+      (dE ? '｜全程無盡' + (dE > 0 ? '+' : '') + dE : '');
+    return {
+      bars: e.bars,
+      label: label,
+      endless: e.vals,
+      week: w.vals,
+      stages: m.vals,
+    };
+  }
+
   function recordWallSnapshot(save, reason) {
     if (!save) return null;
     if (!Array.isArray(save.wallSnapshots)) save.wallSnapshots = [];
@@ -3258,7 +3367,7 @@
         game: 'yinlou-defense',
         kind: 'local-best-wall',
         exportedAt: new Date().toISOString(),
-        version: (save && save.version) || 24,
+        version: (save && save.version) || 25,
         note: '本機進度牆｜唔做線上排行',
       },
       wall: wall,
@@ -3469,6 +3578,7 @@
     upgradeCost,
     upgradeLabel,
     ENDLESS_MILESTONES,
+    RUN_MODIFIERS_90,
     buildEndlessWave,
     buildDailyWaves,
     buildWeeklyWaves,
@@ -3512,6 +3622,7 @@
     compareWallShort,
     recordWallSnapshot,
     formatWallTimeline,
+    formatWallSparkline,
     listBossPreviews,
     exportLocalWallShare,
     importSaveJson,

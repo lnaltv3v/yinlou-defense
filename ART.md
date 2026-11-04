@@ -1,4 +1,4 @@
-# 銀樓防衛 — 美術短規範（v2.4）
+# 銀樓防衛 — 美術短規範（v2.5）
 
 ## 風格名
 **墨點金融江湖（Ink-Pixel Finance）**：宣紙底、墨點色塊、硬邊直角、統一點陣。質感密度可對齊市面 Merge TD／Fortias 級**可讀性**，但**原創構圖與造型，唔抄 IP**。
@@ -114,8 +114,8 @@
 
 
 ## v2.3
-- 新 Boss `ink_specter`（墨影帳）：v2.3 先借 `dark_tape`／幾何；**v2.4 正式 PNG 已接入**。
+- 新 Boss `ink_specter`（墨影帳）：v2.3 先借 `dark_tape`／幾何；**v2.5 正式 PNG 已接入**。
 
-## v2.4
+## v2.5
 - `ink_specter`／`ink_specter_attack`／`ink_specter_sheet`：**正式 PNG 已接入**（48×48／sheet 96×48）；`sprites.js` 與其他 Boss 同路徑（`*.png`／`*_attack`／`*_sheet`，`CACHE_VER=2.4.0`）。缺檔時先借 `dark_tape`，再幾何。
 - 場景四層 PNG 未改動。

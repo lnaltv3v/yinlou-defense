@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 主循環 v2.4.0
+ * 銀樓防衛 — 主循環 v2.5.0
  * v1.9.0：第7關／鎖倉居士／週連續＋本地最佳牆／手感平衡
  */
 (function () {
@@ -24,6 +24,7 @@
     compareWallShort,
     recordWallSnapshot,
     formatWallTimeline,
+    formatWallSparkline,
     listBossPreviews,
     QUAD_TIDE_LESSON,
     exportLocalWallShare,
@@ -215,7 +216,13 @@
         dailyMeta: meta,
       };
     } else if (endless) {
-      mods = endlessModifiers((save.bestEndlessWave || 0) + (save.totalKills || 0));
+      mods = endlessModifiers((save.bestEndlessWave || 0) + (save.totalKills || 0), {
+        bestWave: save.bestEndlessWave || 0,
+      });
+      if ((save.bestEndlessWave || 0) >= 90) {
+        if (!save.ach) save.ach = {};
+        save.ach.late90_run = true;
+      }
       const modStory =
         ENDLESS.story +
         (mods.length ? '\n今日修飾：' + modifierLabel(mods) + '。' : '');
@@ -363,6 +370,14 @@
     }
     if ((state._haltTideKills || 0) >= 1 && !save.ach.halt_tide_kill) {
       save.ach.halt_tide_kill = true;
+    }
+        if ((state._inkCurtain || 0) >= 1 || (state._inkDrainShown || 0) >= 1) {
+      if (!save.ach) save.ach = {};
+      if (!save.ach.ink_curtain) {
+        save.ach.ink_curtain = true;
+        writeSave(save);
+        notifyAchievements();
+      }
     }
     if ((state._inkKills || 0) >= 1 && !save.ach.ink_kill) {
       save.ach.ink_kill = true;
@@ -810,15 +825,17 @@
     if (
       state.endless &&
       !state._quadTipShown &&
-      (state.waveIndex === 28 || state.waveIndex === 55 || state.waveIndex === 72)
+      (state.waveIndex === 28 || state.waveIndex === 55 || state.waveIndex === 72 || state.waveIndex === 88)
     ) {
       state._quadTipShown = true;
       const tip =
-        state.waveIndex >= 72
-          ? '無盡 75+：雜兵軟頂，壓力在 Boss／精英——合星＋鎖倉優先'
-          : state.waveIndex >= 55
-            ? '四潮將至（60 波）——先鎖倉清符，再收羽同墨'
-            : '三潮將至（30 波）——黑羽＋金邊＋臨停';
+        state.waveIndex >= 88
+          ? '無盡 90+：專屬修飾／百浪里程碑——護銀＋合星'
+          : state.waveIndex >= 72
+            ? '無盡 75+：雜兵軟頂，壓力在 Boss／精英——合星＋鎖倉優先'
+            : state.waveIndex >= 55
+              ? '四潮將至（60 波）——先鎖倉清符，再收羽同墨'
+              : '三潮將至（30 波）——黑羽＋金邊＋臨停';
       UI.toast(tip, 2800);
     }
     const waveDef = currentWaveDef();
@@ -1472,10 +1489,11 @@
         UI.showWallTimeline(
           () => save,
           () => syncAll(),
-          (sawDelta) => {
+          (sawDelta, sawSpark) => {
             if (!save.ach) save.ach = {};
             save.ach.wall_timeline = true;
             if (sawDelta) save.ach.wall_delta = true;
+            if (sawSpark) save.ach.wall_spark = true;
             writeSave(save);
             notifyAchievements();
           }

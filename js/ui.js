@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v2.4.0
+ * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v2.5.0
  */
 (function (global) {
   const {
@@ -26,6 +26,7 @@
     compareWallShort,
     recordWallSnapshot,
     formatWallTimeline,
+    formatWallSparkline,
     listBossPreviews,
     QUAD_TIDE_LESSON,
     exportLocalWallShare,
@@ -857,6 +858,25 @@
         );
       }
     }
+    parts.push('<div class="paper-sec">四潮教學（常駐）</div>');
+    {
+      const lesson = QUAD_TIDE_LESSON || { blurb: '', steps: [] };
+      parts.push(
+        '<p class="paper-note">' +
+          (lesson.blurb || '黑羽＋金邊＋臨停＋墨影') +
+          '｜靜態短頁｜可喺設定重讀</p>'
+      );
+      for (const step of lesson.steps || []) {
+        parts.push(
+          '<div class="paper-entry card-thick">' +
+            '<strong style="color:#C9A227">' +
+            (step.name || '') +
+            '</strong><span>' +
+            (step.text || '') +
+            '</span></div>'
+        );
+      }
+    }
     parts.push('<div class="paper-sec">羈絆（' + BONDS.length + '）</div>');
     for (const b of BONDS) {
       const names = b.need.map((id) => (HEROES[id] ? HEROES[id].name : id)).join('＋');
@@ -929,10 +949,26 @@
     ov.classList.add('codex-mode', 'paper-panel');
     $('overlay-title').textContent = '牆快照時間軸';
     const rows = typeof formatWallTimeline === 'function' ? formatWallTimeline(save) : [];
+    const spark =
+      typeof formatWallSparkline === 'function' ? formatWallSparkline(save) : null;
     const parts = [
       '<div class="paper-body">',
       '<p class="paper-note">本機牆影（新→舊）｜對照上一快照差值｜唔做線上排行</p>',
     ];
+    let sawSpark = false;
+    if (spark && spark.bars) {
+      sawSpark = true;
+      parts.push(
+        '<div class="paper-entry card-thick wall-spark">' +
+          '<strong style="color:#C9A227">差值走勢</strong>' +
+          '<span class="wall-spark-bars mono">' +
+          (spark.bars || '') +
+          '</span>' +
+          '<span class="card-meta">' +
+          (spark.label || '') +
+          '</span></div>'
+      );
+    }
     let sawDelta = false;
     if (!rows.length) {
       parts.push('<div class="paper-entry dim card-thick"><strong>尚無快照</strong><span>通關週挑戰／刷新無盡最佳／或設定「留下牆快照」</span></div>');
@@ -981,7 +1017,7 @@
     };
     $('overlay-extra').innerHTML = '';
     ov.classList.add('show');
-    if (onMark) onMark(sawDelta);
+    if (onMark) onMark(sawDelta, sawSpark);
   }
 
   function showAchievements(getSave, onClose) {
