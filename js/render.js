@@ -1,6 +1,6 @@
 /**
- * 銀樓防衛 — Canvas 繪製 v0.9.0
- * 強化標記、背景快取（效能）、精英／Boss 技閃
+ * 銀樓防衛 — Canvas 繪製 v1.0.0
+ * v1.0：里程碑橫幅／閃光可關／像素再加厚
  */
 (function (global) {
   const { COLORS, GRID, CORE, HEROES, ENEMIES, MAX_STAR, upgradeLabel } = global.YD;
@@ -109,6 +109,41 @@
     }
     drawPixelRect(g, 42, floorTop + 8, 28, 8, '#5A4030');
     drawPixelRect(g, 44, floorTop + 10, 24, 4, '#C9A227');
+    // v1.0 像素再加厚：瓦簷影、拒馬刺、地磚青苔、銅錢堆、右緣旗幟
+    for (let i = 0; i < 5; i++) {
+      const fx = 130 + i * 150;
+      g.globalAlpha = 0.35;
+      drawPixelRect(g, fx, floorTop - 6, 36, 6, '#1A1510');
+      g.globalAlpha = 1;
+      drawPixelRect(g, fx + 4, floorTop - 10, 28, 5, '#C45C4A');
+      drawPixelRect(g, fx + 8, floorTop - 14, 20, 4, '#A04040');
+    }
+    for (let i = 0; i < 6; i++) {
+      const bx = wallX + 22 + (i % 2) * 10;
+      const by = floorTop + 40 + i * 48;
+      drawPixelRect(g, bx, by, 3, 16, '#3A2820');
+      drawPixelRect(g, bx - 4, by + 4, 11, 3, '#5A4030');
+      drawPixelRect(g, bx - 2, by + 2, 2, 2, '#C9A227');
+    }
+    for (let i = 0; i < 14; i++) {
+      const gx = 60 + (i * 67) % (w - 120);
+      const gy = floorTop + 30 + ((i * 41) % (floorBot - floorTop - 50));
+      drawPixelRect(g, gx, gy, 2, 2, '#3A5A40');
+      if (i % 3 === 0) drawPixelRect(g, gx + 3, gy + 1, 2, 1, '#4A6A50');
+    }
+    for (let i = 0; i < 3; i++) {
+      const cx = 70 + i * 28;
+      const cy = floorBot - 22;
+      drawPixelRect(g, cx, cy, 12, 12, '#C9A227');
+      drawPixelRect(g, cx + 3, cy + 3, 6, 6, '#5A4030');
+      drawPixelRect(g, cx + 5, cy + 5, 2, 2, '#E8DCC8');
+    }
+    for (let i = 0; i < 3; i++) {
+      const fy = floorTop + 30 + i * 90;
+      drawPixelRect(g, w - 28, fy, 4, 40, '#5A4030');
+      drawPixelRect(g, w - 24, fy + 2, 16, 12, '#C45C4A');
+      drawPixelRect(g, w - 22, fy + 5, 12, 6, '#C9A227');
+    }
     bgCache = c;
     bgCacheW = w;
     bgCacheH = h;
@@ -197,9 +232,13 @@
     drawPixelRect(ctx, x + 38, y - 40 + bob, 10, 14, '#C45C4A');
     drawPixelRect(ctx, x + 40, y - 36 + bob, 6, 6, '#C9A227');
 
-    if (flash > 0) {
+    if (flash > 0 && !state.reduceFlash) {
       ctx.globalAlpha = Math.min(0.55, flash * 2);
       drawPixelRect(ctx, x - 48, y - 86, 96, 150, '#C45C4A');
+      ctx.globalAlpha = 1;
+    } else if (flash > 0 && state.reduceFlash) {
+      ctx.globalAlpha = Math.min(0.2, flash);
+      drawPixelRect(ctx, x - 40, y - 60, 80, 100, '#C45C4A');
       ctx.globalAlpha = 1;
     }
 
@@ -220,7 +259,9 @@
     const hy = h.y + oy;
     // 身體
     drawPixelRect(ctx, hx - s, hy - s - 4, s * 2, s * 2 + 8, def.color);
-    // 衣褶／腰帶
+    // 肩甲／衣褶／腰帶（v1.0）
+    drawPixelRect(ctx, hx - s - 2, hy - s, 4, 6, ink);
+    drawPixelRect(ctx, hx + s - 2, hy - s, 4, 6, ink);
     drawPixelRect(ctx, hx - s + 2, hy - 2, 3, s + 2, ink);
     drawPixelRect(ctx, hx - s + 1, hy + 4, s * 2 - 2, 3, ink);
     drawPixelRect(ctx, hx - 2, hy + 5, 4, 2, '#C9A227');
@@ -660,15 +701,17 @@
         ctx.fillText('滿星！', fx.x, fx.y - 48);
         ctx.globalAlpha = 1;
       } else if (fx.type === 'coreHit') {
-        ctx.globalAlpha = Math.min(0.4, fx.life);
-        drawPixelRect(ctx, 0, 0, ctx.canvas.width, ctx.canvas.height, '#C45C4A');
-        ctx.globalAlpha = 1;
+        if (!state.reduceFlash) {
+          ctx.globalAlpha = Math.min(0.4, fx.life);
+          drawPixelRect(ctx, 0, 0, ctx.canvas.width, ctx.canvas.height, '#C45C4A');
+          ctx.globalAlpha = 1;
+        }
       } else if (fx.type === 'bossWarn') {
-        ctx.globalAlpha = Math.min(0.25, fx.life * 0.2);
+        ctx.globalAlpha = Math.min(state.reduceFlash ? 0.1 : 0.25, fx.life * 0.2);
         drawPixelRect(ctx, 0, 0, ctx.canvas.width, ctx.canvas.height, '#5A4060');
         ctx.globalAlpha = 1;
       } else if (fx.type === 'eliteWarn') {
-        ctx.globalAlpha = Math.min(0.2, fx.life * 0.18);
+        ctx.globalAlpha = Math.min(state.reduceFlash ? 0.08 : 0.2, fx.life * 0.18);
         drawPixelRect(ctx, 0, 0, ctx.canvas.width, ctx.canvas.height, '#C45C4A');
         ctx.globalAlpha = 1;
       } else if (fx.type === 'bond') {
@@ -715,6 +758,27 @@
     ctx.textAlign = 'center';
     ctx.fillStyle = '#C9A227';
     ctx.fillText('修飾｜' + label, 480, 23);
+    ctx.globalAlpha = 1;
+  }
+
+
+  function drawMilestoneBanner(ctx, state) {
+    const b = state.milestoneBanner;
+    if (!b || b.life <= 0) return;
+    const p = Math.min(1, b.life / (b.maxLife || 2.8));
+    const alpha = p > 0.85 ? (1 - p) / 0.15 : p < 0.2 ? p / 0.2 : 1;
+    ctx.globalAlpha = Math.min(1, alpha);
+    drawPixelRect(ctx, 140, 150, 680, 72, '#1A1510');
+    ctx.strokeStyle = '#C9A227';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(144, 154, 672, 64);
+    ctx.fillStyle = '#C9A227';
+    ctx.font = 'bold 24px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('★ 無盡里程碑 · ' + b.name, 480, 186);
+    ctx.fillStyle = '#E8DCC8';
+    ctx.font = '14px sans-serif';
+    ctx.fillText('第 ' + b.wave + ' 波｜獎勵 +' + b.silver + ' 兩', 480, 210);
     ctx.globalAlpha = 1;
   }
 
@@ -848,6 +912,7 @@
     drawFx(ctx, state);
     drawModStrip(ctx, state);
     drawBossBanner(ctx, state);
+    drawMilestoneBanner(ctx, state);
     drawBondBanner(ctx, state);
     drawBanner(ctx, state);
     drawPauseVeil(ctx, state);

@@ -1,6 +1,6 @@
 /**
- * 銀樓防衛 — 主循環 v0.9.0
- * 修飾詞／卡關提示／手感加厚／宣紙介面
+ * 銀樓防衛 — 主循環 v1.0.0
+ * v1.0：新手打磨／曲線／修飾結算／圖鑑 lore／成就／推薦／像素加厚
  */
 (function () {
   const {
@@ -38,6 +38,9 @@
     buildModContext,
     modifierLabel,
     pickStuckTip,
+    recommendForStage,
+    formatRunModifiers,
+    ENDLESS_MILESTONES,
   } = YD;
   const AudioSfx = window.YDAudio;
   const Battle = YDBattle;
@@ -58,9 +61,12 @@
   if (save.reduceShake == null) save.reduceShake = false;
   if (save.firstBootDone == null) save.firstBootDone = false;
   if (save.sfxEnabled == null) save.sfxEnabled = true;
+  if (save.reduceFlash == null) save.reduceFlash = false;
+  if (save.stuckTips == null) save.stuckTips = true;
+  if (save.tutorialDone == null) save.tutorialDone = !!(save.maxStageCleared > 0 || save.skipTutorial);
   if (!save.firstClears) save.firstClears = {};
-  if (save.version < 9) {
-    save.version = 9;
+  if (save.version < 10) {
+    save.version = 10;
     writeSave(save);
   }
   if (AudioSfx) AudioSfx.setEnabled(save.sfxEnabled !== false);
@@ -139,11 +145,14 @@
       shake: 0,
       coreHitFlash: 0,
       drag: null,
-      tutorialStep: save.skipTutorial || save.maxStageCleared > 0 ? 99 : 0,
+      tutorialStep: save.skipTutorial || save.tutorialDone || save.maxStageCleared > 0 ? 99 : 0,
       summonCounts: {},
       showCellHints: save.showCellHints !== false,
       showSkillCd: save.showSkillCd !== false,
       reduceShake: !!save.reduceShake,
+      reduceFlash: !!save.reduceFlash,
+      stuckTips: save.stuckTips !== false,
+      milestoneBanner: null,
       _bonds: [],
       _bondIds: [],
       bossBanner: null,
@@ -209,7 +218,13 @@
     if (state.tutorialStep >= 99) return;
     if (to != null) state.tutorialStep = Math.max(state.tutorialStep, to);
     else state.tutorialStep += 1;
-    if (state.tutorialStep >= 3) state.tutorialStep = 99;
+    if (state.tutorialStep >= 3) {
+      state.tutorialStep = 99;
+      if (!save.tutorialDone) {
+        save.tutorialDone = true;
+        writeSave(save);
+      }
+    }
   }
 
   function updateHint() {
@@ -431,6 +446,14 @@
     });
   }
 
+  function stageRecommendToast() {
+    if (!recommendForStage) return;
+    const rec = recommendForStage(state.stage, state.endless, state.daily);
+    if (!rec || !rec.lineup) return;
+    state._stageRec = rec;
+    UI.toast('本關推薦｜' + rec.lineup.name + ' — ' + rec.reason, 2800);
+  }
+
   function enterStage(idx, endless, daily) {
     if (state.phase === 'wave' && !state.paused) {
       UI.toast('交戰中請先暫停或打完再換關');
@@ -441,6 +464,7 @@
     resetWaveBtn();
     syncAll();
     showStageStory(null);
+    setTimeout(stageRecommendToast, 400);
     return true;
   }
 
@@ -470,6 +494,14 @@
       }
     }
   );
+
+
+  function runModBlock() {
+    const lab = formatRunModifiers
+      ? formatRunModifiers(state.modifiers)
+      : modifierLabel(state.modifiers || []);
+    return lab ? '\n本局修飾：\n' + lab : '';
+  }
 
   function resetWaveBtn() {
     const btn = document.getElementById('btn-wave');
@@ -556,6 +588,7 @@
             state.kills +
             '。' +
             (dailyBonus ? '\n今日首清獎金 +' + dailyBonus + ' 兩入帳。' : '\n今日已領過首清獎。') +
+            runModBlock() +
             '\n累計銀兩帳 ' +
             save.totalSilver +
             '。',
@@ -654,6 +687,7 @@
           save.totalSilver +
           '。' +
           rewardBlock +
+          runModBlock() +
           (hasNext
             ? '\n已解鎖下一關' + (wasNew ? '「' + STAGES[nextIdx].name + '」' : '') + '。'
             : '\n主線全破！可挑戰無盡／每日，或重溫暗盤。'),
@@ -679,16 +713,31 @@
       if (ms && !state._milestonesClaimed[ms.wave]) {
         state._milestonesClaimed[ms.wave] = true;
         state.silver += ms.silver;
-        UI.toast('里程碑「' + ms.label + '」！＋' + ms.silver + ' 兩', 2400);
+        UI.toast('★ 里程碑「' + ms.label + '」！＋' + ms.silver + ' 兩', 3000);
+        state.milestoneBanner = {
+          name: ms.label,
+          silver: ms.silver,
+          wave: ms.wave,
+          life: 2.8,
+          maxLife: 2.8,
+        };
         Battle.pushFloat(state.floats, {
           x: YD.CORE.x + 40,
           y: YD.CORE.y - 40,
-          text: '里程碑 +' + ms.silver,
+          text: '★里程碑 +' + ms.silver,
           color: '#C9A227',
-          size: 16,
-          vy: -30,
-          life: 1.2,
+          size: 18,
+          vy: -32,
+          life: 1.4,
         });
+        state.fx.push({
+          type: 'bond',
+          x: 480,
+          y: 160,
+          text: '里程碑 · ' + ms.label,
+          life: 1.6,
+        });
+        if (AudioSfx) AudioSfx.play('win');
       }
     }
 
@@ -718,6 +767,15 @@
     writeSave(save);
     notifyAchievements();
     const tip = pickFailTip(state.kills * 17 + state.waveIndex * 3);
+    const rec = recommendForStage
+      ? recommendForStage(state.stage, state.endless, state.daily)
+      : null;
+    const recLu = (rec && rec.lineup) || LINEUPS[0];
+    const recLine =
+      '\n\n本關推薦：' +
+      recLu.name +
+      (rec && rec.reason ? '（' + rec.reason + '）' : '') +
+      ' — 下方芯片可一鍵跟單。';
     UI.showOverlay(
       '銀樓失守',
       '核心被攻破。擊殺 ' +
@@ -727,8 +785,11 @@
           : state.daily
             ? '｜每日未過'
             : '') +
-        '。\n\n提示：' +
-        tip,
+        '。' +
+        runModBlock() +
+        '\n\n提示：' +
+        tip +
+        recLine,
       '重開本關',
       () => {
         UI.hideOverlay();
@@ -736,25 +797,30 @@
       },
       [
         {
-          label: '用「新手鐵壁」再開',
+          label: '用「' + recLu.name + '」再開',
           secondary: true,
           onClick: () => {
             UI.hideOverlay();
             resetRun(state.endless, state.daily);
-            applyLineup(LINEUPS[0]);
+            applyLineup(recLu);
           },
         },
       ]
     );
-    // 失敗畫面下方再加陣容芯片
+    // 失敗畫面必出推薦陣容芯片
     setTimeout(() => {
       const extra = document.getElementById('overlay-extra');
       if (!extra || state.phase !== 'lost') return;
-      UI.renderLineupChips(extra, (lu) => {
+      const holder = document.createElement('div');
+      holder.style.cssText = 'width:100%;';
+      extra.appendChild(holder);
+      UI.renderLineupChips(holder, (lu) => {
         UI.hideOverlay();
         resetRun(state.endless, state.daily);
         applyLineup(lu);
       });
+      const lab = holder.querySelector('.lineup-label');
+      if (lab) lab.textContent = '失敗必讀｜推薦「' + recLu.name + '」— 點芯片跟單再開';
     }, 0);
   }
 
@@ -819,6 +885,18 @@
         save.reduceShake = !save.reduceShake;
         writeSave(save);
         state.reduceShake = !!save.reduceShake;
+        syncAll();
+      },
+      onToggleFlash: () => {
+        save.reduceFlash = !save.reduceFlash;
+        writeSave(save);
+        state.reduceFlash = !!save.reduceFlash;
+        syncAll();
+      },
+      onToggleStuckTips: () => {
+        save.stuckTips = save.stuckTips === false;
+        writeSave(save);
+        state.stuckTips = save.stuckTips !== false;
         syncAll();
       },
       onToggleSfx: () => {
@@ -1377,7 +1455,7 @@
       }
     } else if (!state.paused) {
       Battle.tickFloats(state, dt);
-      if (state.phase === 'prep') {
+      if (state.phase === 'prep' && state.stuckTips !== false && save.stuckTips !== false) {
         state.prepIdle = (state.prepIdle || 0) + rawDt;
         const novice = (save.maxStageCleared || 0) < 2 && state.tutorialStep < 99;
         const rich = state.silver >= 40 && state.heroes.length < 6;
@@ -1385,9 +1463,9 @@
           state.heroes.some((b) => a.uid !== b.uid && Battle.canMerge(a, b))
         );
         const stuck =
-          state.prepIdle >= (novice ? 9 : 14) &&
+          state.prepIdle >= (novice ? 11 : 18) &&
           (rich || canMerge || state.heroes.length === 0) &&
-          state.prepIdle - (state._stuckTipAt || 0) >= (novice ? 9 : 14);
+          state.prepIdle - (state._stuckTipAt || 0) >= (novice ? 14 : 22);
         if (stuck) {
           state._stuckTipAt = state.prepIdle;
           let tip = pickStuckTip((state.waveIndex * 17 + state.heroes.length) | 0);
@@ -1395,13 +1473,17 @@
           else if (state.heroes.length === 0) tip = '先喺商店選俠客放到空格，再開波。';
           else if (rich && state.waveIndex === 0) tip = '銀兩夠用就佈陣／合併，然後撳「開波」。';
           UI.toast('提示｜' + tip, 2600);
-          UI.setHint('卡關提示：' + tip);
+          UI.setHint('卡關提示：' + tip + '（設定可關）');
         }
       }
     } else {
       Battle.tickFloats(state, rawDt * 0.3);
     }
 
+    if (state.milestoneBanner && state.milestoneBanner.life > 0) {
+      state.milestoneBanner.life -= rawDt;
+      if (state.milestoneBanner.life <= 0) state.milestoneBanner = null;
+    }
     state._bonds = activeBonds(state.heroes);
     YDRender.render(ctx, state);
     // HUD 唔使每幀 DOM 寫入（敵人多時穩 60fps）
@@ -1420,12 +1502,18 @@
   if (bonus > 0 && state.stageIndex === 0 && !state.endless && !state.daily) {
     state.silver += bonus;
   }
+  const bootRec = recommendForStage
+    ? recommendForStage(state.stage, false, false)
+    : null;
   UI.showOverlay(
     '銀樓防衛',
-    '合併塔防 v0.9.0\n' +
-      '拖放放置 → 合併升星（最高 4）→ 點俠客強化 → 開波守銀樓。\n' +
-      '新：每日／無盡修飾詞、卡關提示、手感加厚、宣紙介面。\n' +
-      (bonus > 0 ? '新手加銀 +' + bonus + ' 兩（僅首局）\n' : '') +
+    '合併塔防 v1.0.0\n' +
+      '三步上手：① 拖俠客落場 ② 同種合併升星 ③ 開波守銀樓。\n' +
+      '失敗必出推薦陣容；卡關提示／閃光／震屏可喺設定關。\n' +
+      (bonus > 0 ? '新手首局加銀 +' + bonus + ' 兩\n' : '') +
+      (bootRec
+        ? '本關推薦：' + bootRec.lineup.name + ' — ' + bootRec.reason + '\n'
+        : '') +
       '今日：' +
       dailyMeta.name +
       '\n累計銀兩帳：' +
@@ -1433,7 +1521,7 @@
       '｜最高關：' +
       unlocked +
       (save.bestEndlessWave ? '｜無盡最佳：' + save.bestEndlessWave : ''),
-    '開始',
+    state.tutorialStep < 99 ? '開始教學' : '開始',
     () => {
       UI.hideOverlay();
       if (AudioSfx) AudioSfx.unlock();
@@ -1441,13 +1529,27 @@
         save.firstBootDone = true;
         writeSave(save);
       }
-      showStageStory(state.tutorialStep < 99 ? '跟提示三步就識；可撳推薦陣容' : '準備就緒');
+      if (state.tutorialStep < 99) {
+        state.tutorialStep = 0;
+        UI.toast('① 先拖「莊家鐵衛」或任一俠客到綠色空格', 3200);
+      }
+      showStageStory(
+        state.tutorialStep < 99 ? '跟底欄三步提示；可撳推薦陣容' : '準備就緒'
+      );
+      setTimeout(stageRecommendToast, 600);
       syncAll();
     }
   );
   setTimeout(() => {
     const extra = document.getElementById('overlay-extra');
     if (!extra) return;
+    if (bootRec && bootRec.lineup) {
+      const tip = document.createElement('div');
+      tip.className = 'lineup-label';
+      tip.style.cssText = 'width:100%;text-align:center;color:#C9A227;font-size:12px;margin-bottom:4px;';
+      tip.textContent = '本關推薦｜' + bootRec.lineup.name + ' — ' + bootRec.reason;
+      extra.appendChild(tip);
+    }
     UI.renderLineupChips(extra, (lu) => {
       applyLineup(lu);
       UI.toast('已套用提示：' + lu.name + ' — 開始後跟住召', 2000);

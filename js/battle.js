@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 戰鬥／生成／合併邏輯 v0.9.0
+ * 銀樓防衛 — 戰鬥／生成／合併邏輯 v1.0.0
  */
 (function (global) {
   const { HEROES, ENEMIES, GRID, CORE, heroStats, activeBonds, bondModsFor, MAX_STAR, UPGRADE_PATHS, upgradeCost } = global.YD;

@@ -460,3 +460,13 @@ header.title {
   max-width: 90%;
   text-align: center;
 }
+
+/* v1.0 lore */
+.paper-entry em.lore {
+  display: block;
+  margin-top: 4px;
+  font-style: normal;
+  color: #8A7A60;
+  font-size: 11px;
+  line-height: 1.35;
+}

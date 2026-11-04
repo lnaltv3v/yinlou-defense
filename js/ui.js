@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v0.9.0
+ * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v1.0.0
  */
 (function (global) {
   const {
@@ -401,6 +401,8 @@
       onSkipTutorial,
       onToggleSkillCd,
       onToggleShake,
+      onToggleFlash,
+      onToggleStuckTips,
       onToggleSfx,
       onClearSave,
       onClose,
@@ -426,8 +428,15 @@
       '</strong></div>' +
       '<div class="paper-row"><span>手感</span><strong>震屏 ' +
       (save.reduceShake ? '減弱' : '正常') +
+      ' · 閃光 ' +
+      (save.reduceFlash ? '減弱' : '正常') +
       ' · 音效 ' +
       (save.sfxEnabled !== false ? '開' : '關') +
+      '</strong></div>' +
+      '<div class="paper-row"><span>提示</span><strong>卡關 ' +
+      (save.stuckTips !== false ? '開' : '關') +
+      ' · 教學 ' +
+      (save.skipTutorial ? '略過' : '開') +
       '</strong></div>' +
       '<div class="paper-row"><span>進度</span><strong>羈絆 ' +
       BONDS.length +
@@ -435,8 +444,6 @@
       achN +
       '/' +
       ACHIEVEMENTS.length +
-      ' · 教學 ' +
-      (save.skipTutorial ? '略過' : '開') +
       '</strong></div>' +
       '<p class="paper-note">點場上俠客可強化（刀利／甲厚／內息）。圖鑑／成就請用下方按鈕。</p>' +
       '</div>';
@@ -488,6 +495,28 @@
         save.reduceShake ? '震屏：減弱' : '震屏：正常',
         () => {
           onToggleShake();
+          showSettings(opts);
+        },
+        false,
+        true
+      );
+    }
+    if (onToggleFlash) {
+      mk(
+        save.reduceFlash ? '閃光／強反饋：減弱' : '閃光／強反饋：正常',
+        () => {
+          onToggleFlash();
+          showSettings(opts);
+        },
+        false,
+        true
+      );
+    }
+    if (onToggleStuckTips) {
+      mk(
+        save.stuckTips !== false ? '卡關提示：開' : '卡關提示：關',
+        () => {
+          onToggleStuckTips();
           showSettings(opts);
         },
         false,
@@ -588,6 +617,7 @@
             '</strong><span>' +
             def.blurb +
             (def.skill ? ' · ' + def.skill.name : '') +
+            (def.lore ? '<br><em class="lore">' + def.lore + '</em>' : '') +
             '</span></div>'
         );
       } else {
@@ -610,6 +640,7 @@
             def.atk +
             (def.boss ? ' · Boss' : '') +
             (def.skill ? ' · ' + def.skill.name : '') +
+            (def.lore ? '<br><em class="lore">' + def.lore + '</em>' : '') +
             '</span></div>'
         );
       } else {

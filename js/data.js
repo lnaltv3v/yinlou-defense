@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 靜態資料 v0.9.0
+ * 銀樓防衛 — 靜態資料 v1.0.0
  * 角色為原創綽號，影射金融江湖氣氛；唔用真人真名／金庸名／Fortias IP。
  */
 (function (global) {
@@ -25,6 +25,7 @@
       id: 'long_bull',
       name: '多頭刀客',
       blurb: '近戰高傷 · 牛市衝鋒',
+      lore: '江湖傳佢刀下只認升市，唔認人情；銀樓夜戰，總係第一個上前。',
       role: 'melee',
       cost: 22,
       color: '#C45C4A',
@@ -47,6 +48,7 @@
       id: 'short_blade',
       name: '空頭劍客',
       blurb: '遠程點殺 · 看淡減速',
+      lore: '看淡唔等於認輸——劍尖專挑過熱嘅浪頭，一刺即退。',
       role: 'ranged',
       cost: 28,
       color: '#2A6A6A',
@@ -72,6 +74,7 @@
       id: 'leverage_monk',
       name: '槓桿狂僧',
       blurb: '範圍爆炸 · 冷卻長',
+      lore: '狂僧借十倍力一掌拍落，勝則爆倉敵陣，敗則自身亦損。',
       role: 'aoe',
       cost: 38,
       color: '#5A4060',
@@ -96,6 +99,7 @@
       id: 'dividend_hermit',
       name: '股息隱士',
       blurb: '治療／回銀光環',
+      lore: '隱士唔追熱市，只守細水長流；光環所及，銀兩同氣血齊生。',
       role: 'support',
       cost: 32,
       color: '#3A7A6A',
@@ -120,6 +124,7 @@
       id: 'market_guard',
       name: '莊家鐵衛',
       blurb: '坦克擋路 · 高血',
+      lore: '鐵衛守門如護盤，寧損己身，唔讓核心裂一寸。',
       role: 'tank',
       cost: 26,
       color: '#6A6055',
@@ -141,6 +146,7 @@
       id: 'penny_assassin',
       name: '細價股刺客',
       blurb: '高速低血 · 打後排',
+      lore: '細價股裡藏刀——專殺後排，得手即隱入人潮。',
       role: 'assassin',
       cost: 30,
       color: '#A04040',
@@ -163,6 +169,7 @@
       id: 'ipo_herald',
       name: '招股鼓手',
       blurb: '鄰格加攻 · 開市喊單',
+      lore: '鑼響開市，鄰格士氣齊升；鼓手唔出手，亦能改寫盤口。',
       role: 'buffer',
       cost: 34,
       color: '#C9A227',
@@ -187,6 +194,7 @@
       id: 'squeeze_blade',
       name: '逼空客',
       blurb: '打高血加成 · 軋空',
+      lore: '逼空客專剋高血巨獸，血愈厚，軋空愈狠。',
       role: 'hunter',
       cost: 36,
       color: '#8A5040',
@@ -210,6 +218,7 @@
       id: 'arb_walker',
       name: '套利行者',
       blurb: '跨 lane 點殺 · 價差收割',
+      lore: '跨巷收割價差，左右開弓，專打唔對稱嘅浪。',
       role: 'arb',
       cost: 35,
       color: '#4A7080',
@@ -234,6 +243,7 @@
       id: 'night_broker',
       name: '夜盤掮客',
       blurb: '暗盤標記 · 隊友收割',
+      lore: '暗盤未歇，掮客提燈標記——標記所在，隊友跟進收割。',
       role: 'marker',
       cost: 33,
       color: '#3A4060',
@@ -325,6 +335,7 @@
     retail_tide: {
       id: 'retail_tide',
       name: '散戶潮',
+      lore: '聞風而至嘅散戶潮，人多勢眾，但挨打唔耐。',
       hp: 30,
       atk: 5,
       speed: 40,
@@ -338,6 +349,7 @@
     chase_zombie: {
       id: 'chase_zombie',
       name: '追高殭屍',
+      lore: 'FOMO 驅使，追高唔知停；精英時會撕咬回血。',
       hp: 68,
       atk: 10,
       speed: 28,
@@ -359,6 +371,7 @@
     leverage_fiend: {
       id: 'leverage_fiend',
       name: '槓桿妖',
+      lore: '槓桿化形，傷高速快；一喊「加槓」周圍亦狂。',
       hp: 100,
       atk: 14,
       speed: 34,
@@ -383,6 +396,7 @@
     black_swan: {
       id: 'black_swan',
       name: '黑天鵝',
+      lore: '黑羽掠過街燈——Boss 級災變，專震核心同陣腳。',
       hp: 340,
       atk: 22,
       speed: 20,
@@ -407,6 +421,7 @@
     margin_call: {
       id: 'margin_call',
       name: '追保令',
+      lore: '限期追保，專咬前排；標記之後下一刀更狠。',
       hp: 52,
       atk: 8,
       speed: 48,
@@ -428,6 +443,7 @@
     rumor_swarm: {
       id: 'rumor_swarm',
       name: '傳聞蚊',
+      lore: '巷口風聲成群，細而快，專拖慢你節奏。',
       hp: 22,
       atk: 4,
       speed: 58,
@@ -441,6 +457,7 @@
     panic_board: {
       id: 'panic_board',
       name: '恐慌盤',
+      lore: '熔斷前嘅恐慌盤，急殺加速，一陣即散。',
       hp: 78,
       atk: 12,
       speed: 36,
@@ -464,6 +481,7 @@
     dark_tape: {
       id: 'dark_tape',
       name: '暗盤影',
+      lore: '盤後暗影，半透明高速；影遁時更難捉。',
       hp: 38,
       atk: 9,
       speed: 52,
@@ -496,8 +514,8 @@
       id: 1,
       name: '錢莊初夜',
       story: '夜雨初歇，錢莊門楣掛起「銀樓」燈籠。櫃檯後頭算盤未停，門外已有腳步聲——散戶潮聞風而至。掌櫃話：開市前唔擺好第一盤棋，天亮只剩空倉同空城。',
-      startSilver: 165,
-      coreHp: 185,
+      startSilver: 180,
+      coreHp: 200,
       unlockHeroes: Object.keys(HEROES),
       waves: [
         wavePack([{ enemy: 'retail_tide', count: 3, lane: 'cycle', interval: 1.2 }]),
@@ -526,8 +544,8 @@
       id: 2,
       name: '午市殺跌',
       story: '午市鐘響，追保令滿天飛，茶館裡頭嘈到拆天。多頭刀客同空頭劍客隔檯對望——多空對決開倉。掌櫃拍門：誰守得住盤口，誰就係今日莊家；守唔住，銀樓燈籠今晚熄。',
-      startSilver: 155,
-      coreHp: 180,
+      startSilver: 170,
+      coreHp: 195,
       unlockHeroes: Object.keys(HEROES),
       waves: [
         wavePack([
@@ -566,8 +584,8 @@
       id: 3,
       name: '夜盤黑潮',
       story: '夜盤無聲，只聽見傳聞蚊喺巷口起舞。瓦簷上一道黑羽掠過，街燈抖了一下——黑天鵝唔敲門，只破門。你要喺謠言同槓桿之間，留一盞銀樓燈。',
-      startSilver: 190,
-      coreHp: 220,
+      startSilver: 205,
+      coreHp: 235,
       unlockHeroes: Object.keys(HEROES),
       waves: [
         wavePack([
@@ -616,8 +634,8 @@
       id: 4,
       name: '清算之夜',
       story: '清算之夜，帳本翻紅。槓桿反噬如刀，追保令連環砸落。銀樓鐵壁若齊人，尚有一息可守；否則只剩空倉、空城，同天亮後無人認領嘅門牌。',
-      startSilver: 225,
-      coreHp: 250,
+      startSilver: 240,
+      coreHp: 265,
       unlockHeroes: Object.keys(HEROES),
       waves: [
         wavePack([
@@ -658,13 +676,13 @@
           { enemy: 'black_swan', count: 2, lane: 'cycle', interval: 4, delay: 3 },
         ]),
         wavePack([
-          { enemy: 'retail_tide', count: 16, lane: 'cycle', interval: 0.28 },
-          { enemy: 'rumor_swarm', count: 12, lane: 'random', interval: 0.26, delay: 0.2 },
-          { enemy: 'chase_zombie', count: 8, lane: 'cycle', interval: 0.5, delay: 0.5 },
-          { enemy: 'leverage_fiend', count: 5, lane: 'random', interval: 0.9, delay: 1 },
-          { enemy: 'black_swan', count: 2, lane: 0, interval: 2.5, delay: 2 },
-          { enemy: 'black_swan', count: 1, lane: 3, interval: 0, delay: 7 },
-          { enemy: 'margin_call', count: 8, lane: 'random', interval: 0.55, delay: 3 },
+          { enemy: 'retail_tide', count: 14, lane: 'cycle', interval: 0.3 },
+          { enemy: 'rumor_swarm', count: 10, lane: 'random', interval: 0.28, delay: 0.2 },
+          { enemy: 'chase_zombie', count: 7, lane: 'cycle', interval: 0.55, delay: 0.5 },
+          { enemy: 'leverage_fiend', count: 4, lane: 'random', interval: 0.95, delay: 1 },
+          { enemy: 'black_swan', count: 2, lane: 0, interval: 2.8, delay: 2.2 },
+          { enemy: 'black_swan', count: 1, lane: 3, interval: 0, delay: 7.5 },
+          { enemy: 'margin_call', count: 6, lane: 'random', interval: 0.6, delay: 3 },
         ]),
       ],
     },
@@ -673,8 +691,8 @@
       id: 5,
       name: '熔斷黎明',
       story: '熔斷黎明前最後一炷香。恐慌盤如潮湧向櫃檯，門環震得作響。套利行者已跨巷收割，鼓聲遠近——撐過呢一浪，江湖記得你名；撐唔過，只剩熔斷後嘅沉寂。',
-      startSilver: 235,
-      coreHp: 265,
+      startSilver: 255,
+      coreHp: 280,
       unlockHeroes: Object.keys(HEROES),
       waves: [
         wavePack([
@@ -734,8 +752,8 @@
       name: '盤後暗盤',
       story: '收市鐘已響，暗盤卻未歇。夜盤掮客提燈入巷，影在磚縫遊走，像未簽完嘅契。呢一晚唔係開市，係清算未完嘅債——標記、收割、護盤，一氣呵成，否則債入骨髓。',
       challenge: true,
-      startSilver: 245,
-      coreHp: 280,
+      startSilver: 265,
+      coreHp: 295,
       unlockHeroes: Object.keys(HEROES),
       firstClearBonus: 150,
       waves: [
@@ -796,8 +814,8 @@
     id: 'endless',
     name: '無盡殺跌',
     story: '殺跌無盡，浪高過浪。里程碑銀兩係你唯一嘅喘息；修飾詞會改寫盤口——守得愈久，江湖傳聞愈響，亦愈難轉身離場。',
-    startSilver: 185,
-    coreHp: 205,
+    startSilver: 200,
+    coreHp: 220,
     unlockHeroes: Object.keys(HEROES),
   };
 
@@ -886,6 +904,42 @@
       apply: (ctx) => {
         ctx.silverMul = (ctx.silverMul || 1) * 0.9;
         ctx.waveBonusMul = (ctx.waveBonusMul || 1) * 1.2;
+      },
+    },
+    {
+      id: 'iron_aura',
+      name: '護盤加持',
+      blurb: '核心 HP +8%；敵人移速 −6%',
+      apply: (ctx) => {
+        ctx.coreMul = (ctx.coreMul || 1) * 1.08;
+        ctx.enemySpeedMul = (ctx.enemySpeedMul || 1) * 0.94;
+      },
+    },
+    {
+      id: 'bull_run',
+      name: '多頭狂歡',
+      blurb: '合併回報 ×1.2；召喚費 −6%',
+      apply: (ctx) => {
+        ctx.mergeRebateMul = (ctx.mergeRebateMul || 1) * 1.2;
+        ctx.summonCostMul = (ctx.summonCostMul || 1) * 0.94;
+      },
+    },
+    {
+      id: 'bear_trap',
+      name: '空頭陷阱',
+      blurb: '敵賞金 +15%；敵速 +6%',
+      apply: (ctx) => {
+        ctx.rewardMul = (ctx.rewardMul || 1) * 1.15;
+        ctx.enemySpeedMul = (ctx.enemySpeedMul || 1) * 1.06;
+      },
+    },
+    {
+      id: 'double_ink',
+      name: '雙墨開市',
+      blurb: '開局銀 +10%；波次補銀 +10%',
+      apply: (ctx) => {
+        ctx.silverMul = (ctx.silverMul || 1) * 1.1;
+        ctx.waveBonusMul = (ctx.waveBonusMul || 1) * 1.1;
       },
     },
   ];
@@ -1128,6 +1182,10 @@
     { id: 'codex_enemies', cat: 'meta', name: '敵情盡知', blurb: '圖鑑見齊全部敵人', check: (s) => Object.keys(ENEMIES).every((id) => (s.seenEnemies || {})[id]) },
     { id: 'daily', cat: 'meta', name: '日日開盤', blurb: '完成一次每日關', check: (s) => !!s.ach && s.ach.daily },
     { id: 'lineup', cat: 'meta', name: '跟單上陣', blurb: '使用一次推薦陣容芯片', check: (s) => !!s.ach && s.ach.lineup },
+    { id: 'stage2', cat: 'stage', name: '午市守得住', blurb: '通關第 2 關', check: (s) => (s.maxStageCleared || 0) >= 2 },
+    { id: 'stage3', cat: 'stage', name: '夜盤留燈', blurb: '通關第 3 關', check: (s) => (s.maxStageCleared || 0) >= 3 },
+    { id: 'endless5', cat: 'combat', name: '五浪初嚐', blurb: '無盡最佳 ≥ 5 波', check: (s) => (s.bestEndlessWave || 0) >= 5 },
+    { id: 'silver500', cat: 'meta', name: '銀樓小財', blurb: '累計銀兩帳 ≥ 500', check: (s) => (s.totalSilver || 0) >= 500 },
   ];
 
   /** 首通銀兩獎勵（入累計帳） */
@@ -1375,7 +1433,7 @@
 
   function defaultSave() {
     return {
-      version: 9,
+      version: 10,
       totalSilver: 0,
       totalKills: 0,
       maxStageCleared: 0,
@@ -1387,6 +1445,8 @@
       showCellHints: true,
       showSkillCd: true,
       reduceShake: false,
+      reduceFlash: false,
+      stuckTips: true,
       sfxEnabled: true,
       autoPauseOnBond: false,
       seenHeroes: {},
@@ -1396,12 +1456,13 @@
       dailyDate: '',
       dailyCleared: false,
       firstBootDone: false,
+      tutorialDone: false,
     };
   }
 
   function exportSaveJson(save) {
     const payload = {
-      meta: { game: 'yinlou-defense', exportedAt: new Date().toISOString(), version: save.version || 9 },
+      meta: { game: 'yinlou-defense', exportedAt: new Date().toISOString(), version: save.version || 10 },
       save: { ...defaultSave(), ...save },
     };
     return JSON.stringify(payload, null, 2);
@@ -1412,7 +1473,7 @@
     const body = data && data.save ? data.save : data;
     if (!body || typeof body !== 'object') throw new Error('無效存檔');
     const merged = { ...defaultSave(), ...body };
-    merged.version = Math.max(9, merged.version || 9);
+    merged.version = Math.max(10, merged.version || 10);
     if (!merged.firstClears) merged.firstClears = {};
     if (!merged.seenHeroes) merged.seenHeroes = {};
     if (!merged.seenEnemies) merged.seenEnemies = {};
@@ -1428,9 +1489,74 @@
 
   function firstRunBonus(save) {
     if ((save.maxStageCleared || 0) > 0) return 0;
-    return 25;
+    return 40;
   }
 
+
+
+  /** 根據關卡敵組成動態推薦陣容（簡版） */
+  function recommendForStage(stage, endless, daily) {
+    const counts = {};
+    const waves = (stage && stage.waves) || [];
+    for (const w of waves) {
+      for (const sp of w.spawns || []) {
+        counts[sp.enemy] = (counts[sp.enemy] || 0) + (sp.count || 0);
+      }
+    }
+    let best = LINEUPS[0];
+    let score = -1;
+    const pick = (id, sc) => {
+      const lu = LINEUPS.find((x) => x.id === id);
+      if (lu && sc >= score) {
+        score = sc;
+        best = lu;
+      }
+    };
+    if (endless) {
+      pick('arb_hedge', 5);
+      pick('dark_night', 4);
+      return { lineup: best, reason: '無盡浪種雜——跨 lane／標記收割較穩' };
+    }
+    if (daily && stage && stage.dailyMeta) {
+      const f = stage.dailyMeta.focus;
+      if (f === 'dark_tape') pick('dark_night', 8);
+      else if (f === 'panic_board') pick('arb_hedge', 7);
+      else if (f === 'black_swan' || f === 'leverage_fiend') pick('squeeze', 8);
+      else if (f === 'margin_call') pick('iron_wall', 7);
+      else if (f === 'rumor_swarm') pick('leverage', 6);
+      else pick('bull_bear', 5);
+      return { lineup: best, reason: '每日焦點「' + (stage.dailyMeta.blurb || f) + '」' };
+    }
+    // 第 1 關固定偏新手鐵壁
+    if (stage && stage.id === 1) {
+      return { lineup: LINEUPS[0], reason: '教學關——鐵衛＋隱士＋刀客最穩' };
+    }
+    const dark = counts.dark_tape || 0;
+    const panic = counts.panic_board || 0;
+    const swan = counts.black_swan || 0;
+    const margin = counts.margin_call || 0;
+    const rumor = counts.rumor_swarm || 0;
+    const fiend = counts.leverage_fiend || 0;
+    pick('iron_wall', 2 + (margin > 8 ? 3 : 0));
+    pick('bull_bear', 3 + (stage && stage.id === 2 ? 3 : 0));
+    pick('leverage', 2 + (rumor > 10 ? 3 : 0) + (fiend > 4 ? 2 : 0));
+    pick('squeeze', 2 + (swan >= 3 ? 5 : swan >= 2 ? 3 : 0));
+    pick('arb_hedge', 2 + (panic > 4 ? 5 : 0) + (stage && stage.id === 5 ? 2 : 0));
+    pick('dark_night', 2 + (dark > 6 ? 7 : dark > 0 ? 4 : 0) + (stage && stage.id === 6 ? 3 : 0));
+    let reason = '均衡起步';
+    if (best.id === 'dark_night') reason = '暗盤影偏多——標記＋劍減速';
+    else if (best.id === 'arb_hedge') reason = '恐慌／雜浪——跨 lane 點殺';
+    else if (best.id === 'squeeze') reason = 'Boss／高血多——軋空收割';
+    else if (best.id === 'leverage') reason = '傳聞蚊／槓桿潮——範圍清場';
+    else if (best.id === 'iron_wall') reason = '追保／前壓——鐵壁更穩';
+    else if (best.id === 'bull_bear') reason = '多空齊開——近遠互補';
+    return { lineup: best, reason };
+  }
+
+  function formatRunModifiers(mods) {
+    if (!mods || !mods.length) return '';
+    return mods.map((m) => m.name + '（' + m.blurb + '）').join('\n');
+  }
 
   function markSeenHero(save, id) {
     if (!save.seenHeroes) save.seenHeroes = {};
@@ -1510,6 +1636,8 @@
     importSaveJson,
     pickFailTip,
     pickStuckTip,
+    recommendForStage,
+    formatRunModifiers,
     firstRunBonus,
     markSeenHero,
     markSeenEnemy,
