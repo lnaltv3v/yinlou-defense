@@ -910,6 +910,9 @@
         if (state.modCtx && state.modCtx.silverDrainMul) {
           drainAmt = Math.max(1, Math.round(drainAmt * state.modCtx.silverDrainMul));
         }
+        if (state._dualCharmDrainMul) {
+          drainAmt = Math.max(1, Math.round(drainAmt * state._dualCharmDrainMul));
+        }
         const drain = Math.min(state.silver || 0, drainAmt);
         state.silver = Math.max(0, (state.silver || 0) - drain);
         if (drain > 0) {
@@ -1025,6 +1028,9 @@
         if (state.modCtx && state.modCtx.silverDrainMul) {
           drainAmt = Math.max(1, Math.round(drainAmt * state.modCtx.silverDrainMul));
         }
+        if (state._dualCharmDrainMul) {
+          drainAmt = Math.max(1, Math.round(drainAmt * state._dualCharmDrainMul));
+        }
         const drain = Math.min(state.silver || 0, drainAmt);
         state.silver = Math.max(0, (state.silver || 0) - drain);
         if (drain > 0) {
@@ -1047,10 +1053,14 @@
       if (state.modCtx && state.modCtx.mirageTaxFloorBonus) {
         floor = Math.min(0.55, floor + state.modCtx.mirageTaxFloorBonus);
       }
+      if (state._dualCharmTaxFloor) {
+        floor = Math.max(0.22, floor + state._dualCharmTaxFloor);
+      }
       const stacking = (state._mirageTaxT || 0) > 0.15;
       if (stacking) {
         // v3.5：叠層唔滿刷新——延長較短、倍率遞減見底
-        const ext = taxT * (sk.mirageTaxStackExtend || 0.55);
+        let ext = taxT * (sk.mirageTaxStackExtend || 0.55);
+        if (state._dualCharmTaxExtend) ext *= state._dualCharmTaxExtend;
         state._mirageTaxT = Math.min(taxT * 1.65, (state._mirageTaxT || 0) + ext);
         state._mirageTaxMul = Math.max(floor, (state._mirageTaxMul || baseMul) * stackMul);
         state._mirageTaxStacks = (state._mirageTaxStacks || 1) + 1;
@@ -1652,6 +1662,38 @@
         bounce: 0,
       });
       state._dualPentaBanner = true;
+      // v3.7：雙五潮專屬符咒／飾品
+      try {
+        const pick =
+          (global.YD && global.YD.pickDualPentaCharm) ||
+          (typeof pickDualPentaCharm === 'function' ? pickDualPentaCharm : null);
+        if (pick && !state._dualPentaCharm) {
+          const charm = pick((state.waveIndex || 1) * 97 + (state.kills || 0) * 13);
+          if (charm) {
+            state._dualPentaCharm = charm;
+            state._dualPentaCharmSeen = (state._dualPentaCharmSeen || 0) + 1;
+            if (charm.apply) charm.apply(state);
+            if (state.modCtx && state.modCtx.dualPentaEnemySpeedMul && state.modCtx.dualPentaEnemySpeedMul !== 1) {
+              state._dualCharmEnemySpeed =
+                (state._dualCharmEnemySpeed || 1) * state.modCtx.dualPentaEnemySpeedMul;
+            }
+            pushFloat(state.floats, {
+              x: 480,
+              y: 258,
+              text: (charm.kind === 'debuff' ? '⚠ ' : '✦ ') + charm.name + ' — ' + (charm.blurb || ''),
+              color: charm.kind === 'debuff' ? '#C45C4A' : '#C9A227',
+              size: 13,
+              vy: -6,
+              life: 3.0,
+              bounce: 0,
+            });
+            try {
+              const A = window.YDAudio;
+              if (A && A.play) A.play('dual_penta_charm');
+            } catch (_) {}
+          }
+        }
+      } catch (_) {}
     } else if (penta) {
       pushFloat(state.floats, {
         x: 480,

@@ -29,6 +29,8 @@
     listWallCompareDays,
     clearWallCompareHistory,
     importWallCompareHistory,
+    recordEndlessReplay,
+    formatEndlessReplay,
     recordWallSnapshot,
     formatWallTimeline,
     formatWallSparkline,
@@ -307,6 +309,13 @@
       _quadTideSeen: 0,
       _pentaTideSeen: 0,
       _dualPentaSeen: 0,
+      _dualPentaCharm: null,
+      _dualPentaCharmSeen: 0,
+      _dualCharmTaxFloor: 0,
+      _dualCharmTaxExtend: 1,
+      _dualCharmEnemySpeed: 1,
+      _dualCharmDrainMul: 1,
+      _dualCharmMergeMul: 1,
       _mirageTaxStacks: 0,
       _circuitProcs: 0,
       _swanKills: 0,
@@ -333,6 +342,7 @@
   function currentMergeRebate(heroId, newStar) {
     const base = mergeRebate(heroId, newStar);
     let mul = (state.modCtx && state.modCtx.mergeRebateMul) || 1;
+    if (state._dualCharmMergeMul) mul *= state._dualCharmMergeMul;
     if ((state._mergeFreezeT || 0) > 0) mul *= 0.15;
     return Math.max(0, Math.round(base * mul));
   }
@@ -475,6 +485,11 @@
       writeSave(save);
       notifyAchievements();
       UI.toast('成就｜雙五潮過招', 2200);
+    }
+    if (state._dualPentaCharmSeen && !save.ach.dual_penta_charm) {
+      save.ach.dual_penta_charm = true;
+      writeSave(save);
+      notifyAchievements();
     }
     if (state._dualPentaBanner && !save.ach.dual_penta_banner) {
       save.ach.dual_penta_banner = true;
@@ -871,14 +886,17 @@
             m.late160 ||
             m.late180 ||
             m.late220 ||
-            m.late300
+            m.late300 ||
+            m.late350
         );
         state._lateModBadge = lateMods.length
           ? lateMods.map((m) => m.name).join(' · ')
           : '';
-        state._lateModTier = lateMods.some((m) => m.late300)
-          ? 300
-          : lateMods.some((m) => m.late220)
+        state._lateModTier = lateMods.some((m) => m.late350)
+          ? 350
+          : lateMods.some((m) => m.late300)
+            ? 300
+            : lateMods.some((m) => m.late220)
             ? 220
             : lateMods.some((m) => m.late180)
               ? 180
@@ -929,12 +947,20 @@
           writeSave(save);
           notifyAchievements();
         }
+        if ((save.bestEndlessWave || 0) >= 350) {
+          if (!save.ach) save.ach = {};
+          save.ach.late350_run = true;
+          writeSave(save);
+          notifyAchievements();
+        }
         if (state._lateModBadge) {
           setTimeout(() => {
             const tag =
-              state._lateModTier >= 300
-                ? '【300+】'
-                : state._lateModTier >= 220
+              state._lateModTier >= 350
+                ? '【350+】'
+                : state._lateModTier >= 300
+                  ? '【300+】'
+                  : state._lateModTier >= 220
                   ? '【220+】'
                   : state._lateModTier >= 180
                     ? '【180+】'
@@ -1028,6 +1054,9 @@
     if (state._inkKills) bits.push('墨影帳擊破 ×' + state._inkKills);
     if (state._mirageKills) bits.push('帳鏡擊破 ×' + state._mirageKills);
     if (state._pentaTideSeen) bits.push('五潮同場 ×' + state._pentaTideSeen);
+    if (state._dualPentaSeen) bits.push('雙五潮 ×' + state._dualPentaSeen);
+    if (state._dualPentaCharm) bits.push('符咒：' + (state._dualPentaCharm.name || ''));
+    if (state._mirageTaxStacks) bits.push('鏡稅叠 ×' + state._mirageTaxStacks);
     if (state._quadTideSeen) bits.push('四潮入場 ×' + state._quadTideSeen);
     if (state._tripleTideEvent) bits.push('三潮市況 ×' + state._tripleTideEvent);
     if (state._tripleTideSeen) bits.push('三潮入場 ×' + state._tripleTideSeen);
@@ -1039,6 +1068,28 @@
       bits.push(formatLocalBestWall(save).short);
     }
     return bits.length ? '\n' + bits.join('｜') : '';
+  }
+
+  function buildEndlessReplaySummary() {
+    const bosses = [];
+    if (state._circuitKills) bosses.push('熔斷×' + state._circuitKills);
+    if (state._haltTideKills) bosses.push('臨停×' + state._haltTideKills);
+    if (state._inkKills) bosses.push('墨影×' + state._inkKills);
+    if (state._mirageKills) bosses.push('帳鏡×' + state._mirageKills);
+    const mods = formatRunModifiers
+      ? formatRunModifiers(state.modifiers)
+      : modifierLabel(state.modifiers || []);
+    return {
+      wave: state.waveIndex || 0,
+      kills: state.kills || 0,
+      dualPenta: state._dualPentaSeen || 0,
+      charm: state._dualPentaCharm ? state._dualPentaCharm.name : '',
+      taxStacks: state._mirageTaxStacks || 0,
+      mods: mods || '',
+      bosses: bosses.join(' '),
+      penta: state._pentaTideSeen || 0,
+      silver: state.silver || 0,
+    };
   }
 
   function resetWaveBtn() {
@@ -1537,11 +1588,27 @@
       (rec && rec.tips && rec.tips.length
         ? '\n分路／陣容：' + rec.tips.slice(0, 2).join('；')
         : '');
+    let replay = null;
+    if (state.endless) {
+      replay = buildEndlessReplaySummary();
+      if (typeof recordEndlessReplay === 'function') {
+        recordEndlessReplay(save, replay);
+        writeSave(save);
+      }
+      if (!save.ach) save.ach = {};
+      if (!save.ach.endless_replay) {
+        save.ach.endless_replay = true;
+        writeSave(save);
+        notifyAchievements();
+      }
+    }
     if (UI.showFailPanel) {
       UI.showFailPanel({
         title: '銀樓失守',
         body: failBody,
         rec: rec,
+        replay: replay,
+        endless: !!state.endless,
         onRetry: () => {
           UI.hideOverlay();
           resetRun(state.endless, state.daily, state.weekly);
@@ -1847,7 +1914,49 @@
           notifyAchievements();
           UI.toast('成就｜牆史匯入', 1800);
         };
-        window.__yinlouMarkTutShopArrow = () => {
+        
+  window.__yinlouMarkWallChart = function () {
+    if (!save.ach) save.ach = {};
+    if (!save.ach.wall_compare_chart) {
+      save.ach.wall_compare_chart = true;
+      writeSave(save);
+      notifyAchievements();
+    }
+  };
+  window.__yinlouMarkAchBadgeWall = function () {
+    if (!save.ach) save.ach = {};
+    if (!save.ach.ach_badge_wall) {
+      save.ach.ach_badge_wall = true;
+      writeSave(save);
+      notifyAchievements();
+    }
+  };
+  window.__yinlouMarkWallShortThick = function () {
+    if (!save.ach) save.ach = {};
+    if (!save.ach.wall_short_thick) {
+      save.ach.wall_short_thick = true;
+      writeSave(save);
+      notifyAchievements();
+    }
+  };
+  window.__yinlouMarkTutUpgradeArrow = function () {
+    if (!save.ach) save.ach = {};
+    if (!save.ach.tut_upgrade_arrow) {
+      save.ach.tut_upgrade_arrow = true;
+      writeSave(save);
+      notifyAchievements();
+    }
+  };
+  window.__yinlouMarkTutSettleArrow = function () {
+    if (!save.ach) save.ach = {};
+    if (!save.ach.tut_settle_arrow) {
+      save.ach.tut_settle_arrow = true;
+      writeSave(save);
+      notifyAchievements();
+    }
+  };
+
+  window.__yinlouMarkTutShopArrow = () => {
           if (!save.ach) save.ach = {};
           if (!save.ach.tut_shop_arrow) {
             save.ach.tut_shop_arrow = true;
@@ -2549,6 +2658,10 @@
         if (state.modCtx.rewardMul && state.modCtx.rewardMul !== 1) {
           enemy.reward = Math.max(1, Math.round(enemy.reward * state.modCtx.rewardMul));
         }
+      }
+      if (state._dualCharmEnemySpeed && state._dualCharmEnemySpeed !== 1) {
+        enemy.baseSpeed *= state._dualCharmEnemySpeed;
+        enemy.speed = enemy.baseSpeed;
       }
       state.enemies.push(enemy);
       if (!save.seenEnemies || !save.seenEnemies[job.enemy]) {

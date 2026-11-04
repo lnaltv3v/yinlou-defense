@@ -808,7 +808,7 @@ header.title {
 }
 
 
-/* v3.6.0 */
+/* v3.7.0 */
 .lane-tips {
   display: flex;
   gap: 8px;
@@ -1003,7 +1003,7 @@ header.title {
 .wall-spark-actions-v31 { gap: 6px; }
 
 
-/* v3.6.0 — tutorial HUD / ach jump / wall copy / mirage tax / wall hist */
+/* v3.7.0 — tutorial HUD / ach jump / wall copy / mirage tax / wall hist */
 .tutorial-hud {
   display: none;
   position: absolute;
@@ -1059,7 +1059,7 @@ button.ach-cat-bar:focus {
 #wall-compare-copy:disabled { opacity: 0.4; cursor: default; }
 
 
-/* v3.6.0 — mirage tax HUD / tut-dot click / wall compare history */
+/* v3.7.0 — mirage tax HUD / tut-dot click / wall compare history */
 .mirage-tax-hud {
   display: none;
   position: absolute;
@@ -1111,7 +1111,7 @@ button.ach-cat-bar:focus {
 .wall-hist-list .dim { opacity: 0.65; }
 
 
-/* v3.6.0 — mirage tax bar / tut blurb / wall hist actions */
+/* v3.7.0 — mirage tax bar / tut blurb / wall hist actions */
 .mirage-tax-hud {
   flex-direction: column;
   gap: 4px;
@@ -1153,7 +1153,7 @@ button.ach-cat-bar:focus {
 }
 
 
-/* v3.6.0 — wall day chips / tut cell */
+/* v3.7.0 — wall day chips / tut cell */
 .wall-hist-days {
   display: flex;
   flex-wrap: wrap;
@@ -1163,7 +1163,7 @@ button.ach-cat-bar:focus {
 .wall-hist-days .wall-mode-btn { font-size: 10px; padding: 2px 6px; }
 
 
-/* v3.6.0 — tut shop arrow / mirage stacked HUD */
+/* v3.7.0 — tut shop arrow / mirage stacked HUD */
 .mirage-tax-hud.stacked {
   border-color: #C9A227;
   box-shadow: 0 0 14px rgba(201, 162, 39, 0.45);
@@ -1215,3 +1215,89 @@ button.ach-cat-bar:focus {
   0%, 100% { transform: translateX(-50%) translateY(0); }
   50% { transform: translateX(-50%) translateY(6px); }
 }
+
+
+/* v3.7.0 — badge wall / wall chart / multi tut arrows / endless replay */
+.ach-badge-wall {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 4px;
+  padding: 8px;
+  border-radius: 10px;
+  background: rgba(26, 21, 16, 0.55);
+  border: 1px solid rgba(201, 162, 39, 0.28);
+}
+.ach-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid #5A4A38;
+  color: #7A6A50;
+  background: #1A1510;
+}
+.ach-badge.lit {
+  color: #1A1510;
+  background: linear-gradient(145deg, #E8DCC8, #C9A227);
+  border-color: #C9A227;
+  box-shadow: 0 0 8px rgba(201, 162, 39, 0.45);
+}
+.ach-badge.dim { opacity: 0.45; }
+.wall-chart {
+  margin: 6px 0 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(20, 16, 12, 0.65);
+  border: 1px solid rgba(90, 74, 56, 0.6);
+}
+.wall-chart.empty { padding: 4px 8px; }
+.wall-chart-legend {
+  display: flex;
+  gap: 10px;
+  font-size: 10px;
+  margin-top: 2px;
+  color: #A89070;
+}
+.wall-chart-legend .c-e { color: #C9A227; }
+.wall-chart-legend .c-w { color: #3A7A6A; }
+.wall-chart-legend .c-m { color: #C45C4A; }
+.tut-upgrade-arrow {
+  bottom: auto;
+  top: 42%;
+  left: 58%;
+}
+.tut-upgrade-arrow .tut-arrow-stem {
+  height: 36px;
+  background: linear-gradient(180deg, transparent, #3A7A6A);
+}
+.tut-upgrade-arrow .tut-arrow-stem::after { border-top-color: #3A7A6A; }
+.tut-upgrade-arrow .tut-arrow-label { border-color: #3A7A6A; }
+.tut-settle-arrow {
+  bottom: 110px;
+  left: 72%;
+}
+.tut-settle-arrow .tut-arrow-stem {
+  background: linear-gradient(180deg, transparent, #C45C4A);
+}
+.tut-settle-arrow .tut-arrow-stem::after { border-top-color: #C45C4A; }
+.tut-settle-arrow .tut-arrow-label { border-color: #C45C4A; }
+.endless-replay {
+  margin: 10px 0;
+  padding: 10px 12px;
+}
+.replay-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 10px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: #E8DCC8;
+}
+.replay-grid .full { grid-column: 1 / -1; }
+.replay-grid .dim { color: #A89070; font-size: 11px; }
+.replay-grid b { color: #C9A227; }

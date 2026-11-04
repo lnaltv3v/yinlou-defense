@@ -124,6 +124,19 @@
       tone(240, 0.07, 'triangle', 0.03, 0.05);
       tone(320, 0.08, 'sine', 0.028, 0.1);
     },
+    // v3.7：雙五符咒／九池蜂鳴分層（無外部音檔）
+    dual_penta_charm: function () {
+      tone(92, 0.12, 'square', 0.045);
+      tone(138, 0.1, 'triangle', 0.038, 0.06);
+      tone(207, 0.1, 'sine', 0.032, 0.14);
+      tone(311, 0.08, 'triangle', 0.028, 0.22);
+      tone(415, 0.06, 'sine', 0.022, 0.3);
+    },
+    late350: function () {
+      tone(73, 0.14, 'sawtooth', 0.04);
+      tone(110, 0.12, 'square', 0.035, 0.08);
+      tone(165, 0.1, 'triangle', 0.03, 0.18);
+    },
   };
 
   let enabled = true;

@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v3.6.0
+ * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v3.7.0
  */
 (function (global) {
   const {
@@ -31,6 +31,8 @@
     listWallCompareDays,
     clearWallCompareHistory,
     importWallCompareHistory,
+    formatWallCompareChart,
+    formatEndlessReplay,
     recordWallSnapshot,
     formatWallTimeline,
     formatWallSparkline,
@@ -103,7 +105,7 @@
       ink +
       '"></i>' +
       gear;
-    const src = (window.YDSprites && window.YDSprites.urlFor) ? window.YDSprites.urlFor(def.id) : ('assets/sprites/' + def.id + '.png?v=3.6.0');
+    const src = (window.YDSprites && window.YDSprites.urlFor) ? window.YDSprites.urlFor(def.id) : ('assets/sprites/' + def.id + '.png?v=3.7.0');
     return (
       '<span class="hero-avatar" aria-hidden="true" data-hero="' +
       def.id +
@@ -637,6 +639,71 @@
     ov.classList.remove('paper-panel');
   }
 
+
+  function renderWallCompareChartHtml(save, dayFilter) {
+    const chart =
+      typeof formatWallCompareChart === 'function'
+        ? formatWallCompareChart(save, { day: dayFilter || null })
+        : { bars: [], maxAbs: 1 };
+    if (!chart.bars || !chart.bars.length) {
+      return '<div class="wall-chart empty"><span class="card-meta">尚無對照 delta 可繪</span></div>';
+    }
+    const maxAbs = chart.maxAbs || 1;
+    const h = 56;
+    const barW = 10;
+    const gap = 6;
+    const n = chart.bars.length;
+    const w = Math.max(160, n * (barW * 3 + gap) + 20);
+    let svg =
+      '<svg class="wall-chart-svg" viewBox="0 0 ' +
+      w +
+      ' ' +
+      (h + 18) +
+      '" width="100%" height="' +
+      (h + 18) +
+      '" role="img" aria-label="牆對照圖表">';
+    svg +=
+      '<line x1="0" y1="' +
+      (h / 2) +
+      '" x2="' +
+      w +
+      '" y2="' +
+      (h / 2) +
+      '" stroke="#5A4A38" stroke-width="1"/>';
+    chart.bars.forEach(function (b, i) {
+      const x0 = 8 + i * (barW * 3 + gap);
+      const cols = [
+        { v: b.endless, c: '#C9A227' },
+        { v: b.week, c: '#3A7A6A' },
+        { v: b.stages, c: '#C45C4A' },
+      ];
+      cols.forEach(function (col, j) {
+        const bh = Math.round((Math.abs(col.v) / maxAbs) * (h / 2 - 2));
+        const y = col.v >= 0 ? h / 2 - bh : h / 2;
+        svg +=
+          '<rect x="' +
+          (x0 + j * barW) +
+          '" y="' +
+          y +
+          '" width="' +
+          (barW - 1) +
+          '" height="' +
+          Math.max(1, bh) +
+          '" fill="' +
+          col.c +
+          '" opacity="0.85"><title>' +
+          (b.label || '') +
+          '｜' +
+          col.v +
+          '</title></rect>';
+      });
+    });
+    svg += '</svg>';
+    svg +=
+      '<div class="wall-chart-legend"><span class="c-e">無盡Δ</span><span class="c-w">連週Δ</span><span class="c-m">主線Δ</span></div>';
+    return '<div class="wall-chart">' + svg + '</div>';
+  }
+
   function fillWallCompareHist(save, dayFilter) {
     const histEl = $('wall-compare-hist');
     if (!histEl) return;
@@ -676,10 +743,12 @@
         })
         .join('') +
       '</div>';
+    const chartHtml = renderWallCompareChartHtml(save, dayFilter);
     const actions =
       '<div class="wall-hist-actions">' +
       '<button type="button" class="wall-mode-btn" id="wall-hist-export">匯出文字</button>' +
       '<button type="button" class="wall-mode-btn" id="wall-hist-json">匯出 JSON</button>' +
+      '<button type="button" class="wall-mode-btn" id="wall-hist-thick">加厚短碼</button>' +
       '<button type="button" class="wall-mode-btn" id="wall-hist-import">匯入對照</button>' +
       '<button type="button" class="wall-mode-btn" id="wall-hist-clear"' +
       (rows.length || (save.wallCompareHistory && save.wallCompareHistory.length) ? '' : ' disabled') +
@@ -688,12 +757,14 @@
       histEl.innerHTML =
         '<strong style="color:#C9A227">對照歷史（本機）</strong>' +
         dayChips +
+        chartHtml +
         '<span class="card-meta">此篩選尚無留底</span>' +
         actions;
     } else {
       histEl.innerHTML =
         '<strong style="color:#C9A227">對照歷史（本機）</strong>' +
         dayChips +
+        chartHtml +
         '<ul class="wall-hist-list">' +
         rows
           .slice(0, 8)
@@ -711,6 +782,7 @@
         '</ul>' +
         actions;
     }
+    if (window.__yinlouMarkWallChart) window.__yinlouMarkWallChart();
     histEl.querySelectorAll('[data-wall-day]').forEach(function (btn) {
       btn.onclick = function () {
         fillWallCompareHist(save, btn.getAttribute('data-wall-day') || '');
@@ -749,6 +821,20 @@
             ? exportWallCompareHistoryJson(save, { day: dayFilter || null })
             : '{}';
         copyOut(text, '__yinlouMarkWallHistJson');
+      };
+    }
+
+    const thickBtn = $('wall-hist-thick');
+    if (thickBtn) {
+      thickBtn.onclick = function () {
+        const code = typeof encodeWallShort === 'function' ? encodeWallShort(save) : '';
+        const pack =
+          '銀樓防衛牆短碼 v3.7（加厚 A=成就 T=擊殺檔）\n' +
+          code +
+          '\n' +
+          (typeof formatLocalBestWall === 'function' ? formatLocalBestWall(save).label : '');
+        copyOut(pack, '__yinlouMarkWallShortThick');
+        if (window.__yinlouMarkWallShortThick) window.__yinlouMarkWallShortThick();
       };
     }
     const impBtn = $('wall-hist-import');
@@ -804,8 +890,10 @@
       el.classList.remove('show');
       el.setAttribute('aria-hidden', 'true');
       el.innerHTML = '';
-      const arrowHide = $('tut-shop-arrow');
-      if (arrowHide) arrowHide.classList.remove('show');
+      ['tut-shop-arrow', 'tut-upgrade-arrow', 'tut-settle-arrow'].forEach(function (id) {
+        const arrowHide = $(id);
+        if (arrowHide) arrowHide.classList.remove('show');
+      });
       return;
     }
     const cur = Math.min(5, Math.max(1, (n | 0) + 1));
@@ -864,23 +952,30 @@
         if (window.__yinlouSetTutorialStep) window.__yinlouSetTutorialStep(step1 - 1);
       };
     });
-    // v3.6：教學步①② 指向底欄（#shop）箭嘴
-    let arrow = $('tut-shop-arrow');
-    if (cur <= 2) {
-      if (!arrow) {
-        arrow = document.createElement('div');
-        arrow.id = 'tut-shop-arrow';
-        arrow.className = 'tut-shop-arrow';
-        arrow.setAttribute('aria-hidden', 'true');
-        arrow.innerHTML = '<span class="tut-arrow-stem"></span><span class="tut-arrow-label">底欄召俠</span>';
+    // v3.7：教學多步箭嘴 — ①②底欄／③強化／⑤開波結算
+    function ensureTutArrow(id, cls, label) {
+      let el = $(id);
+      if (!el) {
+        el = document.createElement('div');
+        el.id = id;
+        el.className = cls;
+        el.setAttribute('aria-hidden', 'true');
+        el.innerHTML =
+          '<span class="tut-arrow-stem"></span><span class="tut-arrow-label">' + label + '</span>';
         const host = $('wrap') || document.body;
-        host.appendChild(arrow);
+        host.appendChild(el);
       }
-      arrow.classList.add('show');
-      if (window.__yinlouMarkTutShopArrow) window.__yinlouMarkTutShopArrow();
-    } else if (arrow) {
-      arrow.classList.remove('show');
+      return el;
     }
+    const shopArrow = ensureTutArrow('tut-shop-arrow', 'tut-shop-arrow', '底欄召俠');
+    const upArrow = ensureTutArrow('tut-upgrade-arrow', 'tut-shop-arrow tut-upgrade-arrow', '點場上強化');
+    const settleArrow = ensureTutArrow('tut-settle-arrow', 'tut-shop-arrow tut-settle-arrow', '開波／結算');
+    shopArrow.classList.toggle('show', cur <= 2);
+    upArrow.classList.toggle('show', cur === 3);
+    settleArrow.classList.toggle('show', cur === 5);
+    if (cur <= 2 && window.__yinlouMarkTutShopArrow) window.__yinlouMarkTutShopArrow();
+    if (cur === 3 && window.__yinlouMarkTutUpgradeArrow) window.__yinlouMarkTutUpgradeArrow();
+    if (cur === 5 && window.__yinlouMarkTutSettleArrow) window.__yinlouMarkTutSettleArrow();
   }
 
   function showFailPanel(opts) {
@@ -905,6 +1000,29 @@
         html += '</ul>';
       }
       html += '</div>';
+    }
+    if (opts.replay && opts.endless) {
+      const r = opts.replay;
+      html +=
+        '<div class="endless-replay card-thick">' +
+        '<strong style="color:#C9A227">無盡結算回放</strong>' +
+        '<div class="replay-grid">' +
+        '<span>浪次 <b>' +
+        (r.wave || 0) +
+        '</b></span>' +
+        '<span>擊殺 <b>' +
+        (r.kills || 0) +
+        '</b></span>' +
+        '<span>雙五 <b>×' +
+        (r.dualPenta || 0) +
+        '</b></span>' +
+        '<span>鏡稅叠 <b>×' +
+        (r.taxStacks || 0) +
+        '</b></span>' +
+        (r.charm ? '<span>符咒 <b>' + r.charm + '</b></span>' : '') +
+        (r.bosses ? '<span class="full">' + r.bosses + '</span>' : '') +
+        (r.mods ? '<span class="full dim">' + r.mods + '</span>' : '') +
+        '</div></div>';
     }
     html += '<p class="paper-note">重開保留關卡進度帳；跟推薦芯片可快速重整旗鼓。</p></div>';
     $('overlay-msg').innerHTML = html;
@@ -1021,7 +1139,7 @@
           })()
         : '—') +
       '</strong></div>' +
-      '<div class="paper-row"><span>版本</span><strong>v3.6.0｜存檔 v' +
+      '<div class="paper-row"><span>版本</span><strong>v3.7.0｜存檔 v' +
       (save.version || 36) +
       '</strong></div>' +
       '<p class="paper-note">v3.6：無盡300＋第八池、雙五潮橫幅、鏡稅叠層 HUD、牆史匯入對照、教學箭嘴。點場上俠客可強化；本地牆本機｜唔做線上排行。</p>' +
@@ -1220,7 +1338,7 @@
     const src = id && window.YDSprites && window.YDSprites.urlFor
       ? window.YDSprites.urlFor(id)
       : id
-        ? 'assets/sprites/' + id + '.png?v=3.6.0'
+        ? 'assets/sprites/' + id + '.png?v=3.7.0'
         : '';
     const fallback =
       '<span class="codex-thumb-fallback" style="background:' + c + '"></span>';
@@ -1840,7 +1958,31 @@
           '%"></i></div></button>'
       );
     }
+    parts.push('</div>');
+    // v3.7 成就徽章牆
+    parts.push('<div class="ach-badge-wall" aria-label="成就徽章牆">');
+    const unlocked = ACHIEVEMENTS.filter((a) => save.unlockedAch && save.unlockedAch[a.id]);
+    const showBadges = unlocked.length ? unlocked : ACHIEVEMENTS.slice(0, 12);
+    for (const a of showBadges.slice(0, 36)) {
+      const ok = save.unlockedAch && save.unlockedAch[a.id];
+      const initial = (a.name || '?').slice(0, 1);
+      parts.push(
+        '<span class="ach-badge' +
+          (ok ? ' lit' : ' dim') +
+          '" title="' +
+          a.name +
+          ' — ' +
+          a.blurb +
+          '">' +
+          initial +
+          '</span>'
+      );
+    }
+    if (!unlocked.length) {
+      parts.push('<span class="card-meta">尚未解鎖徽章 — 亮起後會排成牆</span>');
+    }
     parts.push('</div></div>');
+    if (window.__yinlouMarkAchBadgeWall) window.__yinlouMarkAchBadgeWall();
     parts.push('<div class="ach-tabs" role="tablist" aria-label="成就分類">');
     for (const cat of cats) {
       parts.push(

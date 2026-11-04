@@ -1767,6 +1767,7 @@
     { wave: 220, silver: 3600, label: '二百二十浪潮城' },
     { wave: 250, silver: 4200, label: '二百五十浪封神' },
     { wave: 300, silver: 5000, label: '三百浪不朽城' },
+    { wave: 350, silver: 5800, label: '三百五十浪九池城' },
   ];
 
   function endlessMilestone(waveIndex) {
@@ -2593,6 +2594,100 @@
     },
   ];
 
+  const RUN_MODIFIERS_350 = [
+    {
+      id: 'nine_vault',
+      name: '九池銀庫',
+      blurb: '開局銀 +28%；核心 HP +14%',
+      late350: true,
+      apply: (ctx) => {
+        ctx.silverMul = (ctx.silverMul || 1) * 1.28;
+        ctx.coreMul = (ctx.coreMul || 1) * 1.14;
+      },
+    },
+    {
+      id: 'nine_mirror_seal',
+      name: '九池鏡印',
+      blurb: '鏡稅地板 +0.1；抽銀 ×0.18',
+      late350: true,
+      apply: (ctx) => {
+        ctx.mirageTaxFloorBonus = (ctx.mirageTaxFloorBonus || 0) + 0.1;
+        ctx.silverDrainMul = (ctx.silverDrainMul || 1) * 0.18;
+      },
+    },
+    {
+      id: 'dual_penta_relic',
+      name: '雙五潮飾',
+      blurb: '雙五潮時敵速 −10%；合星回報 ×1.2',
+      late350: true,
+      dualPentaRelic: true,
+      apply: (ctx) => {
+        ctx.dualPentaEnemySpeedMul = (ctx.dualPentaEnemySpeedMul || 1) * 0.9;
+        ctx.mergeRebateMul = (ctx.mergeRebateMul || 1) * 1.2;
+      },
+    },
+    {
+      id: 'nine_seal_array',
+      name: '九池印陣',
+      blurb: '敵速 −9%；俠客冷卻 −7%',
+      late350: true,
+      apply: (ctx) => {
+        ctx.enemySpeedMul = (ctx.enemySpeedMul || 1) * 0.91;
+        ctx.heroCdMul = (ctx.heroCdMul || 1) * 0.93;
+      },
+    },
+  ];
+
+  /** 雙五潮專屬符咒／飾品（入場抽 1；遊戲內修飾或 debuff） */
+  const DUAL_PENTA_CHARMS = [
+    {
+      id: 'charm_twin_mirror',
+      name: '雙鏡符咒',
+      blurb: '鏡稅地板 −0.05（更兇）｜叠層延長',
+      kind: 'debuff',
+      apply: (state) => {
+        state._dualCharmTaxFloor = (state._dualCharmTaxFloor || 0) - 0.05;
+        state._dualCharmTaxExtend = Math.max(state._dualCharmTaxExtend || 1, 1.18);
+      },
+    },
+    {
+      id: 'charm_stack_ornament',
+      name: '叠帳飾品',
+      blurb: '雙五期間敵速 +7%（壓力）',
+      kind: 'debuff',
+      apply: (state) => {
+        state._dualCharmEnemySpeed = (state._dualCharmEnemySpeed || 1) * 1.07;
+      },
+    },
+    {
+      id: 'charm_silver_ward',
+      name: '護銀符',
+      blurb: '抽銀 ×0.72｜短暫護庫',
+      kind: 'buff',
+      apply: (state) => {
+        state._dualCharmDrainMul = (state._dualCharmDrainMul || 1) * 0.72;
+      },
+    },
+    {
+      id: 'charm_merge_seal',
+      name: '合星印飾',
+      blurb: '合星回報 ×1.25（本潮）',
+      kind: 'buff',
+      apply: (state) => {
+        state._dualCharmMergeMul = (state._dualCharmMergeMul || 1) * 1.25;
+      },
+    },
+  ];
+
+  function pickDualPentaCharm(seed) {
+    const pool = DUAL_PENTA_CHARMS;
+    if (!pool.length) return null;
+    let h = (seed >>> 0) || 1;
+    h = (h * 1664525 + 1013904223) >>> 0;
+    return pool[h % pool.length];
+  }
+
+
   function hashStr(s) {
     let h = 0;
     for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
@@ -2625,6 +2720,7 @@
       heroCdMul: 1,
       lockDurMul: 1,
       heroAtkMul: 1,
+      dualPentaEnemySpeedMul: 1,
       mods: mods || [],
     };
     for (const m of ctx.mods) {
@@ -2907,6 +3003,14 @@
       if (!mods.some((m) => m.id === late8.id)) {
         if (mods.length >= 3) mods[0] = late8;
         else mods.push(late8);
+      }
+    }
+    if (best >= 350 && RUN_MODIFIERS_350.length) {
+      const h10 = (seed ^ 0x350beef) >>> 0;
+      const late9 = RUN_MODIFIERS_350[h10 % RUN_MODIFIERS_350.length];
+      if (!mods.some((m) => m.id === late9.id)) {
+        if (mods.length >= 3) mods[mods.length - 1] = late9;
+        else mods.push(late9);
       }
     }
     return mods;
@@ -3564,6 +3668,15 @@
     { id: 'dual_penta_banner', cat: 'combat', name: '雙五潮揭幕', blurb: '見過雙五潮專屬橫幅', check: (s) => !!s.ach && !!s.ach.dual_penta_banner },
     { id: 'wall_compare_import', cat: 'meta', name: '牆史匯入', blurb: '匯入一次牆對照歷史', check: (s) => !!s.ach && !!s.ach.wall_compare_import },
     { id: 'tut_shop_arrow', cat: 'meta', name: '教學箭嘴', blurb: '教學時見過指向底欄箭嘴', check: (s) => !!s.ach && !!s.ach.tut_shop_arrow },
+    { id: 'endless350', cat: 'combat', name: '三百五十浪九池城', blurb: '無盡最佳 ≥ 350 波', check: (s) => (s.bestEndlessWave || 0) >= 350 },
+    { id: 'late350_run', cat: 'meta', name: '九池開盤', blurb: '曾達 350 浪後再開無盡（抽第九池修飾）', check: (s) => !!s.ach && !!s.ach.late350_run },
+    { id: 'dual_penta_charm', cat: 'combat', name: '雙五符咒', blurb: '雙五潮抽中專屬符咒／飾品一次', check: (s) => !!s.ach && !!s.ach.dual_penta_charm },
+    { id: 'wall_compare_chart', cat: 'meta', name: '牆史圖表', blurb: '打開過牆對照圖表', check: (s) => !!s.ach && !!s.ach.wall_compare_chart },
+    { id: 'ach_badge_wall', cat: 'meta', name: '徽章牆', blurb: '打開過成就徽章牆', check: (s) => !!s.ach && !!s.ach.ach_badge_wall },
+    { id: 'endless_replay', cat: 'meta', name: '無盡回放', blurb: '看過一次無盡結算回放摘要', check: (s) => !!s.ach && !!s.ach.endless_replay },
+    { id: 'tut_upgrade_arrow', cat: 'meta', name: '強化箭嘴', blurb: '教學時見過指向強化箭嘴', check: (s) => !!s.ach && !!s.ach.tut_upgrade_arrow },
+    { id: 'tut_settle_arrow', cat: 'meta', name: '結算箭嘴', blurb: '教學時見過指向結算／開波箭嘴', check: (s) => !!s.ach && !!s.ach.tut_settle_arrow },
+    { id: 'wall_short_thick', cat: 'meta', name: '短碼加厚', blurb: '複製過加厚牆短碼', check: (s) => !!s.ach && !!s.ach.wall_short_thick },
   ];
 
   /** 首通銀兩獎勵（入累計帳） */
@@ -3622,7 +3735,8 @@
     const late220 = n >= 220 ? Math.min(0.08, (n - 220) * 0.0022) : 0;
     const late250 = n >= 250 ? Math.min(0.08, (n - 250) * 0.002) : 0;
     const late300 = n >= 300 ? Math.min(0.08, (n - 300) * 0.0018) : 0;
-    const mul = 1 + (n - 1) * 0.105 + late50 + late75 + late90 + late120 + late130 + late140 + late150 + late160 + late180 + late200 + late220 + late250 + late300;
+    const late350 = n >= 350 ? Math.min(0.08, (n - 350) * 0.0016) : 0;
+    const mul = 1 + (n - 1) * 0.105 + late50 + late75 + late90 + late120 + late130 + late140 + late150 + late160 + late180 + late200 + late220 + late250 + late300 + late350;
     const countLate = n >= 50 ? Math.min(n - 50, 25) * 0.01 + (n >= 75 ? (n - 75) * 0.006 : 0) : 0;
     const count = (base) => {
       let raw = Math.max(1, Math.round(base * (1 + (n - 1) * 0.072 + countLate)));
@@ -4075,7 +4189,11 @@
     if (from < 36) {
       s.ach.v36_migrated = true;
     }
-    s.version = Math.max(36, from, base.version || 36);
+    if (from < 37) {
+      s.ach.v37_migrated = true;
+    }
+    if (!Array.isArray(s.endlessReplay)) s.endlessReplay = [];
+    s.version = Math.max(37, from, base.version || 37);
     return s;
   }
 
@@ -4091,7 +4209,7 @@
 
   function defaultSave() {
     return {
-      version: 36,
+      version: 37,
       totalSilver: 0,
       totalKills: 0,
       maxStageCleared: 0,
@@ -4122,6 +4240,7 @@
       weekClearHistory: [],
       wallSnapshots: [],
       wallCompareHistory: [],
+      endlessReplay: [],
       localBest: { endless: 0, weeklyStreak: 0, stageClears: 0 },
       post12EndlessBonus: false,
       quadTideTutorialDone: false,
@@ -4138,14 +4257,23 @@
 
   function parseWallShort(code) {
     if (!code || typeof code !== 'string') return null;
-    const m = /^YL-E(\d+)-S(\d+)-M(\d+)-H([0-9a-fA-F]{1,8})$/.exec(code.trim());
+    // v3.7：可選 -A{ach}-T{killsBucket}；舊短碼仍可解析
+    const m = /^YL-E(\d+)-S(\d+)-M(\d+)(?:-A(\d+))?(?:-T(\d+))?-H([0-9a-fA-F]{1,8})$/.exec(code.trim());
     if (!m) return null;
+    const ach = m[4] != null ? Number(m[4]) || 0 : null;
+    const killsB = m[5] != null ? Number(m[5]) || 0 : null;
+    let codeNorm = 'YL-E' + m[1] + '-S' + m[2] + '-M' + m[3];
+    if (ach != null) codeNorm += '-A' + ach;
+    if (killsB != null) codeNorm += '-T' + killsB;
+    codeNorm += '-H' + String(m[6] || '').toLowerCase();
     return {
       endless: Number(m[1]) || 0,
       weekStreakBest: Number(m[2]) || 0,
       stages: Number(m[3]) || 0,
-      histHash: String(m[4] || '').toLowerCase(),
-      code: 'YL-E' + m[1] + '-S' + m[2] + '-M' + m[3] + '-H' + String(m[4] || '').toLowerCase(),
+      ach: ach,
+      killsBucket: killsB,
+      histHash: String(m[6] || '').toLowerCase(),
+      code: codeNorm,
     };
   }
 
@@ -4164,13 +4292,23 @@
     parts.push(dS === 0 ? '連週持平' : dS > 0 ? '連週領先 +' + dS : '連週落後 ' + dS);
     parts.push(dM === 0 ? '主線持平' : dM > 0 ? '主線領先 +' + dM : '主線落後 ' + dM);
     parts.push(sameHash ? '週史指紋同' : '週史指紋異');
+    let dA = null;
+    let dT = null;
+    if (mine.ach != null && theirs.ach != null) {
+      dA = mine.ach - theirs.ach;
+      parts.push(dA === 0 ? '成就持平' : dA > 0 ? '成就領先 +' + dA : '成就落後 ' + dA);
+    }
+    if (mine.killsBucket != null && theirs.killsBucket != null) {
+      dT = mine.killsBucket - theirs.killsBucket;
+      parts.push(dT === 0 ? '擊殺檔持平' : dT > 0 ? '擊殺檔領先 +' + dT : '擊殺檔落後 ' + dT);
+    }
     return {
       ok: true,
       mine: mine,
       theirs: theirs,
-      delta: { endless: dE, weekStreakBest: dS, stages: dM, sameHash: sameHash },
+      delta: { endless: dE, weekStreakBest: dS, stages: dM, ach: dA, killsBucket: dT, sameHash: sameHash },
       summary: parts.join('｜'),
-      note: '本機對照｜唔做線上排行',
+      note: '本機對照｜唔做線上排行｜短碼 v3.7',
       otherCode: theirs.code,
     };
   }
@@ -4235,6 +4373,79 @@
     });
   }
 
+
+  /** 牆對照歷史圖表（本機｜無盡／連週／主線 delta 柱） */
+  function formatWallCompareChart(save, opts) {
+    opts = opts || {};
+    const day = opts.day || null;
+    let rows = formatWallCompareHistory(save);
+    if (day) {
+      rows = rows.filter(function (r) {
+        return wallCompareDayKey(r.at || r.rawAt) === day;
+      });
+    }
+    const recent = rows.slice(0, 8).reverse();
+    const bars = recent.map(function (r, i) {
+      const d = r.delta || {};
+      const e = Number(d.endless) || 0;
+      const s = Number(d.weekStreakBest) || 0;
+      const m = Number(d.stages) || 0;
+      return {
+        i: i,
+        label: (r.localAt || '').slice(5, 16) || '#' + (i + 1),
+        endless: e,
+        week: s,
+        stages: m,
+        summary: r.summary || '',
+      };
+    });
+    const maxAbs = Math.max(
+      1,
+      ...bars.map(function (b) {
+        return Math.max(Math.abs(b.endless), Math.abs(b.week), Math.abs(b.stages));
+      })
+    );
+    return { bars: bars, maxAbs: maxAbs, count: bars.length };
+  }
+
+  function recordEndlessReplay(save, summary) {
+    if (!save) return null;
+    if (!Array.isArray(save.endlessReplay)) save.endlessReplay = [];
+    const entry = Object.assign(
+      { at: new Date().toISOString() },
+      summary || {}
+    );
+    save.endlessReplay.push(entry);
+    while (save.endlessReplay.length > 8) save.endlessReplay.shift();
+    return entry;
+  }
+
+  function formatEndlessReplay(save) {
+    const arr = Array.isArray(save && save.endlessReplay) ? save.endlessReplay.slice() : [];
+    return arr
+      .slice()
+      .reverse()
+      .map(function (e) {
+        return {
+          at: e.at || '',
+          wave: e.wave || 0,
+          kills: e.kills || 0,
+          dualPenta: e.dualPenta || 0,
+          charm: e.charm || '',
+          taxStacks: e.taxStacks || 0,
+          mods: e.mods || '',
+          bosses: e.bosses || '',
+          label:
+            '第' +
+            (e.wave || 0) +
+            '浪｜殺' +
+            (e.kills || 0) +
+            (e.charm ? '｜' + e.charm : '') +
+            (e.dualPenta ? '｜雙五×' + e.dualPenta : ''),
+        };
+      });
+  }
+
   function exportWallCompareHistory(save, opts) {
     opts = opts || {};
     const day = opts.day || null; // 'YYYY-MM-DD' Asia/Hong_Kong or null=all
@@ -4245,7 +4456,7 @@
       });
     }
     const lines = [
-      '銀樓防衛｜牆對照歷史（本機）｜v3.5' + (day ? '｜日=' + day : '｜全日'),
+      '銀樓防衛｜牆對照歷史（本機）｜v3.7' + (day ? '｜日=' + day : '｜全日'),
     ];
     if (!rows.length) lines.push('（尚無留底）');
     for (const r of rows) {
@@ -4303,7 +4514,7 @@
     return JSON.stringify(
       {
         app: 'yinlou-defense',
-        ver: '3.5.0',
+        ver: '3.7.0',
         exportedAt: new Date().toISOString(),
         day: day,
         count: rows.length,
@@ -4541,12 +4752,27 @@
 
   function encodeWallShort(save) {
     const w = formatLocalBestWall(save);
-    // 短碼：YL-E{endless}-S{streakBest}-M{stages}-H{histHash}（本機分享用，唔做線上驗證）
+    // v3.7 短碼：YL-E{endless}-S{streakBest}-M{stages}-A{ach}-T{killsBucket}-H{histHash}
     const hist = (w.history || []).join(',');
     let h = 0;
     for (let i = 0; i < hist.length; i++) h = ((h << 5) - h + hist.charCodeAt(i)) | 0;
     const hex = (h >>> 0).toString(16).slice(0, 4);
-    return 'YL-E' + w.endless + '-S' + w.weekStreakBest + '-M' + w.stages + '-H' + hex;
+    const achN = Object.keys((save && save.unlockedAch) || {}).length;
+    const killsB = Math.floor(((save && save.totalKills) || 0) / 100);
+    return (
+      'YL-E' +
+      w.endless +
+      '-S' +
+      w.weekStreakBest +
+      '-M' +
+      w.stages +
+      '-A' +
+      achN +
+      '-T' +
+      killsB +
+      '-H' +
+      hex
+    );
   }
 
   function exportLocalWallShare(save) {
@@ -4554,7 +4780,7 @@
     const code = encodeWallShort(save);
     return {
       code: code,
-      text: '銀樓防衛本地牆短碼（本機｜唔做線上排行）\n' + code + '\n' + w.short + '\n' + w.label,
+      text: '銀樓防衛本地牆短碼 v3.7（本機｜加厚 A/T｜唔做線上排行）\n' + code + '\n' + w.short + '\n' + w.label,
       wall: w,
     };
   }
@@ -4843,6 +5069,9 @@
     RUN_MODIFIERS_180,
     RUN_MODIFIERS_220,
     RUN_MODIFIERS_300,
+    RUN_MODIFIERS_350,
+    DUAL_PENTA_CHARMS,
+    pickDualPentaCharm,
     buildEndlessWave,
     buildDailyWaves,
     buildWeeklyWaves,
@@ -4893,6 +5122,9 @@
     wallCompareDayKey,
     clearWallCompareHistory,
     importWallCompareHistory,
+    formatWallCompareChart,
+    recordEndlessReplay,
+    formatEndlessReplay,
     recordWallSnapshot,
     formatWallTimeline,
     formatWallSparkline,
