@@ -1,7 +1,0 @@
-# Static site — skip converting project docs as pages content that can choke builds
-exclude:
-  - DESIGN.md
-  - ART.md
-  - CHANGELOG.md
-  - README.md
-  - assets/_ref
