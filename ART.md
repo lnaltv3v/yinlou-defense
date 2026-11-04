@@ -133,6 +133,10 @@
 - mid／props 無新檔；`CACHE_VER=2.9.0`；牆走勢可匯出 PNG。
 
 
+### v4.2.0 十四池／共鳴徽記
+- mid／props：**無新檔**；`CACHE_VER=4.2.0`。
+- HUD 徽記與折線疊加為程式繪製／DOM。
+
 ### v4.1.0 十三池／跟手軌跡
 - mid／props：**無新檔**；`CACHE_VER=4.1.0`。
 - 教學手勢 live 跟 canvas 拖拽座標；折線 PNG 為程式 raster。

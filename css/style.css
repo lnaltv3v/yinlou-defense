@@ -808,7 +808,7 @@ header.title {
 }
 
 
-/* v4.1.0 */
+/* v4.2.0 */
 .lane-tips {
   display: flex;
   gap: 8px;
@@ -1003,7 +1003,7 @@ header.title {
 .wall-spark-actions-v31 { gap: 6px; }
 
 
-/* v4.1.0 — tutorial HUD / ach jump / wall copy / mirage tax / wall hist */
+/* v4.2.0 — tutorial HUD / ach jump / wall copy / mirage tax / wall hist */
 .tutorial-hud {
   display: none;
   position: absolute;
@@ -1059,7 +1059,7 @@ button.ach-cat-bar:focus {
 #wall-compare-copy:disabled { opacity: 0.4; cursor: default; }
 
 
-/* v4.1.0 — mirage tax HUD / tut-dot click / wall compare history */
+/* v4.2.0 — mirage tax HUD / tut-dot click / wall compare history */
 .mirage-tax-hud {
   display: none;
   position: absolute;
@@ -1111,7 +1111,7 @@ button.ach-cat-bar:focus {
 .wall-hist-list .dim { opacity: 0.65; }
 
 
-/* v4.1.0 — mirage tax bar / tut blurb / wall hist actions */
+/* v4.2.0 — mirage tax bar / tut blurb / wall hist actions */
 .mirage-tax-hud {
   flex-direction: column;
   gap: 4px;
@@ -1153,7 +1153,7 @@ button.ach-cat-bar:focus {
 }
 
 
-/* v4.1.0 — wall day chips / tut cell */
+/* v4.2.0 — wall day chips / tut cell */
 .wall-hist-days {
   display: flex;
   flex-wrap: wrap;
@@ -1163,7 +1163,7 @@ button.ach-cat-bar:focus {
 .wall-hist-days .wall-mode-btn { font-size: 10px; padding: 2px 6px; }
 
 
-/* v4.1.0 — tut shop arrow / mirage stacked HUD */
+/* v4.2.0 — tut shop arrow / mirage stacked HUD */
 .mirage-tax-hud.stacked {
   border-color: #C9A227;
   box-shadow: 0 0 14px rgba(201, 162, 39, 0.45);
@@ -1217,7 +1217,7 @@ button.ach-cat-bar:focus {
 }
 
 
-/* v4.1.0 — badge wall / wall chart / multi tut arrows / endless replay */
+/* v4.2.0 — badge wall / wall chart / multi tut arrows / endless replay */
 .ach-badge-wall {
   display: flex;
   flex-wrap: wrap;
@@ -1323,7 +1323,7 @@ button.ach-cat-bar:focus {
 .replay-grid b { color: #C9A227; }
 
 
-/* v4.1.0 — charm equip / wall chart hover / endless replay list / tut settle fail */
+/* v4.2.0 — charm equip / wall chart hover / endless replay list / tut settle fail */
 .charm-equip-bar {
   margin-top: 10px;
   padding: 8px;
@@ -1371,7 +1371,7 @@ button.ach-cat-bar:focus {
   border-left: 3px solid #3A7A6A;
 }
 
-/* v4.1 replay filter / chart / fav */
+/* v4.2 replay filter / chart / fav */
 .replay-filters { display:flex; flex-wrap:wrap; gap:6px; margin:8px 0 10px; }
 .replay-cmp-chart { margin-top:8px; display:flex; flex-direction:column; gap:4px; }
 .rcc-row { display:grid; grid-template-columns:52px 1fr 28px 28px; gap:4px; align-items:center; font-size:11px; color:#E8DCC8; }
@@ -1384,7 +1384,7 @@ button.ach-cat-bar:focus {
 .charm-chips .charm-up { padding:2px 6px; min-width:0; color:#C9A227; }
 .wall-chart-legend .wall-mode-btn { margin-left:4px; }
 
-/* v4.1 gesture trail / scrub / sets / fail */
+/* v4.2 gesture trail / scrub / sets / fail */
 .tut-gesture-trail {
   display: none;
   position: absolute;
@@ -1460,7 +1460,7 @@ button.ach-cat-bar:focus {
   .replay-filters { gap: 4px; }
 }
 
-/* v4.1 live gesture / line png */
+/* v4.2 live gesture / line png */
 .tut-gesture-trail.live {
   width: 72px;
   height: 72px;
@@ -1486,3 +1486,44 @@ button.ach-cat-bar:focus {
   align-items: center;
   margin-top: 4px;
 }
+
+/* v4.2 set badge / multi legend / tut step trail */
+.set-badge-hud {
+  display: none;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  margin-left: 6px;
+}
+.set-badge-hud.show { display: inline-flex; }
+.set-badge {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  border: 1px solid #8B6B3A;
+  background: rgba(201,162,39,0.12);
+  color: #E8DCC8;
+  white-space: nowrap;
+}
+.set-badge.adv {
+  border-color: #C9A227;
+  background: rgba(201,162,39,0.28);
+  color: #C9A227;
+  box-shadow: 0 0 6px rgba(201,162,39,0.35);
+  animation: set-badge-pulse 2.2s ease-in-out infinite;
+}
+@keyframes set-badge-pulse {
+  0%,100% { box-shadow: 0 0 4px rgba(201,162,39,0.25); }
+  50% { box-shadow: 0 0 10px rgba(201,162,39,0.55); }
+}
+.replay-line-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 11px;
+  margin: 2px 0 4px;
+}
+.tut-gesture-trail.tut-g-step1 { bottom: 88px; left: 22%; }
+.tut-gesture-trail.tut-g-step3 { bottom: 160px; left: 55%; }
+.tut-gesture-trail.tut-g-step4 { bottom: 72px; right: 56px; left: auto; transform: none; }
+.tut-gesture-trail.tut-g-step5 { bottom: 120px; left: 50%; }

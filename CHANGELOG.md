@@ -1,5 +1,13 @@
 # Changelog
 
+## v4.2.0 — 2026-11-05
+
+- **第十四池／750–800**：`RUN_MODIFIERS_750` 四枚；里程碑 750／800；【750+】；成就 `late750_run`
+- **進階共鳴 HUD 徽記**：場上 `set-badge-hud` 顯示共鳴／進階◆；成就 `set_badge_hud`
+- **回放多指標疊加**：浪次／擊殺／銀雨折線可疊加；追蹤 `silverRain`；成就 `replay_multi_metric`
+- **教學全步跟手／高亮格**：全五步軌跡標籤；prep 空格高亮擴至全步；合併步可合格高亮；成就 `tut_all_gesture`
+- mid／props 無新檔；存檔 **version 42**；`?v=4.2.0`／`CACHE_VER=4.2.0`；Pages 全樹一次；無正式音檔
+
 ## v4.1.0 — 2026-11-05
 
 - **第十三池／650–700**：`RUN_MODIFIERS_650` 四枚；里程碑 650／700；【650+】；成就 `late650_run`

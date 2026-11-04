@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 主循環 v4.1.0
+ * 銀樓防衛 — 主循環 v4.2.0
  * v1.9.0：第7關／鎖倉居士／週連續＋本地最佳牆／手感平衡
  */
 (function () {
@@ -268,6 +268,7 @@
         }
         const sets =
           typeof charmSetAsModifiers === 'function' ? charmSetAsModifiers(save) : [];
+        save._activeCharmSets = typeof charmSetResonance === 'function' ? charmSetResonance(save) : [];
         for (const sm of sets) {
           if (sm && !mods.some((m) => m.id === sm.id)) {
             mods.push(sm);
@@ -308,6 +309,8 @@
       stageIndex = STAGES.indexOf(stage);
     }
     const modCtx = buildModContext(mods);
+    const activeSets =
+      typeof charmSetResonance === 'function' ? charmSetResonance(save) : save._activeCharmSets || [];
     const silver = Math.round(stage.startSilver * (modCtx.silverMul || 1));
     const coreHp = Math.round(stage.coreHp * (modCtx.coreMul || 1));
     return {
@@ -376,6 +379,7 @@
       _milestonesClaimed: {},
       _touchPad: 0,
       modifiers: mods,
+      activeCharmSets: activeSets,
       modCtx,
       _saveRef: save,
       _equippedCharmId: (save && save.equippedCharmId) || '',
@@ -943,20 +947,23 @@
             m.late400 ||
             m.late450 ||
             m.late550 ||
-            m.late650
+            m.late650 ||
+            m.late750
         );
         state._lateModBadge = lateMods.length
           ? lateMods.map((m) => m.name).join(' · ')
           : '';
-        state._lateModTier = lateMods.some((m) => m.late650)
-          ? 650
-          : lateMods.some((m) => m.late550)
-            ? 550
-            : lateMods.some((m) => m.late450)
-              ? 450
-              : lateMods.some((m) => m.late400)
-                ? 400
-                : lateMods.some((m) => m.late350)
+        state._lateModTier = lateMods.some((m) => m.late750)
+          ? 750
+          : lateMods.some((m) => m.late650)
+            ? 650
+            : lateMods.some((m) => m.late550)
+              ? 550
+              : lateMods.some((m) => m.late450)
+                ? 450
+                : lateMods.some((m) => m.late400)
+                  ? 400
+                  : lateMods.some((m) => m.late350)
             ? 350
             : lateMods.some((m) => m.late300)
             ? 300
@@ -1041,6 +1048,12 @@
           writeSave(save);
           notifyAchievements();
         }
+        if ((save.bestEndlessWave || 0) >= 750) {
+          if (!save.ach) save.ach = {};
+          save.ach.late750_run = true;
+          writeSave(save);
+          notifyAchievements();
+        }
         if (save._equipCharmToast) {
           const nm = save._equipCharmToast;
           save._equipCharmToast = '';
@@ -1051,15 +1064,17 @@
         if (state._lateModBadge) {
           setTimeout(() => {
             const tag =
-              state._lateModTier >= 650
-                ? '【650+】'
-                : state._lateModTier >= 550
-                  ? '【550+】'
-                  : state._lateModTier >= 450
-                    ? '【450+】'
-                    : state._lateModTier >= 400
-                      ? '【400+】'
-                      : state._lateModTier >= 350
+              state._lateModTier >= 750
+                ? '【750+】'
+                : state._lateModTier >= 650
+                  ? '【650+】'
+                  : state._lateModTier >= 550
+                    ? '【550+】'
+                    : state._lateModTier >= 450
+                      ? '【450+】'
+                      : state._lateModTier >= 400
+                        ? '【400+】'
+                        : state._lateModTier >= 350
                   ? '【350+】'
                   : state._lateModTier >= 300
                   ? '【300+】'
@@ -1188,6 +1203,7 @@
       dualPenta: state._dualPentaSeen || 0,
       charm: state._dualPentaCharm ? state._dualPentaCharm.name : '',
       taxStacks: state._mirageTaxStacks || 0,
+      silverRain: state._silverRain || 0,
       mods: mods || '',
       bosses: bosses.join(' '),
       penta: state._pentaTideSeen || 0,
@@ -1283,6 +1299,9 @@
           maxLife: 2.5,
         };
         UI.toast('市況｜' + ev.name + ' — ' + ev.blurb, 2400);
+        if (ev.id === 'silver_rain') {
+          state._silverRain = (state._silverRain || 0) + 1;
+        }
         if (ev.id === 'triple_tide') {
           save.ach.triple_event = true;
         }
@@ -2195,6 +2214,26 @@
       if (A && A.play) A.play('wall_code');
     } catch (_) {}
   };
+  window.__yinlouMarkSetBadgeHud = function () {
+    if (!save.ach) save.ach = {};
+    if (!save.ach.set_badge_hud) {
+      save.ach.set_badge_hud = true;
+      writeSave(save);
+      notifyAchievements();
+    }
+    try {
+      const A = window.YDAudio;
+      if (A && A.play) A.play('set_badge');
+    } catch (_) {}
+  };
+  window.__yinlouMarkReplayMultiMetric = function () {
+    if (!save.ach) save.ach = {};
+    if (!save.ach.replay_multi_metric) {
+      save.ach.replay_multi_metric = true;
+      writeSave(save);
+      notifyAchievements();
+    }
+  };
   window.__yinlouMarkReplayLinePng = function () {
     if (!save.ach) save.ach = {};
     if (!save.ach.replay_line_png) {
@@ -2856,13 +2895,20 @@
     state.drag.y = y;
 
     if (typeof UI !== 'undefined' && UI.updateTutGestureLive) {
-      const mergeTut =
-        state.tutorialStep === 1 || state.tutorialStep === 2;
-      if (mergeTut && state.drag && state.drag.active) {
-        UI.updateTutGestureLive(state.drag.x, state.drag.y, true);
+      const tutLive =
+        state.tutorialStep != null &&
+        state.tutorialStep < 5 &&
+        state.tutorialStep < 99;
+      if (tutLive && state.drag && state.drag.active) {
+        UI.updateTutGestureLive(state.drag.x, state.drag.y, true, state.tutorialStep);
         if (!save.ach) save.ach = {};
         if (!save.ach.tut_gesture_live) {
           save.ach.tut_gesture_live = true;
+          writeSave(save);
+          notifyAchievements();
+        }
+        if (!save.ach.tut_all_gesture) {
+          save.ach.tut_all_gesture = true;
           writeSave(save);
           notifyAchievements();
         }
@@ -2951,13 +2997,20 @@
     state.drag.y = y;
 
     if (typeof UI !== 'undefined' && UI.updateTutGestureLive) {
-      const mergeTut =
-        state.tutorialStep === 1 || state.tutorialStep === 2;
-      if (mergeTut && state.drag && state.drag.active) {
-        UI.updateTutGestureLive(state.drag.x, state.drag.y, true);
+      const tutLive =
+        state.tutorialStep != null &&
+        state.tutorialStep < 5 &&
+        state.tutorialStep < 99;
+      if (tutLive && state.drag && state.drag.active) {
+        UI.updateTutGestureLive(state.drag.x, state.drag.y, true, state.tutorialStep);
         if (!save.ach) save.ach = {};
         if (!save.ach.tut_gesture_live) {
           save.ach.tut_gesture_live = true;
+          writeSave(save);
+          notifyAchievements();
+        }
+        if (!save.ach.tut_all_gesture) {
+          save.ach.tut_all_gesture = true;
           writeSave(save);
           notifyAchievements();
         }
@@ -3019,13 +3072,20 @@
       state.drag.y = y;
 
     if (typeof UI !== 'undefined' && UI.updateTutGestureLive) {
-      const mergeTut =
-        state.tutorialStep === 1 || state.tutorialStep === 2;
-      if (mergeTut && state.drag && state.drag.active) {
-        UI.updateTutGestureLive(state.drag.x, state.drag.y, true);
+      const tutLive =
+        state.tutorialStep != null &&
+        state.tutorialStep < 5 &&
+        state.tutorialStep < 99;
+      if (tutLive && state.drag && state.drag.active) {
+        UI.updateTutGestureLive(state.drag.x, state.drag.y, true, state.tutorialStep);
         if (!save.ach) save.ach = {};
         if (!save.ach.tut_gesture_live) {
           save.ach.tut_gesture_live = true;
+          writeSave(save);
+          notifyAchievements();
+        }
+        if (!save.ach.tut_all_gesture) {
+          save.ach.tut_all_gesture = true;
           writeSave(save);
           notifyAchievements();
         }

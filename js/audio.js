@@ -146,6 +146,10 @@
       buzz(400, 0.025, 'sine', 0.025);
       setTimeout(function () { buzz(560, 0.03, 'triangle', 0.028); }, 30);
     },
+    set_badge: function () {
+      buzz(760, 0.04, 'triangle', 0.035);
+      setTimeout(function () { buzz(980, 0.055, 'sine', 0.04); }, 50);
+    },
     charm_set_adv: function () {
       buzz(700, 0.045, 'square', 0.04);
       setTimeout(function () { buzz(940, 0.06, 'triangle', 0.045); }, 55);

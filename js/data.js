@@ -1775,6 +1775,8 @@
     { wave: 600, silver: 9800, label: '六百浪不朽池' },
     { wave: 650, silver: 10600, label: '六百五十浪十三池' },
     { wave: 700, silver: 11400, label: '七百浪長池' },
+    { wave: 750, silver: 12200, label: '七百五十浪十四池' },
+    { wave: 800, silver: 13000, label: '八百浪終池' },
   ];
 
   function endlessMilestone(waveIndex) {
@@ -2892,6 +2894,49 @@
     },
   ];
 
+  const RUN_MODIFIERS_750 = [
+    {
+      id: 'fourteen_vault',
+      name: '十四池銀庫',
+      blurb: '開局銀 +38%；核心 HP +22%',
+      late750: true,
+      apply: (ctx) => {
+        ctx.silverMul = (ctx.silverMul || 1) * 1.38;
+        ctx.coreMul = (ctx.coreMul || 1) * 1.22;
+      },
+    },
+    {
+      id: 'fourteen_mirror',
+      name: '十四池鏡穹',
+      blurb: '鏡稅地板 +0.2；抽銀 ×0.09',
+      late750: true,
+      apply: (ctx) => {
+        ctx.mirageTaxFloorBonus = (ctx.mirageTaxFloorBonus || 0) + 0.2;
+        ctx.silverDrainMul = (ctx.silverDrainMul || 1) * 0.09;
+      },
+    },
+    {
+      id: 'fourteen_badge',
+      name: '十四池徽輝',
+      blurb: '進階共鳴 ×1.15；合星 ×1.1',
+      late750: true,
+      apply: (ctx) => {
+        ctx.charmSetAdvMul = (ctx.charmSetAdvMul || 1) * 1.15;
+        ctx.mergeRebateMul = (ctx.mergeRebateMul || 1) * 1.1;
+      },
+    },
+    {
+      id: 'fourteen_seal',
+      name: '十四池印陣',
+      blurb: '敵速 −14%；俠客冷卻 −12%',
+      late750: true,
+      apply: (ctx) => {
+        ctx.enemySpeedMul = (ctx.enemySpeedMul || 1) * 0.86;
+        ctx.heroCdMul = (ctx.heroCdMul || 1) * 0.88;
+      },
+    },
+  ];
+
   /** 符咒 → 本局修飾欄項目（可裝備） */
   const CHARM_MAX_STAR = 3;
   const CHARM_EQUIP_SLOTS = 3;
@@ -3489,6 +3534,14 @@
       if (!mods.some((m) => m.id === late13.id)) {
         if (mods.length >= 3) mods[mods.length - 1] = late13;
         else mods.push(late13);
+      }
+    }
+    if (best >= 750 && RUN_MODIFIERS_750.length) {
+      const h15 = (seed ^ 0x750beef) >>> 0;
+      const late14 = RUN_MODIFIERS_750[h15 % RUN_MODIFIERS_750.length];
+      if (!mods.some((m) => m.id === late14.id)) {
+        if (mods.length >= 3) mods[0] = late14;
+        else mods.push(late14);
       }
     }
     return mods;
@@ -4170,6 +4223,10 @@
     { id: 'late450_run', cat: 'meta', name: '十一池開盤', blurb: '曾達 450 浪後再開無盡（抽第十一池修飾）', check: (s) => !!s.ach && !!s.ach.late450_run },
     { id: 'late550_run', cat: 'meta', name: '十二池開盤', blurb: '曾達 550 浪後再開無盡（抽第十二池修飾）', check: (s) => !!s.ach && !!s.ach.late550_run },
     { id: 'late650_run', cat: 'meta', name: '十三池開盤', blurb: '曾達 650 浪後再開無盡（抽第十三池修飾）', check: (s) => !!s.ach && !!s.ach.late650_run },
+    { id: 'late750_run', cat: 'meta', name: '十四池開盤', blurb: '曾達 750 浪後再開無盡（抽第十四池修飾）', check: (s) => !!s.ach && !!s.ach.late750_run },
+    { id: 'set_badge_hud', cat: 'meta', name: '共鳴徽記', blurb: '見過進階共鳴 HUD 徽記', check: (s) => !!s.ach && !!s.ach.set_badge_hud },
+    { id: 'replay_multi_metric', cat: 'meta', name: '多指標折線', blurb: '用過多指標疊加回放折線', check: (s) => !!s.ach && !!s.ach.replay_multi_metric },
+    { id: 'tut_all_gesture', cat: 'meta', name: '全步跟手', blurb: '教學多步見過跟手／高亮格', check: (s) => !!s.ach && !!s.ach.tut_all_gesture },
     { id: 'charm_set_adv', cat: 'meta', name: '進階共鳴', blurb: '觸發套裝第三件進階共鳴', check: (s) => !!s.ach && !!s.ach.charm_set_adv },
     { id: 'replay_line_png', cat: 'meta', name: '折線 PNG', blurb: '匯出回放折線 PNG', check: (s) => !!s.ach && !!s.ach.replay_line_png },
     { id: 'fail_share', cat: 'meta', name: '結算分享', blurb: '從失敗／結算面板一鍵分享短碼或文字', check: (s) => !!s.ach && !!s.ach.fail_share },
@@ -4252,7 +4309,9 @@
     const late600 = n >= 600 ? Math.min(0.05, (n - 600) * 0.001) : 0;
     const late650 = n >= 650 ? Math.min(0.05, (n - 650) * 0.0009) : 0;
     const late700 = n >= 700 ? Math.min(0.04, (n - 700) * 0.0008) : 0;
-    const mul = 1 + (n - 1) * 0.105 + late50 + late75 + late90 + late120 + late130 + late140 + late150 + late160 + late180 + late200 + late220 + late250 + late300 + late350 + late400 + late450 + late500 + late550 + late600 + late650 + late700;
+    const late750 = n >= 750 ? Math.min(0.04, (n - 750) * 0.0007) : 0;
+    const late800 = n >= 800 ? Math.min(0.035, (n - 800) * 0.0006) : 0;
+    const mul = 1 + (n - 1) * 0.105 + late50 + late75 + late90 + late120 + late130 + late140 + late150 + late160 + late180 + late200 + late220 + late250 + late300 + late350 + late400 + late450 + late500 + late550 + late600 + late650 + late700 + late750 + late800;
     const countLate = n >= 50 ? Math.min(n - 50, 25) * 0.01 + (n >= 75 ? (n - 75) * 0.006 : 0) : 0;
     const count = (base) => {
       let raw = Math.max(1, Math.round(base * (1 + (n - 1) * 0.072 + countLate)));
@@ -4725,7 +4784,7 @@
       s.equippedCharmIds = s.equippedCharmId ? [s.equippedCharmId] : [];
     }
     if (!s.endlessReplayFav || typeof s.endlessReplayFav !== 'object') s.endlessReplayFav = {};
-    s.version = Math.max(41, from, base.version || 41);
+    s.version = Math.max(42, from, base.version || 42);
     return s;
   }
 
@@ -4741,7 +4800,7 @@
 
   function defaultSave() {
     return {
-      version: 41,
+      version: 42,
       totalSilver: 0,
       totalKills: 0,
       maxStageCleared: 0,
@@ -4984,7 +5043,7 @@
     const code = typeof encodeWallShort === 'function' ? encodeWallShort(save) : '';
     const wall = typeof formatLocalBestWall === 'function' ? formatLocalBestWall(save) : null;
     const lines = [
-      '銀樓防衛｜結算分享 v4.1',
+      '銀樓防衛｜結算分享 v4.2',
       opts.title || '銀樓失守',
       opts.summary || '',
       wall && wall.label ? '牆：' + wall.label : '',
@@ -4997,13 +5056,43 @@
   function formatEndlessReplayMultiChart(save, opts) {
     opts = opts || {};
     const metric = opts.metric || 'wave';
+    const metrics = Array.isArray(opts.metrics) && opts.metrics.length
+      ? opts.metrics
+      : metric === 'multi'
+        ? ['wave', 'kills', 'silverRain']
+        : [metric];
+    const meta = {
+      wave: { name: '浪次', color: '#C9A227' },
+      kills: { name: '擊殺', color: '#C45C4A' },
+      silverRain: { name: '銀雨', color: '#5A9A7A' },
+      dualPenta: { name: '雙五', color: '#8A9BB0' },
+      taxStacks: { name: '鏡稅叠', color: '#3A7A6A' },
+    };
     const rows = formatEndlessReplay(save, { favOnly: !!opts.favOnly });
-    const series = rows.slice(0, 8).reverse(); // oldest→newest for line
-    const values = series.map(function (r) { return Number(r[metric]) || 0; });
-    const maxV = Math.max(1, ...values, 1);
+    const series = rows.slice(0, 8).reverse();
+    const lines = metrics.map(function (key) {
+      const m = meta[key] || { name: key, color: '#A89070' };
+      const values = series.map(function (r) { return Number(r[key]) || 0; });
+      const maxV = Math.max(1, ...values, 1);
+      return {
+        key: key,
+        name: m.name,
+        color: m.color,
+        max: maxV,
+        points: series.map(function (r, i) {
+          return { i: i, at: r.at, fav: r.fav, v: Number(r[key]) || 0 };
+        }),
+      };
+    });
+    const maxAll = Math.max(1, ...lines.map(function (l) { return l.max; }));
+    // legacy single-line fields
+    const primary = lines[0] || { key: metric, max: 1, points: [] };
     return {
-      metric: metric,
-      max: maxV,
+      metric: metrics.length > 1 ? 'multi' : primary.key,
+      metrics: metrics,
+      max: primary.max,
+      maxAll: maxAll,
+      lines: lines,
       points: series.map(function (r, i) {
         return {
           i: i,
@@ -5011,10 +5100,11 @@
           label: r.label,
           wave: r.wave,
           kills: r.kills,
+          silverRain: r.silverRain || 0,
           dualPenta: r.dualPenta,
           taxStacks: r.taxStacks,
           fav: r.fav,
-          v: Number(r[metric]) || 0,
+          v: Number(r[metrics[0]]) || 0,
         };
       }),
     };
@@ -5100,6 +5190,7 @@
           wave: e.wave || 0,
           kills: e.kills || 0,
           dualPenta: e.dualPenta || 0,
+          silverRain: e.silverRain || 0,
           charm: e.charm || '',
           taxStacks: e.taxStacks || 0,
           mods: e.mods || '',
@@ -5747,6 +5838,7 @@
     RUN_MODIFIERS_450,
     RUN_MODIFIERS_550,
     RUN_MODIFIERS_650,
+    RUN_MODIFIERS_750,
     DUAL_PENTA_CHARMS,
     pickDualPentaCharm,
     charmAsModifier,

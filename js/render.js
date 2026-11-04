@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — Canvas 繪製 v4.1.0
+ * 銀樓防衛 — Canvas 繪製 v4.2.0
  * v1.5：場景四層 ground→mid→wall→props；halt_seal PNG；擊破／暴擊
  */
 (function (global) {
@@ -438,16 +438,36 @@
       }
       return null;
     }
-    // v3.5：教學步①② prep 時空格柔和高亮
+    // v4.2：教學全步 prep 時空格柔和高亮（跟手拖拽另見 trail）
     const tut = state.tutorialStep;
     if (
       state.phase === 'prep' &&
       tut != null &&
-      tut < 2 &&
+      tut < 5 &&
       tut < 99 &&
       !occ
     ) {
       return 'tut';
+    }
+    // 合併步：同種可合格額外高亮
+    if (
+      state.phase === 'prep' &&
+      tut === 1 &&
+      occ &&
+      state.drag &&
+      state.drag.active &&
+      state.drag.kind === 'hero'
+    ) {
+      const from = state.heroes.find((h) => h.uid === state.drag.heroUid);
+      if (
+        from &&
+        occ.uid !== from.uid &&
+        from.id === occ.id &&
+        from.star === occ.star &&
+        from.star < MAX_STAR
+      ) {
+        return 'merge';
+      }
     }
     return null;
   }

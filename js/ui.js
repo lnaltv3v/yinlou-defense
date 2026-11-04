@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v4.1.0
+ * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v4.2.0
  */
 (function (global) {
   const {
@@ -117,7 +117,7 @@
       ink +
       '"></i>' +
       gear;
-    const src = (window.YDSprites && window.YDSprites.urlFor) ? window.YDSprites.urlFor(def.id) : ('assets/sprites/' + def.id + '.png?v=4.1.0');
+    const src = (window.YDSprites && window.YDSprites.urlFor) ? window.YDSprites.urlFor(def.id) : ('assets/sprites/' + def.id + '.png?v=4.2.0');
     return (
       '<span class="hero-avatar" aria-hidden="true" data-hero="' +
       def.id +
@@ -536,6 +536,40 @@
           : String(state.stage.id);
     const kills = $('stat-kills');
     if (kills) kills.textContent = String(state.kills || 0);
+    // v4.2：進階共鳴 HUD 徽記
+    let badge = $('set-badge-hud');
+    if (!badge) {
+      badge = document.createElement('div');
+      badge.id = 'set-badge-hud';
+      badge.className = 'set-badge-hud';
+      badge.setAttribute('role', 'status');
+      const host = $('hud') || $('wrap') || document.body;
+      host.appendChild(badge);
+    }
+    const sets = (state && state.activeCharmSets) || [];
+    if (sets.length) {
+      badge.innerHTML = sets
+        .map(function (s) {
+          return (
+            '<span class="set-badge' +
+            (s.advanced ? ' adv' : '') +
+            '" title="' +
+            (s.blurb || '') +
+            '">' +
+            (s.advanced ? '◆' : '◇') +
+            (s.name || '') +
+            '</span>'
+          );
+        })
+        .join('');
+      badge.classList.add('show');
+      if (sets.some(function (s) { return s.advanced; }) && window.__yinlouMarkSetBadgeHud) {
+        window.__yinlouMarkSetBadgeHud();
+      }
+    } else {
+      badge.innerHTML = '';
+      badge.classList.remove('show');
+    }
     const bondEl = $('stat-bonds');
     if (bondEl) {
       const bonds = state._bonds || [];
@@ -995,7 +1029,7 @@ function fillWallCompareHist(save, dayFilter) {
         });
         ctx.fillStyle = '#A89070';
         ctx.font = '10px sans-serif';
-        ctx.fillText('本機｜唔做線上排行｜v4.1｜短碼見卡面', 24, H - 16);
+        ctx.fillText('本機｜唔做線上排行｜v4.2｜短碼見卡面', 24, H - 16);
         canvas.toBlob(function (blob) {
           if (!blob) {
             toast('PNG 匯出失敗', 1800);
@@ -1041,7 +1075,7 @@ function fillWallCompareHist(save, dayFilter) {
 
   }
 
-  function updateTutGestureLive(canvasX, canvasY, active) {
+  function updateTutGestureLive(canvasX, canvasY, active, tutStep) {
     let trail = $('tut-gesture-trail');
     if (!trail) return;
     if (!active) {
@@ -1054,7 +1088,6 @@ function fillWallCompareHist(save, dayFilter) {
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
     const wrapRect = wrap.getBoundingClientRect ? wrap.getBoundingClientRect() : { left: 0, top: 0 };
-    // canvas coords 960×540 → CSS px
     const sx = rect.width / 960;
     const sy = rect.height / 540;
     const left = rect.left - wrapRect.left + canvasX * sx;
@@ -1071,8 +1104,9 @@ function fillWallCompareHist(save, dayFilter) {
       finger.style.marginTop = '-9px';
       finger.style.animation = 'none';
     }
+    const labs = ['放到空格', '拖同種合併', '點選強化', '再開波', '可重開'];
     const lab = trail.querySelector('.tut-gesture-label');
-    if (lab) lab.textContent = '跟住手勢合併';
+    if (lab) lab.textContent = labs[tutStep | 0] || '跟住手勢';
   }
 
   function updateTutorialHud(step) {
@@ -1153,7 +1187,7 @@ function fillWallCompareHist(save, dayFilter) {
         if (window.__yinlouSetTutorialStep) window.__yinlouSetTutorialStep(step1 - 1);
       };
     });
-    // v4.1：教學全五步箭嘴 — ①底欄／②合併／③強化／④開波／⑤結算
+    // v4.2：教學全五步箭嘴 — ①底欄／②合併／③強化／④開波／⑤結算
     function ensureTutArrow(id, cls, label) {
       let el = $(id);
       if (!el) {
@@ -1186,7 +1220,7 @@ function fillWallCompareHist(save, dayFilter) {
     if (cur === 3 && window.__yinlouMarkTutUpgradeArrow) window.__yinlouMarkTutUpgradeArrow();
     if (cur === 4 && window.__yinlouMarkTutWaveArrow) window.__yinlouMarkTutWaveArrow();
     if (cur === 5 && window.__yinlouMarkTutSettleArrow) window.__yinlouMarkTutSettleArrow();
-    // v4.1：合併步手勢軌跡（行動端／觸控示意）
+    // v4.2：合併步手勢軌跡（行動端／觸控示意）
     let trail = $('tut-gesture-trail');
     if (!trail) {
       trail = document.createElement('div');
@@ -1198,7 +1232,8 @@ function fillWallCompareHist(save, dayFilter) {
       const host = $('wrap') || document.body;
       host.appendChild(trail);
     }
-    const showTrail = cur === 2;
+    const showTrail = cur >= 1 && cur <= 5;
+    const idleLabs = ['放到空格', '拖同種合併', '點選強化', '再開波', '可重開'];
     if (!trail.classList.contains('live')) {
       trail.style.left = '';
       trail.style.top = '';
@@ -1207,8 +1242,10 @@ function fillWallCompareHist(save, dayFilter) {
       const finger = trail.querySelector('.tut-finger');
       if (finger) finger.style.cssText = '';
       const lab = trail.querySelector('.tut-gesture-label');
-      if (lab) lab.textContent = '拖同種合併';
+      if (lab) lab.textContent = idleLabs[cur - 1] || '跟手教學';
       trail.classList.remove('live');
+      // idle position hints per step
+      trail.className = 'tut-gesture-trail' + (cur === 2 ? '' : ' tut-g-step' + cur);
     }
     if (!showTrail) trail.classList.remove('show', 'live');
     else trail.classList.add('show');
@@ -1226,7 +1263,7 @@ function fillWallCompareHist(save, dayFilter) {
     const favOnly = !!filterOpts.favOnly;
     const minWave = filterOpts.minWave || 0;
     const scrub = filterOpts.scrub != null ? filterOpts.scrub | 0 : 0;
-    const metric = filterOpts.metric || 'wave';
+    const metric = filterOpts.metric || 'multi';
     const rows =
       typeof formatEndlessReplay === 'function'
         ? formatEndlessReplay(save, { favOnly: favOnly, minWave: minWave || null })
@@ -1247,60 +1284,88 @@ function fillWallCompareHist(save, dayFilter) {
       (minWave >= 100 ? ' selected' : '') +
       '" data-rf="w100">≥100浪</button></div>';
 
-    // multi-run line chart
+    // multi-run line chart (v4.2 multi-metric overlay)
+    const metricMode = filterOpts.metric || 'multi';
     const multi =
       typeof formatEndlessReplayMultiChart === 'function'
-        ? formatEndlessReplayMultiChart(save, { metric: metric, favOnly: favOnly })
+        ? formatEndlessReplayMultiChart(save, {
+            metric: metricMode,
+            metrics:
+              metricMode === 'multi'
+                ? ['wave', 'kills', 'silverRain']
+                : [metricMode],
+            favOnly: favOnly,
+          })
         : null;
     if (multi && multi.points && multi.points.length >= 2) {
       const W = 280;
       const H = 72;
-      const maxV = multi.max || 1;
-      const pts = multi.points;
-      const step = pts.length > 1 ? (W - 20) / (pts.length - 1) : W;
-      let poly = '';
-      pts.forEach(function (p, i) {
-        const x = 10 + i * step;
-        const y = H - 10 - (p.v / maxV) * (H - 20);
-        poly += (i ? ' ' : '') + x.toFixed(1) + ',' + y.toFixed(1);
-      });
+      const lines = multi.lines || [];
       html +=
         '<div class="replay-multi-chart card-thick">' +
         '<div class="replay-metric-tabs">' +
         '<button type="button" class="wall-mode-btn' +
-        (metric === 'wave' ? ' selected' : '') +
-        '" data-metric="wave">浪次折線</button>' +
+        (metricMode === 'multi' ? ' selected' : '') +
+        '" data-metric="multi">疊加</button>' +
         '<button type="button" class="wall-mode-btn' +
-        (metric === 'kills' ? ' selected' : '') +
-        '" data-metric="kills">擊殺折線</button></div>' +
+        (metricMode === 'wave' ? ' selected' : '') +
+        '" data-metric="wave">浪次</button>' +
+        '<button type="button" class="wall-mode-btn' +
+        (metricMode === 'kills' ? ' selected' : '') +
+        '" data-metric="kills">擊殺</button>' +
+        '<button type="button" class="wall-mode-btn' +
+        (metricMode === 'silverRain' ? ' selected' : '') +
+        '" data-metric="silverRain">銀雨</button></div>' +
         '<svg class="replay-line-svg" viewBox="0 0 ' +
         W +
         ' ' +
         H +
         '" width="100%" height="' +
         H +
-        '" role="img" aria-label="多局折線">' +
-        '<polyline fill="none" stroke="#C9A227" stroke-width="2" points="' +
-        poly +
-        '"/>';
-      pts.forEach(function (p, i) {
-        const x = 10 + i * step;
-        const y = H - 10 - (p.v / maxV) * (H - 20);
+        '" role="img" aria-label="多局折線">';
+      lines.forEach(function (line) {
+        const maxV = line.max || 1;
+        const pts = line.points || [];
+        const step = pts.length > 1 ? (W - 20) / (pts.length - 1) : W;
+        let poly = '';
+        pts.forEach(function (p, i) {
+          const x = 10 + i * step;
+          const y = H - 10 - (p.v / maxV) * (H - 20);
+          poly += (i ? ' ' : '') + x.toFixed(1) + ',' + y.toFixed(1);
+        });
         html +=
-          '<circle cx="' +
-          x.toFixed(1) +
-          '" cy="' +
-          y.toFixed(1) +
-          '" r="3" fill="' +
-          (p.fav ? '#C9A227' : '#8A7A60') +
-          '" data-scrub="' +
-          i +
+          '<polyline fill="none" stroke="' +
+          line.color +
+          '" stroke-width="2" opacity="0.9" points="' +
+          poly +
           '"/>';
+        pts.forEach(function (p, i) {
+          const x = 10 + i * step;
+          const y = H - 10 - (p.v / maxV) * (H - 20);
+          html +=
+            '<circle cx="' +
+            x.toFixed(1) +
+            '" cy="' +
+            y.toFixed(1) +
+            '" r="2.5" fill="' +
+            line.color +
+            '" opacity="0.85"/>';
+        });
       });
-      html += '</svg><div class="replay-line-actions">' +
+      html +=
+        '</svg><div class="replay-line-legend">' +
+        (lines
+          .map(function (l) {
+            return '<span style="color:' + l.color + '">● ' + l.name + '</span>';
+          })
+          .join(' ')) +
+        '</div><div class="replay-line-actions">' +
         '<button type="button" class="wall-mode-btn" id="replay-line-export-png">匯出折線 PNG</button>' +
-        '<span class="card-meta">多局折線｜左舊右新｜點圓可 scrub</span></div></div>';
+        '<span class="card-meta">多局折線｜左舊右新｜可疊加浪次／擊殺／銀雨</span></div></div>';
       if (window.__yinlouMarkReplayTimeline) window.__yinlouMarkReplayTimeline();
+      if (metricMode === 'multi' && window.__yinlouMarkReplayMultiMetric) {
+        window.__yinlouMarkReplayMultiMetric();
+      }
     }
 
     // timeline scrub
@@ -1392,7 +1457,7 @@ function fillWallCompareHist(save, dayFilter) {
       });
       html += '</ul>';
     }
-    html += '<p class="paper-note">本機回放｜唔做線上排行｜v4.1 時間線 scrub／多局折線</p></div>';
+    html += '<p class="paper-note">本機回放｜唔做線上排行｜v4.2 時間線 scrub／多局折線</p></div>';
     $('overlay-msg').innerHTML = html;
     const btn = $('btn-overlay');
     btn.textContent = '關閉';
@@ -1462,7 +1527,7 @@ function fillWallCompareHist(save, dayFilter) {
     if (linePng && multi && multi.points && multi.points.length) {
       linePng.onclick = function () {
         const W = 480;
-        const H = 200;
+        const H = 220;
         const canvas = document.createElement('canvas');
         canvas.width = W;
         canvas.height = H;
@@ -1474,13 +1539,13 @@ function fillWallCompareHist(save, dayFilter) {
         ctx.strokeRect(8, 8, W - 16, H - 16);
         ctx.fillStyle = '#C9A227';
         ctx.font = 'bold 16px sans-serif';
-        ctx.fillText('銀樓防衛｜回放折線｜' + (metric === 'kills' ? '擊殺' : '浪次'), 24, 36);
-        const pts = multi.points;
-        const maxV = multi.max || 1;
+        const title =
+          (multi.metric === 'multi' ? '疊加' : (multi.lines && multi.lines[0] && multi.lines[0].name) || '折線');
+        ctx.fillText('銀樓防衛｜回放折線｜' + title, 24, 36);
         const padL = 36;
         const padR = 24;
         const padT = 56;
-        const padB = 36;
+        const padB = 40;
         const plotW = W - padL - padR;
         const plotH = H - padT - padB;
         ctx.strokeStyle = '#5A4A38';
@@ -1489,27 +1554,36 @@ function fillWallCompareHist(save, dayFilter) {
         ctx.lineTo(padL, H - padB);
         ctx.lineTo(W - padR, H - padB);
         ctx.stroke();
-        ctx.strokeStyle = '#C9A227';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        pts.forEach(function (p, i) {
-          const x = padL + (pts.length > 1 ? (i / (pts.length - 1)) * plotW : plotW / 2);
-          const y = H - padB - (p.v / maxV) * plotH;
-          if (i === 0) ctx.moveTo(x, y);
-          else ctx.lineTo(x, y);
-        });
-        ctx.stroke();
-        pts.forEach(function (p, i) {
-          const x = padL + (pts.length > 1 ? (i / (pts.length - 1)) * plotW : plotW / 2);
-          const y = H - padB - (p.v / maxV) * plotH;
-          ctx.fillStyle = p.fav ? '#C9A227' : '#8A7A60';
+        const lines = multi.lines || [];
+        lines.forEach(function (line) {
+          const pts = line.points || [];
+          const maxV = line.max || 1;
+          ctx.strokeStyle = line.color;
+          ctx.lineWidth = 2;
           ctx.beginPath();
-          ctx.arc(x, y, 4, 0, Math.PI * 2);
-          ctx.fill();
+          pts.forEach(function (p, i) {
+            const x = padL + (pts.length > 1 ? (i / (pts.length - 1)) * plotW : plotW / 2);
+            const y = H - padB - (p.v / maxV) * plotH;
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          });
+          ctx.stroke();
+          pts.forEach(function (p, i) {
+            const x = padL + (pts.length > 1 ? (i / (pts.length - 1)) * plotW : plotW / 2);
+            const y = H - padB - (p.v / maxV) * plotH;
+            ctx.fillStyle = line.color;
+            ctx.beginPath();
+            ctx.arc(x, y, 3.5, 0, Math.PI * 2);
+            ctx.fill();
+          });
         });
         ctx.fillStyle = '#A89070';
         ctx.font = '10px sans-serif';
-        ctx.fillText('本機｜唔做線上排行｜v4.1', 24, H - 14);
+        ctx.fillText(
+          (lines.map(function (l) { return l.name; }).join('／') || '') + '｜本機｜v4.2',
+          24,
+          H - 14
+        );
         canvas.toBlob(function (blob) {
           if (!blob) {
             toast('折線 PNG 失敗', 1800);
@@ -1584,7 +1658,7 @@ function fillWallCompareHist(save, dayFilter) {
       '<div class="fail-actions-hint card-thick">' +
       '<strong style="color:#C9A227">下一步</strong>' +
       '<span class="card-meta">① 重開本關　② 跟推薦芯片重整　③ 回選關　④ 無盡可睇回放時間線</span></div>' +
-      '<p class="paper-note">重開保留關卡進度帳；跟推薦芯片可快速重整旗鼓｜v4.1 結算面板</p></div>';
+      '<p class="paper-note">重開保留關卡進度帳；跟推薦芯片可快速重整旗鼓｜v4.2 結算面板</p></div>';
     $('overlay-msg').innerHTML = html;
     const btn = $('btn-overlay');
     btn.textContent = '重開本關';
@@ -1726,10 +1800,10 @@ function fillWallCompareHist(save, dayFilter) {
         return eqLab + setLab + '｜庫 ' + owned.length + '/' + (list.length || 4);
       })() +
       '</strong></div>' +
-      '<div class="paper-row"><span>版本</span><strong>v4.1.0｜存檔 v' +
-      (save.version || 41) +
+      '<div class="paper-row"><span>版本</span><strong>v4.2.0｜存檔 v' +
+      (save.version || 42) +
       '</strong></div>' +
-      '<p class="paper-note">v4.1：十三池650–700、套裝第三件進階共鳴、折線 PNG、跟手軌跡、結算一鍵分享。本地牆本機｜唔做線上排行。</p>' +
+      '<p class="paper-note">v4.2：十四池750–800、進階共鳴 HUD 徽記、多指標折線疊加、教學全步跟手／高亮格。本地牆本機｜唔做線上排行。</p>' +
       '<div id="charm-equip-bar" class="charm-equip-bar"></div>' +
       '</div>';
     const btn = $('btn-overlay');
@@ -1874,7 +1948,7 @@ function fillWallCompareHist(save, dayFilter) {
     if (onSnapWall) mk('留下牆快照', () => onSnapWall(), false, true);
     if (onWallTimeline) mk('牆快照時間軸', () => onWallTimeline(), false, true);
     if (onEndlessReplay) mk('無盡回放列表', () => onEndlessReplay(), false, true);
-    // v4.1 符咒三欄＋升星＋套裝共鳴
+    // v4.2 符咒三欄＋升星＋套裝共鳴
     (function wireCharmBar() {
       const bar = $('charm-equip-bar');
       if (!bar || typeof listOwnedCharms !== 'function') return;
@@ -1997,7 +2071,7 @@ function fillWallCompareHist(save, dayFilter) {
     const src = id && window.YDSprites && window.YDSprites.urlFor
       ? window.YDSprites.urlFor(id)
       : id
-        ? 'assets/sprites/' + id + '.png?v=4.1.0'
+        ? 'assets/sprites/' + id + '.png?v=4.2.0'
         : '';
     const fallback =
       '<span class="codex-thumb-fallback" style="background:' + c + '"></span>';
