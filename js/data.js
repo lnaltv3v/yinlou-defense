@@ -1787,6 +1787,8 @@
     { wave: 1200, silver: 19400, label: '千二百浪不朽池' },
     { wave: 1250, silver: 20200, label: '千二百五十浪十九池' },
     { wave: 1300, silver: 21000, label: '千三百浪穹頂池' },
+    { wave: 1350, silver: 21800, label: '千三百五十浪二十池' },
+    { wave: 1400, silver: 22600, label: '千四百浪永恒池' },
   ];
 
   function endlessMilestone(waveIndex) {
@@ -3190,6 +3192,64 @@
     ['black_swan', 'ledger_mirage', 'ink_specter'],
   ];
 
+  const RUN_MODIFIERS_1350 = [
+    {
+      id: 'twenty_vault',
+      name: '二十池銀庫',
+      blurb: '開局銀 +54%；核心 HP +34%',
+      late1350: true,
+      apply: (ctx) => {
+        ctx.silverMul = (ctx.silverMul || 1) * 1.54;
+        ctx.coreMul = (ctx.coreMul || 1) * 1.34;
+      },
+    },
+    {
+      id: 'twenty_mirror',
+      name: '二十池鏡穹',
+      blurb: '鏡稅地板 +0.32；抽銀 ×0.045',
+      late1350: true,
+      apply: (ctx) => {
+        ctx.mirageTaxFloorBonus = (ctx.mirageTaxFloorBonus || 0) + 0.32;
+        ctx.silverDrainMul = (ctx.silverDrainMul || 1) * 0.045;
+      },
+    },
+    {
+      id: 'twenty_cadence',
+      name: '二十池節拍',
+      blurb: '合星 ×1.24；進階共鳴 ×1.22',
+      late1350: true,
+      apply: (ctx) => {
+        ctx.mergeRebateMul = (ctx.mergeRebateMul || 1) * 1.24;
+        ctx.charmSetAdvMul = (ctx.charmSetAdvMul || 1) * 1.22;
+      },
+    },
+    {
+      id: 'twenty_seal',
+      name: '二十池印陣',
+      blurb: '敵速 −20%；俠客冷卻 −18%',
+      late1350: true,
+      apply: (ctx) => {
+        ctx.enemySpeedMul = (ctx.enemySpeedMul || 1) * 0.8;
+        ctx.heroCdMul = (ctx.heroCdMul || 1) * 0.82;
+      },
+    },
+  ];
+
+  /** 超千三節奏表：按浪輪換 Boss 間距／雜兵密度 */
+  const ENDLESS_ULTRA1300_RHYTHM = [
+    { id: 'urgent', label: '急鼓', bossGap: 1.15, trashMul: 1.08, intervalAdd: 0.35 },
+    { id: 'steady', label: '穩陣', bossGap: 1.45, trashMul: 1.0, intervalAdd: 0.5 },
+    { id: 'heavy', label: '重槌', bossGap: 1.85, trashMul: 0.92, intervalAdd: 0.7 },
+    { id: 'stagger', label: '錯拍', bossGap: 1.35, trashMul: 1.05, intervalAdd: 0.55 },
+    { id: 'flood', label: '洪潮', bossGap: 1.05, trashMul: 1.12, intervalAdd: 0.28 },
+    { id: 'silence', label: '靜隙', bossGap: 2.05, trashMul: 0.88, intervalAdd: 0.85 },
+  ];
+
+  function ultra1300Rhythm(n) {
+    if (n < 1300) return null;
+    return ENDLESS_ULTRA1300_RHYTHM[Math.floor(n / 5) % ENDLESS_ULTRA1300_RHYTHM.length];
+  }
+
   /** 符咒 → 本局修飾欄項目（可裝備） */
   const CHARM_MAX_STAR = 3;
   const CHARM_EQUIP_SLOTS = 3;
@@ -3663,7 +3723,7 @@
     return (
       '<div class="paper-body set-detail-page">' +
       bits.join('') +
-      '<p class="paper-note">點徽記睇明細｜鎖欄｜一鍵推薦｜拖曳／長按｜v4.7</p></div>'
+      '<p class="paper-note">點徽記睇明細｜鎖欄短碼｜一鍵推薦｜拖曳／長按｜v4.8</p></div>'
     );
   }
 
@@ -4093,6 +4153,14 @@
       if (!mods.some((m) => m.id === late19.id)) {
         if (mods.length >= 3) mods[mods.length - 1] = late19;
         else mods.push(late19);
+      }
+    }
+    if (best >= 1350 && RUN_MODIFIERS_1350.length) {
+      const h21 = (seed ^ 0x1350beef) >>> 0;
+      const late20 = RUN_MODIFIERS_1350[h21 % RUN_MODIFIERS_1350.length];
+      if (!mods.some((m) => m.id === late20.id)) {
+        if (mods.length >= 3) mods[0] = late20;
+        else mods.push(late20);
       }
     }
     return mods;
@@ -4788,6 +4856,10 @@
     { id: 'dual_preset_short', cat: 'meta', name: '區間短碼', blurb: '匯出／匯入過雙區間方案短碼', check: (s) => !!s.ach && !!s.ach.dual_preset_short },
     { id: 'dual_card_png', cat: 'meta', name: '對照卡 PNG', blurb: '匯出過雙區間對照卡 PNG', check: (s) => !!s.ach && !!s.ach.dual_card_png },
     { id: 'merge_snap_ring', cat: 'meta', name: '吸附環', blurb: '開過吸附可視化環或僅合法合濾鏡', check: (s) => !!s.ach && !!s.ach.merge_snap_ring },
+    { id: 'late1350_run', cat: 'meta', name: '二十池開盤', blurb: '曾達 1350 浪後再開無盡（抽第二十池修飾）', check: (s) => !!s.ach && !!s.ach.late1350_run },
+    { id: 'charm_lock_short', cat: 'meta', name: '鎖欄短碼', blurb: '匯出／匯入過鎖欄同步短碼', check: (s) => !!s.ach && !!s.ach.charm_lock_short },
+    { id: 'dual_share_card', cat: 'meta', name: '分享對照卡', blurb: '匯出過帶折線的對照／分享卡', check: (s) => !!s.ach && !!s.ach.dual_share_card },
+    { id: 'merge_fail_buzz', cat: 'meta', name: '合失敗 buzz', blurb: '聽過合失敗輕 buzz', check: (s) => !!s.ach && !!s.ach.merge_fail_buzz },
     { id: 'set_badge_hud', cat: 'meta', name: '共鳴徽記', blurb: '見過進階共鳴 HUD 徽記', check: (s) => !!s.ach && !!s.ach.set_badge_hud },
     { id: 'set_badge_detail', cat: 'meta', name: '徽記明細', blurb: '點開共鳴徽記睇過套裝明細／下一件', check: (s) => !!s.ach && !!s.ach.set_badge_detail },
     { id: 'set_equip_next', cat: 'meta', name: '一鍵裝下件', blurb: '由徽記明細一鍵裝上下一件符咒', check: (s) => !!s.ach && !!s.ach.set_equip_next },
@@ -4894,12 +4966,15 @@
     const late1200 = n >= 1200 ? Math.min(0.016, (n - 1200) * 0.0003) : 0;
     const late1250 = n >= 1250 ? Math.min(0.015, (n - 1250) * 0.00028) : 0;
     const late1300 = n >= 1300 ? Math.min(0.014, (n - 1300) * 0.00026) : 0;
-    const mul = 1 + (n - 1) * 0.105 + late50 + late75 + late90 + late120 + late130 + late140 + late150 + late160 + late180 + late200 + late220 + late250 + late300 + late350 + late400 + late450 + late500 + late550 + late600 + late650 + late700 + late750 + late800 + late850 + late900 + late950 + late1000 + late1050 + late1100 + late1150 + late1200 + late1250 + late1300;
+    const late1350 = n >= 1350 ? Math.min(0.013, (n - 1350) * 0.00025) : 0;
+    const late1400 = n >= 1400 ? Math.min(0.012, (n - 1400) * 0.00024) : 0;
+    const mul = 1 + (n - 1) * 0.105 + late50 + late75 + late90 + late120 + late130 + late140 + late150 + late160 + late180 + late200 + late220 + late250 + late300 + late350 + late400 + late450 + late500 + late550 + late600 + late650 + late700 + late750 + late800 + late850 + late900 + late950 + late1000 + late1050 + late1100 + late1150 + late1200 + late1250 + late1300 + late1350 + late1400;
     const countLate = n >= 50 ? Math.min(n - 50, 25) * 0.01 + (n >= 75 ? (n - 75) * 0.006 : 0) : 0;
     const count = (base) => {
       let raw = Math.max(1, Math.round(base * (1 + (n - 1) * 0.072 + countLate)));
       // v2.4：絕對軟頂——75+ 壓力改由 Boss／精英／間隔承担，避免符紙／暗盤洪峰
-      if (n >= 1250) raw = Math.min(raw, 15 + Math.min(4, Math.floor((n - 1250) / 40)));
+      if (n >= 1350) raw = Math.min(raw, 14 + Math.min(4, Math.floor((n - 1350) / 45)));
+      else if (n >= 1250) raw = Math.min(raw, 15 + Math.min(4, Math.floor((n - 1250) / 40)));
       else if (n >= 1150) raw = Math.min(raw, 16 + Math.min(4, Math.floor((n - 1150) / 35)));
       else if (n >= 1050) raw = Math.min(raw, 18 + Math.min(4, Math.floor((n - 1050) / 30)));
       else if (n >= 950) raw = Math.min(raw, 20 + Math.min(5, Math.floor((n - 950) / 25)));
@@ -5154,43 +5229,58 @@
         ink_specter: 1,
         ledger_mirage: 1,
       };
-      const bossExtra =
-        n >= 1300
-          ? 1.85
-          : n >= 1250
-            ? 1.75
-            : n >= 1200
-              ? 1.65
-              : n >= 1150
-                ? 1.55
-                : n >= 1100
-                  ? 1.45
-                  : n >= 1050
-                    ? 1.25
-                    : n >= 1000
-                      ? 1.1
-                      : 0.75;
-      const trashMul =
-        n >= 1300
-          ? 1.24
-          : n >= 1250
-            ? 1.22
-            : n >= 1200
-              ? 1.2
-              : n >= 1150
-                ? 1.18
-                : n >= 1100
-                  ? 1.16
-                  : n >= 1050
-                    ? 1.12
-                    : n >= 1000
-                      ? 1.1
-                      : 1.08;
+      const rhythm = ultra1300Rhythm(n);
+      let bossExtra =
+        n >= 1400
+          ? 2.0
+          : n >= 1350
+            ? 1.9
+            : n >= 1300
+              ? 1.85
+              : n >= 1250
+                ? 1.75
+                : n >= 1200
+                  ? 1.65
+                  : n >= 1150
+                    ? 1.55
+                    : n >= 1100
+                      ? 1.45
+                      : n >= 1050
+                        ? 1.25
+                        : n >= 1000
+                          ? 1.1
+                          : 0.75;
+      let trashMul =
+        n >= 1400
+          ? 1.26
+          : n >= 1350
+            ? 1.25
+            : n >= 1300
+              ? 1.24
+              : n >= 1250
+                ? 1.22
+                : n >= 1200
+                  ? 1.2
+                  : n >= 1150
+                    ? 1.18
+                    : n >= 1100
+                      ? 1.16
+                      : n >= 1050
+                        ? 1.12
+                        : n >= 1000
+                          ? 1.1
+                          : 1.08;
+      let intervalAdd = n >= 1050 ? 0.55 : 0.45;
+      if (rhythm) {
+        bossExtra = rhythm.bossGap;
+        trashMul *= rhythm.trashMul;
+        intervalAdd = rhythm.intervalAdd;
+      }
       for (let i = 0; i < spawns.length; i++) {
         const s = spawns[i];
         if (bossIds[s.enemy]) {
           s.delay = (s.delay || 0) + bossExtra;
-          if (s.interval && s.interval > 0) s.interval = s.interval + (n >= 1050 ? 0.55 : 0.45);
+          if (s.interval && s.interval > 0) s.interval = s.interval + intervalAdd;
         } else if (s.interval && s.interval > 0.2) {
           s.interval = Math.min(s.interval * trashMul, s.interval + (n >= 1000 ? 0.18 : 0.12));
         }
@@ -5472,7 +5562,8 @@
     if (!Array.isArray(s.charmSlotLocks)) s.charmSlotLocks = [false, false, false];
     if (s.mergeSnapRing == null) s.mergeSnapRing = true;
     if (s.mergeLegalOnly == null) s.mergeLegalOnly = true;
-    s.version = Math.max(47, from, base.version || 47);
+    if (s.mergeFailBuzz == null) s.mergeFailBuzz = true;
+    s.version = Math.max(48, from, base.version || 48);
     return s;
   }
 
@@ -5488,7 +5579,7 @@
 
   function defaultSave() {
     return {
-      version: 47,
+      version: 48,
       totalSilver: 0,
       totalKills: 0,
       maxStageCleared: 0,
@@ -5505,6 +5596,7 @@
       charmSlotLocks: [false, false, false],
       mergeSnapRing: true,
       mergeLegalOnly: true,
+      mergeFailBuzz: true,
       showSkillCd: true,
       reduceShake: false,
       reduceFlash: false,
@@ -5927,6 +6019,69 @@
 
   function exportDualPresetsShort(save) {
     return encodeDualPresetShort(listDualRangePresets(save));
+  }
+
+  /** 鎖欄＋裝備跨裝置短碼 YD48L.id+0/1,... */
+  function encodeCharmLockShort(save) {
+    if (!save) return '';
+    normalizeOwnedCharms(save);
+    const locks = normalizeCharmSlotLocks(save);
+    const ids = getEquippedCharmIds(save);
+    if (!ids.length && !locks.some(Boolean)) return '';
+    const parts = [];
+    for (let i = 0; i < CHARM_EQUIP_SLOTS; i++) {
+      const id = ids[i] || '';
+      if (!id && !locks[i]) continue;
+      parts.push((id || '_') + '+' + (locks[i] ? '1' : '0'));
+    }
+    return parts.length ? 'YD48L.' + parts.join(',') : '';
+  }
+
+  function decodeCharmLockShort(code) {
+    if (!code || typeof code !== 'string') return { ok: false, error: '空短碼' };
+    const raw = code.trim();
+    if (raw.indexOf('YD48L.') !== 0) return { ok: false, error: '短碼前綴須 YD48L.' };
+    const body = raw.slice(6);
+    if (!body) return { ok: false, error: '短碼無內容' };
+    const slots = [];
+    const locks = [false, false, false];
+    body.split(',').forEach(function (part, i) {
+      if (!part || i >= CHARM_EQUIP_SLOTS) return;
+      const plus = part.lastIndexOf('+');
+      const id = plus >= 0 ? part.slice(0, plus) : part;
+      const lk = plus >= 0 ? part.slice(plus + 1) : '0';
+      slots.push(id === '_' ? '' : id);
+      locks[i] = lk === '1';
+    });
+    return { ok: true, ids: slots.filter(Boolean), locks: locks, rawSlots: slots };
+  }
+
+  function importCharmLockShort(save, code) {
+    const decoded = decodeCharmLockShort(code);
+    if (!decoded.ok) return decoded;
+    if (!save) return { ok: false, error: '無存檔' };
+    normalizeOwnedCharms(save);
+    const out = [];
+    (decoded.rawSlots || decoded.ids || []).forEach(function (id) {
+      if (!id) return;
+      if (charmStarOf(save, id) <= 0) return; // skip unowned
+      if (out.indexOf(id) < 0 && out.length < CHARM_EQUIP_SLOTS) out.push(id);
+    });
+    save.equippedCharmIds = out;
+    save.equippedCharmId = out[0] || '';
+    save.charmSlotLocks = (decoded.locks || [false, false, false]).slice(0, CHARM_EQUIP_SLOTS);
+    while (save.charmSlotLocks.length < CHARM_EQUIP_SLOTS) save.charmSlotLocks.push(false);
+    return { ok: true, equipped: out.slice(), locks: save.charmSlotLocks.slice() };
+  }
+
+  function exportCharmLockShort(save) {
+    return encodeCharmLockShort(save);
+  }
+
+  function mergeSnapStarColor(star) {
+    const colors = ['#8a9aaa', '#5a9a7a', '#3a8aba', '#C9A227', '#d4784a', '#e8dcc8'];
+    const s = Math.max(1, Math.min(5, Number(star) || 1));
+    return colors[s - 1] || colors[0];
   }
 
 
@@ -6705,10 +6860,13 @@
     RUN_MODIFIERS_1050,
     RUN_MODIFIERS_1150,
     RUN_MODIFIERS_1250,
+    RUN_MODIFIERS_1350,
     ENDLESS_BOSS_ROT,
     ENDLESS_ULTRA_BOSS_ROT,
     ENDLESS_DUO_BOSS_PACKS,
     ENDLESS_TRIO_BOSS_PACKS,
+    ENDLESS_ULTRA1300_RHYTHM,
+    ultra1300Rhythm,
     DUAL_PENTA_CHARMS,
     pickDualPentaCharm,
     charmAsModifier,
@@ -6795,6 +6953,11 @@
     saveDualRangePreset,
     removeDualRangePreset,
     exportDualPresetsShort,
+    mergeSnapStarColor,
+    exportCharmLockShort,
+    importCharmLockShort,
+    decodeCharmLockShort,
+    encodeCharmLockShort,
     importDualPresetShort,
     decodeDualPresetShort,
     encodeDualPresetShort,

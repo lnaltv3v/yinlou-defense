@@ -191,6 +191,14 @@
       buzz(500, 0.035, 'triangle', 0.03);
       setTimeout(function () { buzz(720, 0.05, 'sine', 0.035); }, 40);
     },
+    merge_fail: function () {
+      buzz(280, 0.04, 'square', 0.028);
+      setTimeout(function () { buzz(220, 0.05, 'triangle', 0.025); }, 35);
+    },
+    lock_short: function () {
+      buzz(480, 0.03, 'sine', 0.028);
+      setTimeout(function () { buzz(640, 0.04, 'triangle', 0.03); }, 40);
+    },
     merge_snap: function () {
       buzz(540, 0.028, 'sine', 0.028);
       setTimeout(function () { buzz(760, 0.035, 'triangle', 0.03); }, 30);
