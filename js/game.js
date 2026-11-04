@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 主循環 v4.7.0
+ * 銀樓防衛 — 主循環 v4.8.0
  * v1.9.0：第7關／鎖倉居士／週連續＋本地最佳牆／手感平衡
  */
 (function () {
@@ -108,6 +108,12 @@
     decodeDualPresetShort,
     importDualPresetShort,
     exportDualPresetsShort,
+    encodeCharmLockShort,
+    decodeCharmLockShort,
+    importCharmLockShort,
+    exportCharmLockShort,
+    mergeSnapStarColor,
+    ultra1300Rhythm,
   } = YD;
   const AudioSfx = window.YDAudio;
   const Battle = YDBattle;
@@ -975,12 +981,15 @@
             m.late950 ||
             m.late1050 ||
             m.late1150 ||
-            m.late1250
+            m.late1250 ||
+            m.late1350
         );
         state._lateModBadge = lateMods.length
           ? lateMods.map((m) => m.name).join(' · ')
           : '';
-        state._lateModTier = lateMods.some((m) => m.late1250)
+        state._lateModTier = lateMods.some((m) => m.late1350)
+          ? 1350
+          : lateMods.some((m) => m.late1250)
           ? 1250
           : lateMods.some((m) => m.late1150)
           ? 1150
@@ -1121,6 +1130,12 @@
           writeSave(save);
           notifyAchievements();
         }
+        if ((save.bestEndlessWave || 0) >= 1350) {
+          if (!save.ach) save.ach = {};
+          save.ach.late1350_run = true;
+          writeSave(save);
+          notifyAchievements();
+        }
         if (save._equipCharmToast) {
           const nm = save._equipCharmToast;
           save._equipCharmToast = '';
@@ -1131,7 +1146,9 @@
         if (state._lateModBadge) {
           setTimeout(() => {
             const tag =
-              state._lateModTier >= 1250
+              state._lateModTier >= 1350
+                ? '【1350+】'
+                : state._lateModTier >= 1250
                 ? '【1250+】'
                 : state._lateModTier >= 1150
                 ? '【1150+】'
@@ -2562,6 +2579,59 @@
       UI.toast('成就｜對照卡 PNG', 1800);
     }
   };
+  window.__yinlouMarkDualShareCard = function () {
+    if (!save.ach) save.ach = {};
+    if (!save.ach.dual_share_card) {
+      save.ach.dual_share_card = true;
+      writeSave(save);
+      notifyAchievements();
+      UI.toast('成就｜分享對照卡', 1800);
+    }
+    if (window.__yinlouMarkDualCardPng) window.__yinlouMarkDualCardPng();
+  };
+  window.__yinlouExportCharmLockShort = function () {
+    const code =
+      typeof exportCharmLockShort === 'function' ? exportCharmLockShort(save) : '';
+    if (!save.ach) save.ach = {};
+    if (!save.ach.charm_lock_short) {
+      save.ach.charm_lock_short = true;
+      writeSave(save);
+      notifyAchievements();
+    }
+    try {
+      const A = window.YDAudio;
+      if (A && A.play) A.play('lock_short');
+    } catch (_) {}
+    return code || '';
+  };
+  window.__yinlouImportCharmLockShort = function (code) {
+    const res =
+      typeof importCharmLockShort === 'function'
+        ? importCharmLockShort(save, code)
+        : { ok: false };
+    if (res && res.ok) {
+      writeSave(save);
+      if (!save.ach) save.ach = {};
+      if (!save.ach.charm_lock_short) {
+        save.ach.charm_lock_short = true;
+        writeSave(save);
+        notifyAchievements();
+      }
+      UI.toast('已匯入鎖欄短碼｜裝 ' + (res.equipped || []).length, 1800);
+      try {
+        const A = window.YDAudio;
+        if (A && A.play) A.play('lock_short');
+      } catch (_) {}
+    } else {
+      UI.toast((res && res.error) || '鎖欄匯入失敗', 2000);
+    }
+    return res;
+  };
+  window.__yinlouToggleMergeFailBuzz = function () {
+    save.mergeFailBuzz = save.mergeFailBuzz === false;
+    writeSave(save);
+    return save.mergeFailBuzz !== false;
+  };
   window.__yinlouToggleMergeSnapRing = function () {
     save.mergeSnapRing = save.mergeSnapRing === false;
     writeSave(save);
@@ -3139,6 +3209,20 @@
     return true;
   }
 
+  function playMergeFailBuzz() {
+    if (save.mergeFailBuzz === false) return;
+    try {
+      const A = window.YDAudio;
+      if (A && A.play) A.play('merge_fail');
+    } catch (_) {}
+    if (!save.ach) save.ach = {};
+    if (!save.ach.merge_fail_buzz) {
+      save.ach.merge_fail_buzz = true;
+      writeSave(save);
+      notifyAchievements();
+    }
+  }
+
   function tryMergeOrSelect(fromHero, cell) {
     if (!cell) return false;
     const occupied = Battle.findHeroAt(state.heroes, cell.lane, cell.slot);
@@ -3156,6 +3240,10 @@
       state.selectedHeroUid = null;
       syncAll();
       return true;
+    }
+    if (occupied && fromHero && !Battle.canMerge(fromHero, occupied)) {
+      playMergeFailBuzz();
+      UI.toast('合失敗｜需同俠同星', 1400);
     }
     return false;
   }
@@ -3363,14 +3451,32 @@
           const cx = GRID.originX + h.slot * (GRID.cellW + GRID.gapX) + GRID.cellW / 2;
           const cy = GRID.originY + h.lane * (GRID.cellH + GRID.gapY) + GRID.cellH / 2;
           const d = Math.hypot(x - cx, y - cy);
-          legalCells.push({ lane: h.lane, slot: h.slot, dist: d, cx: cx, cy: cy });
+          legalCells.push({
+            lane: h.lane,
+            slot: h.slot,
+            dist: d,
+            cx: cx,
+            cy: cy,
+            star: h.star,
+            color:
+              typeof mergeSnapStarColor === 'function'
+                ? mergeSnapStarColor(h.star)
+                : '#3a7a6a',
+          });
           if (d < bestD) {
             bestD = d;
             best = h;
           }
         }
         state.drag.legalMergeCells = save.mergeLegalOnly === false ? [] : legalCells;
-        state.drag.snapRing = save.mergeSnapRing !== false ? { x: x, y: y, r: snapRad } : null;
+        const starCol =
+          typeof mergeSnapStarColor === 'function'
+            ? mergeSnapStarColor(from.star)
+            : '#C9A227';
+        state.drag.snapRing =
+          save.mergeSnapRing !== false
+            ? { x: x, y: y, r: snapRad, color: starCol, star: from.star }
+            : null;
         if (best) {
           cell = { lane: best.lane, slot: best.slot };
           state.drag.snapHint = {
@@ -3378,6 +3484,8 @@
             slot: best.slot,
             dist: bestD,
             ring: snapRad,
+            color: starCol,
+            star: from.star,
           };
           const newly =
             !prevSnap || prevSnap.lane !== best.lane || prevSnap.slot !== best.slot;
