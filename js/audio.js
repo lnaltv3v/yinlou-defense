@@ -199,6 +199,10 @@
       buzz(480, 0.03, 'sine', 0.028);
       setTimeout(function () { buzz(640, 0.04, 'triangle', 0.03); }, 40);
     },
+    share_copy: function () {
+      buzz(560, 0.03, 'sine', 0.028);
+      setTimeout(function () { buzz(780, 0.04, 'triangle', 0.032); }, 35);
+    },
     merge_snap: function () {
       buzz(540, 0.028, 'sine', 0.028);
       setTimeout(function () { buzz(760, 0.035, 'triangle', 0.03); }, 30);
