@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 靜態資料 v0.8.0
+ * 銀樓防衛 — 靜態資料 v0.9.0
  * 角色為原創綽號，影射金融江湖氣氛；唔用真人真名／金庸名／Fortias IP。
  */
 (function (global) {
@@ -495,7 +495,7 @@
     {
       id: 1,
       name: '錢莊初夜',
-      story: '夜雨初歇，錢莊門楣掛起「銀樓」燈籠。散戶潮聞風而至——你要喺開市前擺好第一盤棋。',
+      story: '夜雨初歇，錢莊門楣掛起「銀樓」燈籠。櫃檯後頭算盤未停，門外已有腳步聲——散戶潮聞風而至。掌櫃話：開市前唔擺好第一盤棋，天亮只剩空倉同空城。',
       startSilver: 165,
       coreHp: 185,
       unlockHeroes: Object.keys(HEROES),
@@ -525,7 +525,7 @@
     {
       id: 2,
       name: '午市殺跌',
-      story: '午市鐘響，追保令滿天飛。多空對決開倉，誰守得住盤口，誰就係今日莊家。',
+      story: '午市鐘響，追保令滿天飛，茶館裡頭嘈到拆天。多頭刀客同空頭劍客隔檯對望——多空對決開倉。掌櫃拍門：誰守得住盤口，誰就係今日莊家；守唔住，銀樓燈籠今晚熄。',
       startSilver: 155,
       coreHp: 180,
       unlockHeroes: Object.keys(HEROES),
@@ -565,9 +565,9 @@
     {
       id: 3,
       name: '夜盤黑潮',
-      story: '夜盤無聲，傳聞蚊起舞。黑羽掠過屋脊——黑天鵝唔敲門，只破門。',
-      startSilver: 182,
-      coreHp: 210,
+      story: '夜盤無聲，只聽見傳聞蚊喺巷口起舞。瓦簷上一道黑羽掠過，街燈抖了一下——黑天鵝唔敲門，只破門。你要喺謠言同槓桿之間，留一盞銀樓燈。',
+      startSilver: 190,
+      coreHp: 220,
       unlockHeroes: Object.keys(HEROES),
       waves: [
         wavePack([
@@ -615,9 +615,9 @@
     {
       id: 4,
       name: '清算之夜',
-      story: '清算之夜，槓桿反噬。銀樓鐵壁若齊人，尚有一息；否則只剩空倉同空城。',
-      startSilver: 215,
-      coreHp: 240,
+      story: '清算之夜，帳本翻紅。槓桿反噬如刀，追保令連環砸落。銀樓鐵壁若齊人，尚有一息可守；否則只剩空倉、空城，同天亮後無人認領嘅門牌。',
+      startSilver: 225,
+      coreHp: 250,
       unlockHeroes: Object.keys(HEROES),
       waves: [
         wavePack([
@@ -672,9 +672,9 @@
     {
       id: 5,
       name: '熔斷黎明',
-      story: '熔斷黎明前最後一炷香。恐慌盤如潮，套利行者跨 lane 收割——撐過呢一浪，江湖記得你名。',
-      startSilver: 225,
-      coreHp: 255,
+      story: '熔斷黎明前最後一炷香。恐慌盤如潮湧向櫃檯，門環震得作響。套利行者已跨巷收割，鼓聲遠近——撐過呢一浪，江湖記得你名；撐唔過，只剩熔斷後嘅沉寂。',
+      startSilver: 235,
+      coreHp: 265,
       unlockHeroes: Object.keys(HEROES),
       waves: [
         wavePack([
@@ -732,10 +732,10 @@
     {
       id: 6,
       name: '盤後暗盤',
-      story: '收市鐘已響，暗盤卻未歇。掮客提燈入巷，影在磚縫遊走——呢一晚唔係開市，係清算未完嘅債。',
+      story: '收市鐘已響，暗盤卻未歇。夜盤掮客提燈入巷，影在磚縫遊走，像未簽完嘅契。呢一晚唔係開市，係清算未完嘅債——標記、收割、護盤，一氣呵成，否則債入骨髓。',
       challenge: true,
-      startSilver: 235,
-      coreHp: 270,
+      startSilver: 245,
+      coreHp: 280,
       unlockHeroes: Object.keys(HEROES),
       firstClearBonus: 150,
       waves: [
@@ -795,9 +795,9 @@
   const ENDLESS = {
     id: 'endless',
     name: '無盡殺跌',
-    story: '殺跌無盡，浪高過浪。里程碑銀兩係你唯一嘅喘息——守得愈久，江湖傳聞愈響。',
-    startSilver: 175,
-    coreHp: 195,
+    story: '殺跌無盡，浪高過浪。里程碑銀兩係你唯一嘅喘息；修飾詞會改寫盤口——守得愈久，江湖傳聞愈響，亦愈難轉身離場。',
+    startSilver: 185,
+    coreHp: 205,
     unlockHeroes: Object.keys(HEROES),
   };
 
@@ -836,62 +836,178 @@
     return get('year') + '-' + get('month') + '-' + get('day');
   }
 
-  /** 每日關：用日期 seed 選挑戰組合（輕量） */
-  function dailyStageMeta(dateStr) {
-    const s = dateStr || hkDateString();
+  /** 每日／無盡修飾詞（v0.9） */
+  const RUN_MODIFIERS = [
+    {
+      id: 'cheap_ink',
+      name: '墨價從廉',
+      blurb: '召喚費 −12%',
+      apply: (ctx) => {
+        ctx.summonCostMul = (ctx.summonCostMul || 1) * 0.88;
+      },
+    },
+    {
+      id: 'fat_wallet',
+      name: '銀袋豐盈',
+      blurb: '開局銀兩 +18%',
+      apply: (ctx) => {
+        ctx.silverMul = (ctx.silverMul || 1) * 1.18;
+      },
+    },
+    {
+      id: 'thick_walls',
+      name: '鐵門加厚',
+      blurb: '核心 HP +14%',
+      apply: (ctx) => {
+        ctx.coreMul = (ctx.coreMul || 1) * 1.14;
+      },
+    },
+    {
+      id: 'swift_tide',
+      name: '殺跌加速',
+      blurb: '敵人移速 +10%、賞金 +8%',
+      apply: (ctx) => {
+        ctx.enemySpeedMul = (ctx.enemySpeedMul || 1) * 1.1;
+        ctx.rewardMul = (ctx.rewardMul || 1) * 1.08;
+      },
+    },
+    {
+      id: 'merge_rebate',
+      name: '合併分紅',
+      blurb: '合併回報 ×1.35',
+      apply: (ctx) => {
+        ctx.mergeRebateMul = (ctx.mergeRebateMul || 1) * 1.35;
+      },
+    },
+    {
+      id: 'lean_market',
+      name: '淡市惜銀',
+      blurb: '開局 −10% 銀；波次補銀 +20%',
+      apply: (ctx) => {
+        ctx.silverMul = (ctx.silverMul || 1) * 0.9;
+        ctx.waveBonusMul = (ctx.waveBonusMul || 1) * 1.2;
+      },
+    },
+  ];
+
+  function hashStr(s) {
     let h = 0;
     for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+    return h;
+  }
+
+  function pickModifiers(seed, count) {
+    const pool = RUN_MODIFIERS.slice();
+    const out = [];
+    let h = seed >>> 0;
+    const n = Math.max(1, Math.min(count || 1, pool.length));
+    for (let i = 0; i < n; i++) {
+      h = (h * 1664525 + 1013904223) >>> 0;
+      const idx = h % pool.length;
+      out.push(pool.splice(idx, 1)[0]);
+    }
+    return out;
+  }
+
+  function buildModContext(mods) {
+    const ctx = {
+      summonCostMul: 1,
+      silverMul: 1,
+      coreMul: 1,
+      enemySpeedMul: 1,
+      rewardMul: 1,
+      mergeRebateMul: 1,
+      waveBonusMul: 1,
+      mods: mods || [],
+    };
+    for (const m of ctx.mods) {
+      if (m && m.apply) m.apply(ctx);
+    }
+    return ctx;
+  }
+
+  function modifierLabel(mods) {
+    if (!mods || !mods.length) return '';
+    return mods.map((m) => m.name + '（' + m.blurb + '）').join('｜');
+  }
+
+  /** 每日關：用日期 seed 選挑戰組合＋1 修飾詞 */
+  function dailyStageMeta(dateStr) {
+    const s = dateStr || hkDateString();
+    const h = hashStr(s);
     const themes = [
       { name: '早市抽水', focus: 'margin_call', blurb: '追保令偏多' },
       { name: '午后軋空', focus: 'leverage_fiend', blurb: '槓桿妖偏多' },
       { name: '夜傳風聲', focus: 'rumor_swarm', blurb: '傳聞蚊偏多' },
       { name: '黑羽預警', focus: 'black_swan', blurb: '黑天鵝更早' },
+      { name: '暗盤餘波', focus: 'dark_tape', blurb: '暗盤影偏多' },
+      { name: '恐慌回潮', focus: 'panic_board', blurb: '恐慌盤偏多' },
     ];
     const theme = themes[h % themes.length];
     const base = STAGES[1 + (h % 3)]; // 2–4 關難度帶
+    const mods = pickModifiers(h ^ 0x9e3779b9, 1);
+    const modLine = modifierLabel(mods);
     return {
       id: 'daily',
       date: s,
       name: '每日·' + theme.name,
-      blurb: theme.blurb,
-      story: '今日盤口：' + theme.blurb + '。江湖唔等人——佈陣、合併、強化，守住銀樓。',
+      blurb: theme.blurb + (modLine ? '｜' + mods[0].name : ''),
+      story:
+        '今日盤口：' +
+        theme.blurb +
+        '。修飾：「' +
+        (mods[0] ? mods[0].name + '—' + mods[0].blurb : '平盤') +
+        '」。江湖唔等人——佈陣、合併、強化，守住銀樓。',
       focus: theme.focus,
-      startSilver: 160 + (h % 5) * 8,
-      coreHp: 185 + (h % 4) * 10,
+      startSilver: 168 + (h % 5) * 8,
+      coreHp: 190 + (h % 4) * 10,
       seed: h,
       unlockHeroes: Object.keys(HEROES),
       waveCount: 5 + (h % 3),
       baseStageId: base.id,
+      modifiers: mods,
     };
+  }
+
+  /** 無盡：每次開局抽 1–2 個修飾詞（跟香港日＋開局次數） */
+  function endlessModifiers(extraSeed) {
+    const day = hashStr(hkDateString());
+    const seed = (day ^ ((extraSeed || 0) * 2654435761)) >>> 0;
+    const count = 1 + (seed % 2); // 1 或 2
+    return pickModifiers(seed, count);
   }
 
   function buildDailyWaves(meta) {
     const n = meta.waveCount;
     const focus = meta.focus;
     const waves = [];
+    const bossish = focus === 'black_swan';
+    const swarmish = focus === 'rumor_swarm' || focus === 'dark_tape';
     for (let i = 1; i <= n; i++) {
       const spawns = [
         { enemy: 'retail_tide', count: 6 + i, lane: 'cycle', interval: Math.max(0.32, 0.7 - i * 0.04) },
       ];
       if (i >= 2) {
         spawns.push({
-          enemy: focus === 'rumor_swarm' ? 'rumor_swarm' : 'chase_zombie',
+          enemy: swarmish ? focus : 'chase_zombie',
           count: 3 + Math.floor(i / 2),
           lane: 'random',
-          interval: 0.75,
+          interval: swarmish ? 0.55 : 0.75,
           delay: 0.8,
         });
       }
       if (i >= 2) {
+        const focusCount = bossish ? (i >= n - 1 ? 1 : 0) : 2 + Math.floor(i / 2);
         spawns.push({
           enemy: focus,
-          count: focus === 'black_swan' ? (i >= n - 1 ? 1 : 0) : 2 + Math.floor(i / 2),
-          lane: focus === 'black_swan' ? (i % 4) : 'cycle',
-          interval: focus === 'black_swan' ? 0 : 1.0,
-          delay: focus === 'black_swan' ? 3.5 : 1.2,
+          count: focusCount,
+          lane: bossish ? (i % 4) : 'cycle',
+          interval: bossish ? 0 : focus === 'panic_board' ? 1.15 : focus === 'dark_tape' ? 0.55 : 1.0,
+          delay: bossish ? 3.5 : 1.2,
+          hpMul: focus === 'panic_board' ? 1.05 : 1,
         });
       }
-      if (i === n || (focus === 'black_swan' && i >= n - 1)) {
+      if (i === n || (bossish && i >= n - 1)) {
         spawns.push({
           enemy: 'black_swan',
           count: 1,
@@ -901,7 +1017,6 @@
           hpMul: 1 + i * 0.04,
         });
       }
-      // filter zero counts
       waves.push({ spawns: spawns.filter((s) => s.count > 0) });
     }
     return waves;
@@ -968,6 +1083,23 @@
     '夜盤掮客標記目標後，隊友打標記怪傷害更高；配空頭劍客觸發「暗盤通宵」。',
     '第 6 關「盤後暗盤」暗盤影又快又陰；前排坦克＋標記收割更穩。',
   ];
+
+
+  /** 新手卡關提示（整備過久／銀兩積壓） */
+  const STUCK_TIPS = [
+    '銀兩夠就召人上陣；空格唔好留太多。',
+    '有兩隻同種同星就合併——升星通常比多召 1 星更強。',
+    '點場上俠客 → 下方刀利／甲厚／內息，銀兩唔使慳到一毛唔用。',
+    '前排放莊家鐵衛，後排放劍客／刺客；敵人由右入。',
+    '齊人先開波：睇 HUD 羈絆列，有「銀樓鐵壁／多空對決」更穩。',
+    '第 1 關可撳推薦陣容芯片跟住召；唔識就跟「新手鐵壁」。',
+    '波次間先合併再強化；唔好銀兩堆住等死。',
+  ];
+
+  function pickStuckTip(seed) {
+    const i = Math.abs((seed || Date.now()) | 0) % STUCK_TIPS.length;
+    return STUCK_TIPS[i];
+  }
 
   const ACHIEVEMENT_CATS = [
     { id: 'stage', name: '關卡' },
@@ -1243,7 +1375,7 @@
 
   function defaultSave() {
     return {
-      version: 8,
+      version: 9,
       totalSilver: 0,
       totalKills: 0,
       maxStageCleared: 0,
@@ -1269,7 +1401,7 @@
 
   function exportSaveJson(save) {
     const payload = {
-      meta: { game: 'yinlou-defense', exportedAt: new Date().toISOString(), version: save.version || 8 },
+      meta: { game: 'yinlou-defense', exportedAt: new Date().toISOString(), version: save.version || 9 },
       save: { ...defaultSave(), ...save },
     };
     return JSON.stringify(payload, null, 2);
@@ -1280,7 +1412,7 @@
     const body = data && data.save ? data.save : data;
     if (!body || typeof body !== 'object') throw new Error('無效存檔');
     const merged = { ...defaultSave(), ...body };
-    merged.version = Math.max(8, merged.version || 8);
+    merged.version = Math.max(9, merged.version || 9);
     if (!merged.firstClears) merged.firstClears = {};
     if (!merged.seenHeroes) merged.seenHeroes = {};
     if (!merged.seenEnemies) merged.seenEnemies = {};
@@ -1344,6 +1476,8 @@
     saveStats,
     LINEUPS,
     FAIL_TIPS,
+    STUCK_TIPS,
+    RUN_MODIFIERS,
     MAX_STAR,
     UPGRADE_PATHS,
     upgradeCost,
@@ -1352,6 +1486,10 @@
     buildEndlessWave,
     buildDailyWaves,
     dailyStageMeta,
+    endlessModifiers,
+    pickModifiers,
+    buildModContext,
+    modifierLabel,
     hkDateString,
     waveClearBonus,
     endlessMilestone,
@@ -1371,6 +1509,7 @@
     exportSaveJson,
     importSaveJson,
     pickFailTip,
+    pickStuckTip,
     firstRunBonus,
     markSeenHero,
     markSeenEnemy,

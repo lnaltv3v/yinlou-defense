@@ -1,6 +1,6 @@
 /**
- * 銀樓防衛 — 主循環 v0.8.0
- * 第 6 關盤後暗盤／首通獎勵／成就分類統計／夜盤掮客
+ * 銀樓防衛 — 主循環 v0.9.0
+ * 修飾詞／卡關提示／手感加厚／宣紙介面
  */
 (function () {
   const {
@@ -34,6 +34,10 @@
     refreshAchievements,
     stageFirstClearBonus,
     saveStats,
+    endlessModifiers,
+    buildModContext,
+    modifierLabel,
+    pickStuckTip,
   } = YD;
   const AudioSfx = window.YDAudio;
   const Battle = YDBattle;
@@ -55,8 +59,8 @@
   if (save.firstBootDone == null) save.firstBootDone = false;
   if (save.sfxEnabled == null) save.sfxEnabled = true;
   if (!save.firstClears) save.firstClears = {};
-  if (save.version < 8) {
-    save.version = 8;
+  if (save.version < 9) {
+    save.version = 9;
     writeSave(save);
   }
   if (AudioSfx) AudioSfx.setEnabled(save.sfxEnabled !== false);
@@ -76,8 +80,10 @@
 
   function freshState(stageIndex, endless, daily) {
     let stage;
+    let mods = [];
     if (daily) {
       const meta = dailyStageMeta();
+      mods = meta.modifiers || [];
       stage = {
         id: 'daily',
         name: meta.name,
@@ -89,10 +95,14 @@
         dailyMeta: meta,
       };
     } else if (endless) {
+      mods = endlessModifiers((save.bestEndlessWave || 0) + (save.totalKills || 0));
+      const modStory =
+        ENDLESS.story +
+        (mods.length ? '\n今日修飾：' + modifierLabel(mods) + '。' : '');
       stage = {
         id: ENDLESS.id,
         name: ENDLESS.name,
-        story: ENDLESS.story,
+        story: modStory,
         startSilver: ENDLESS.startSilver,
         coreHp: ENDLESS.coreHp,
         unlockHeroes: ENDLESS.unlockHeroes,
@@ -102,15 +112,18 @@
       stage = STAGES[Math.min(Math.max(0, stageIndex), STAGES.length - 1)];
       stageIndex = STAGES.indexOf(stage);
     }
+    const modCtx = buildModContext(mods);
+    const silver = Math.round(stage.startSilver * (modCtx.silverMul || 1));
+    const coreHp = Math.round(stage.coreHp * (modCtx.coreMul || 1));
     return {
       stage,
       stageIndex: endless || daily ? -1 : stageIndex,
       endless: !!endless && !daily,
       daily: !!daily,
       phase: 'prep',
-      silver: stage.startSilver,
-      coreHp: stage.coreHp,
-      coreMax: stage.coreHp,
+      silver,
+      coreHp,
+      coreMax: coreHp,
       heroes: [],
       enemies: [],
       floats: [],
@@ -140,7 +153,29 @@
       eventBanner: null,
       _milestonesClaimed: {},
       _touchPad: 0,
+      modifiers: mods,
+      modCtx,
+      prepIdle: 0,
+      _stuckTipAt: 0,
+      _lastActionAt: 0,
     };
+  }
+
+  function currentSummonCost(heroId) {
+    const base = summonCost(heroId, state.summonCounts);
+    const mul = (state.modCtx && state.modCtx.summonCostMul) || 1;
+    return Math.max(1, Math.round(base * mul));
+  }
+
+  function currentMergeRebate(heroId, newStar) {
+    const base = mergeRebate(heroId, newStar);
+    const mul = (state.modCtx && state.modCtx.mergeRebateMul) || 1;
+    return Math.max(0, Math.round(base * mul));
+  }
+
+  function noteAction() {
+    state._lastActionAt = performance.now();
+    state.prepIdle = 0;
   }
 
   let state = freshState(Math.min(save.maxStageCleared, STAGES.length - 1), false, false);
@@ -200,7 +235,7 @@
       return;
     }
     if (state.selectedShopId) {
-      const cost = summonCost(state.selectedShopId, state.summonCounts);
+      const cost = currentSummonCost(state.selectedShopId);
       const def = HEROES[state.selectedShopId];
       UI.setHint(
         '已選「' + def.name + '」（' + cost + ' 兩）' + (def.skill ? '｜' + def.skill.name : '')
@@ -243,12 +278,13 @@
     () => state.silver,
     {
       getSummonCounts: () => state.summonCounts,
+      getCost: (id) => currentSummonCost(id),
       onShopDragStart(id, ev) {
         if (state.phase === 'won' || state.phase === 'lost') {
           ev.preventDefault();
           return;
         }
-        const cost = summonCost(id, state.summonCounts);
+        const cost = currentSummonCost(id);
         if (state.silver < cost) {
           ev.preventDefault();
           UI.toast('銀兩不足（而家要 ' + cost + '）');
@@ -266,7 +302,7 @@
         if (state.phase === 'won' || state.phase === 'lost' || state.paused) return;
         // 滑鼠交俾 HTML5 DnD；觸控／筆用全域 pointer 拖
         if (ev.pointerType === 'mouse') return;
-        const cost = summonCost(id, state.summonCounts);
+        const cost = currentSummonCost(id);
         if (state.silver < cost) {
           UI.toast('銀兩不足（而家要 ' + cost + '）');
           return;
@@ -348,23 +384,30 @@
       return;
     }
     state.silver -= res.cost;
-    Battle.pushFloat(state.floats, {
-      x: hero.x,
-      y: hero.y - 42,
-      text: path.name + ' +' + res.level,
-      color: '#C9A227',
-      size: 14,
-      vy: -26,
-      life: 0.9,
-    });
-    state.fx.push({ type: 'hit', x: hero.x, y: hero.y, color: '#C9A227', life: 0.35, r: 22 });
+    if (Battle.spawnUpgradeFx) Battle.spawnUpgradeFx(state, hero, path.name, res.level);
+    else {
+      Battle.pushFloat(state.floats, {
+        x: hero.x,
+        y: hero.y - 42,
+        text: path.name + ' +' + res.level,
+        color: '#C9A227',
+        size: 15,
+        vy: -28,
+        life: 1.0,
+      });
+      state.fx.push({ type: 'hit', x: hero.x, y: hero.y, color: '#C9A227', life: 0.4, r: 24 });
+    }
     if (!save.ach.upgrade) {
       save.ach.upgrade = true;
       writeSave(save);
       notifyAchievements();
     }
     if (AudioSfx) AudioSfx.play('upgrade');
-    UI.toast(HEROES[hero.id].name + '・' + path.name + ' → ' + res.level + '（−' + res.cost + '兩）');
+    noteAction();
+    UI.toast(
+      '強化｜' + HEROES[hero.id].name + '・' + path.name + ' → Lv' + res.level + '（−' + res.cost + '兩）',
+      1800
+    );
     syncAll();
   }
 
@@ -411,7 +454,10 @@
         UI.toast('先通關第 1 關解鎖無盡');
         return;
       }
-      if (enterStage(0, true, false)) UI.toast('無盡殺跌 — 愈打愈密');
+      if (enterStage(0, true, false)) {
+        const lab = modifierLabel(state.modifiers || []);
+        UI.toast('無盡殺跌' + (lab ? '｜' + lab : ' — 愈打愈密'), 2200);
+      }
     },
     () => {
       if (save.maxStageCleared < 1) {
@@ -420,7 +466,7 @@
       }
       if (enterStage(0, false, true)) {
         const meta = state.stage.dailyMeta;
-        UI.toast('每日：' + meta.name + '（' + meta.blurb + '）');
+        UI.toast('每日：' + meta.name + '（' + meta.blurb + '）', 2200);
       }
     }
   );
@@ -473,6 +519,7 @@
       job.started = false;
     }
     state.phase = 'wave';
+    noteAction();
     advanceTutorial(3);
     if (AudioSfx) AudioSfx.play('wave');
     UI.toast((state.endless ? '無盡第 ' : state.daily ? '每日第 ' : '第 ') + state.waveIndex + ' 波來襲！');
@@ -646,7 +693,10 @@
     }
 
     state.phase = 'prep';
-    const bonus = waveClearBonus(state.waveIndex, state.endless);
+    let bonus = waveClearBonus(state.waveIndex, state.endless);
+    if (state.modCtx && state.modCtx.waveBonusMul) {
+      bonus = Math.round(bonus * state.modCtx.waveBonusMul);
+    }
     state.silver += bonus;
     UI.toast('波次結束，整備中（補銀 +' + bonus + '）');
     const btn = document.getElementById('btn-wave');
@@ -891,7 +941,7 @@
       UI.toast('此格已有人');
       return false;
     }
-    const cost = summonCost(shopId, state.summonCounts);
+    const cost = currentSummonCost(shopId);
     const def = HEROES[shopId];
     if (state.silver < cost) {
       UI.toast('銀兩不足（要 ' + cost + '）');
@@ -904,28 +954,30 @@
     writeSave(save);
     notifyAchievements();
     if (AudioSfx) AudioSfx.play('summon');
-    UI.toast('上陣：' + def.name + '（−' + cost + '）');
+    noteAction();
+    UI.toast('上陣：' + def.name + '（−' + cost + '兩）', 1400);
     advanceTutorial(1);
-    const nextCost = summonCost(shopId, state.summonCounts);
+    const nextCost = currentSummonCost(shopId);
     if (state.silver < nextCost) state.selectedShopId = null;
     syncAll();
     return true;
   }
 
   function doMerge(fromHero, occupied) {
+    const prevStar = occupied.star;
     const now = Battle.mergeHeroes(state.heroes, fromHero, occupied);
     if (!now) return false;
-    const rebate = mergeRebate(now.id, now.star);
+    const rebate = currentMergeRebate(now.id, now.star);
     if (rebate > 0) {
       state.silver += rebate;
       Battle.pushFloat(state.floats, {
-        x: now.x,
-        y: now.y - 36,
-        text: '合併 +' + rebate,
+        x: now.x + 18,
+        y: now.y - 28,
+        text: '+' + rebate + '兩',
         color: '#D4AF37',
         size: 14,
-        vy: -28,
-        life: 0.9,
+        vy: -24,
+        life: 0.95,
       });
     }
     Battle.spawnMergeFx(state, now);
@@ -940,7 +992,12 @@
       writeSave(save);
       notifyAchievements();
     }
-    UI.toast(HEROES[now.id].name + ' → ' + now.star + ' 星' + (rebate ? '（+' + rebate + '兩）' : ''));
+    noteAction();
+    const starTxt = '★' + prevStar + '→★' + now.star;
+    UI.toast(
+      '合併成功｜' + HEROES[now.id].name + ' ' + starTxt + (rebate ? '｜回報 +' + rebate + '兩' : ''),
+      2000
+    );
     advanceTutorial(2);
     state.mergeFromUid = null;
     state.selectedHeroUid = null;
@@ -1256,6 +1313,15 @@
         hpMul: job.hpMul || 1,
         elite: !!job.elite,
       });
+      if (state.modCtx) {
+        if (state.modCtx.enemySpeedMul && state.modCtx.enemySpeedMul !== 1) {
+          enemy.baseSpeed *= state.modCtx.enemySpeedMul;
+          enemy.speed = enemy.baseSpeed;
+        }
+        if (state.modCtx.rewardMul && state.modCtx.rewardMul !== 1) {
+          enemy.reward = Math.max(1, Math.round(enemy.reward * state.modCtx.rewardMul));
+        }
+      }
       state.enemies.push(enemy);
       if (!save.seenEnemies || !save.seenEnemies[job.enemy]) {
         markSeenEnemy(save, job.enemy);
@@ -1311,6 +1377,27 @@
       }
     } else if (!state.paused) {
       Battle.tickFloats(state, dt);
+      if (state.phase === 'prep') {
+        state.prepIdle = (state.prepIdle || 0) + rawDt;
+        const novice = (save.maxStageCleared || 0) < 2 && state.tutorialStep < 99;
+        const rich = state.silver >= 40 && state.heroes.length < 6;
+        const canMerge = state.heroes.some((a) =>
+          state.heroes.some((b) => a.uid !== b.uid && Battle.canMerge(a, b))
+        );
+        const stuck =
+          state.prepIdle >= (novice ? 9 : 14) &&
+          (rich || canMerge || state.heroes.length === 0) &&
+          state.prepIdle - (state._stuckTipAt || 0) >= (novice ? 9 : 14);
+        if (stuck) {
+          state._stuckTipAt = state.prepIdle;
+          let tip = pickStuckTip((state.waveIndex * 17 + state.heroes.length) | 0);
+          if (canMerge) tip = '場上有可合併組合——拖同種同星疊埋升星更強。';
+          else if (state.heroes.length === 0) tip = '先喺商店選俠客放到空格，再開波。';
+          else if (rich && state.waveIndex === 0) tip = '銀兩夠用就佈陣／合併，然後撳「開波」。';
+          UI.toast('提示｜' + tip, 2600);
+          UI.setHint('卡關提示：' + tip);
+        }
+      }
     } else {
       Battle.tickFloats(state, rawDt * 0.3);
     }
@@ -1335,9 +1422,9 @@
   }
   UI.showOverlay(
     '銀樓防衛',
-    '合併塔防 v0.8.0\n' +
+    '合併塔防 v0.9.0\n' +
       '拖放放置 → 合併升星（最高 4）→ 點俠客強化 → 開波守銀樓。\n' +
-      '新：刀利／甲厚／內息強化、Boss／精英技能、關卡劇情、簡易音效。\n' +
+      '新：每日／無盡修飾詞、卡關提示、手感加厚、宣紙介面。\n' +
       (bonus > 0 ? '新手加銀 +' + bonus + ' 兩（僅首局）\n' : '') +
       '今日：' +
       dailyMeta.name +

@@ -1,4 +1,4 @@
-/* 銀樓防衛 v0.7 — 墨點金融江湖 UI */
+/* 銀樓防衛 v0.9 — 墨點金融江湖 UI */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body {
   width: 100%; height: 100%;
@@ -360,3 +360,103 @@ header.title {
 .stage-btn.challenge { border-color: #5A4060; color: #C9A227; }
 .stage-btn.challenge.selected { background: #3A3048; }
 #overlay.codex-mode p { max-height: 360px; }
+
+
+/* v0.9 宣紙面板（設定／圖鑑／成就） */
+#overlay.paper-panel {
+  background: rgba(26, 21, 16, 0.78);
+  padding: 18px 16px 20px;
+}
+#overlay.paper-panel h2 {
+  color: #C9A227;
+  font-size: 24px;
+  letter-spacing: 0.14em;
+  text-shadow: 0 1px 0 #1A1510;
+}
+#overlay.paper-panel #overlay-msg {
+  background: #E8DCC8;
+  color: #1A1510;
+  border: 3px solid #5A4030;
+  box-shadow: inset 0 0 0 1px #C9A227, 0 6px 18px rgba(0,0,0,.35);
+  padding: 12px 14px;
+  max-width: 520px;
+  max-height: 340px;
+  overflow-y: auto;
+  text-align: left;
+  white-space: normal;
+  font-size: 13px;
+  line-height: 1.45;
+}
+#overlay.paper-panel .paper-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+#overlay.paper-panel .paper-summary.tight {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 12px;
+  margin-bottom: 8px;
+}
+#overlay.paper-panel .paper-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  border-bottom: 1px solid #C9B89A;
+  padding-bottom: 4px;
+}
+#overlay.paper-panel .paper-row span {
+  color: #5A4030;
+  font-size: 12px;
+}
+#overlay.paper-panel .paper-row strong {
+  color: #1A1510;
+  font-size: 13px;
+}
+#overlay.paper-panel .paper-note {
+  margin-top: 8px;
+  color: #5A4030;
+  font-size: 12px;
+}
+#overlay.paper-panel .paper-sec {
+  margin: 10px 0 4px;
+  color: #C45C4A;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  border-left: 3px solid #C45C4A;
+  padding-left: 6px;
+}
+#overlay.paper-panel .paper-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 4px 0;
+  border-bottom: 1px dashed #C9B89A;
+}
+#overlay.paper-panel .paper-entry strong { font-size: 13px; }
+#overlay.paper-panel .paper-entry span {
+  font-size: 11px;
+  color: #5A4030;
+}
+#overlay.paper-panel .paper-entry.dim { opacity: 0.55; }
+#overlay.paper-panel .paper-entry.done strong { color: #3A7A6A; }
+#overlay.paper-panel .overlay-extra {
+  max-width: 520px;
+  justify-content: flex-start;
+}
+#overlay.paper-panel .paper-section-label {
+  width: 100%;
+  color: #C9A227;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  margin: 4px 0 0;
+}
+#overlay.paper-panel .paper-btn {
+  min-width: 96px;
+}
+#toast {
+  border-width: 2px;
+  max-width: 90%;
+  text-align: center;
+}

@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — Canvas 繪製 v0.8.0
+ * 銀樓防衛 — Canvas 繪製 v0.9.0
  * 強化標記、背景快取（效能）、精英／Boss 技閃
  */
 (function (global) {
@@ -575,43 +575,78 @@
         ctx.globalAlpha = 1;
       } else if (fx.type === 'skill') {
         const t = Math.max(0, fx.life);
-        ctx.globalAlpha = Math.min(0.9, t * 2);
+        const maxL = 0.55;
+        ctx.globalAlpha = Math.min(0.95, t * 2.2);
         ctx.strokeStyle = fx.color || '#C9A227';
         ctx.lineWidth = 3;
-        const rr = 16 + (1 - t / 0.45) * 20;
+        const rr = (fx.r || 18) + (1 - t / maxL) * 22;
         ctx.beginPath();
         ctx.arc(fx.x, fx.y, rr, 0, Math.PI * 2);
         ctx.stroke();
+        ctx.fillStyle = 'rgba(26,21,16,0.35)';
+        ctx.beginPath();
+        ctx.arc(fx.x, fx.y, rr * 0.55, 0, Math.PI * 2);
+        ctx.fill();
         if (fx.text) {
-          ctx.font = 'bold 12px sans-serif';
+          ctx.font = 'bold 14px sans-serif';
           ctx.textAlign = 'center';
           ctx.strokeStyle = '#1A1510';
-          ctx.lineWidth = 3;
-          ctx.strokeText(fx.text, fx.x, fx.y - rr - 4);
+          ctx.lineWidth = 4;
+          ctx.strokeText(fx.text, fx.x, fx.y - rr - 6);
           ctx.fillStyle = fx.color || '#C9A227';
-          ctx.fillText(fx.text, fx.x, fx.y - rr - 4);
+          ctx.fillText(fx.text, fx.x, fx.y - rr - 6);
         }
         ctx.globalAlpha = 1;
       } else if (fx.type === 'merge') {
         const t = Math.max(0, fx.life);
-        const p = 1 - t / 0.55;
-        ctx.globalAlpha = Math.min(1, t * 2);
+        const maxL = 0.7;
+        const p = 1 - t / maxL;
+        ctx.globalAlpha = Math.min(1, t * 2.2);
         ctx.strokeStyle = '#C9A227';
         ctx.lineWidth = 3;
-        const rr = 12 + p * 36;
+        const rr = 14 + p * 40;
         ctx.beginPath();
         ctx.arc(fx.x, fx.y, rr, 0, Math.PI * 2);
         ctx.stroke();
-        for (let i = 0; i < 6; i++) {
-          const ang = (i / 6) * Math.PI * 2 + p * 2;
-          const dx = Math.cos(ang) * rr * 0.8;
-          const dy = Math.sin(ang) * rr * 0.8;
+        ctx.strokeStyle = '#E8DCC8';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(fx.x, fx.y, rr * 0.72, 0, Math.PI * 2);
+        ctx.stroke();
+        for (let i = 0; i < 8; i++) {
+          const ang = (i / 8) * Math.PI * 2 + p * 2.4;
+          const dx = Math.cos(ang) * rr * 0.85;
+          const dy = Math.sin(ang) * rr * 0.85;
           drawPixelRect(ctx, fx.x + dx - 2, fx.y + dy - 2, 4, 4, i % 2 ? '#C9A227' : '#E8DCC8');
         }
-        ctx.fillStyle = '#C9A227';
-        ctx.font = 'bold 16px sans-serif';
+        const label =
+          fx.fromStar != null
+            ? '★' + fx.fromStar + '→★' + (fx.star || '')
+            : '★' + (fx.star || '');
+        ctx.font = 'bold 15px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('★' + (fx.star || ''), fx.x, fx.y - rr - 4);
+        ctx.strokeStyle = '#1A1510';
+        ctx.lineWidth = 4;
+        ctx.strokeText(label, fx.x, fx.y - rr - 6);
+        ctx.fillStyle = '#C9A227';
+        ctx.fillText(label, fx.x, fx.y - rr - 6);
+        ctx.globalAlpha = 1;
+      } else if (fx.type === 'upgrade') {
+        const t = Math.max(0, fx.life);
+        ctx.globalAlpha = Math.min(0.95, t * 2);
+        ctx.strokeStyle = fx.color || '#D4AF37';
+        ctx.lineWidth = 3;
+        const rr = 10 + (1 - t / 0.65) * 26;
+        ctx.strokeRect(fx.x - rr, fx.y - rr * 0.7, rr * 2, rr * 1.4);
+        if (fx.text) {
+          ctx.font = 'bold 13px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.strokeStyle = '#1A1510';
+          ctx.lineWidth = 3;
+          ctx.strokeText(fx.text, fx.x, fx.y - rr - 4);
+          ctx.fillStyle = fx.color || '#D4AF37';
+          ctx.fillText(fx.text, fx.x, fx.y - rr - 4);
+        }
         ctx.globalAlpha = 1;
       } else if (fx.type === 'maxstar') {
         const t = Math.max(0, fx.life);
@@ -665,6 +700,22 @@
       ctx.fillText(f.text, f.x, f.y - by);
       ctx.globalAlpha = 1;
     }
+  }
+
+  function drawModStrip(ctx, state) {
+    const mods = state.modifiers;
+    if (!mods || !mods.length) return;
+    const label = mods.map((m) => m.name).join(' · ');
+    ctx.globalAlpha = 0.92;
+    drawPixelRect(ctx, 220, 8, 520, 22, '#1A1510');
+    ctx.strokeStyle = '#5A4030';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(220, 8, 520, 22);
+    ctx.font = 'bold 11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#C9A227';
+    ctx.fillText('修飾｜' + label, 480, 23);
+    ctx.globalAlpha = 1;
   }
 
   function drawBossBanner(ctx, state) {
@@ -795,6 +846,7 @@
     for (const e of state.enemies) drawEnemy(ctx, e, state);
     drawDragGhost(ctx, state);
     drawFx(ctx, state);
+    drawModStrip(ctx, state);
     drawBossBanner(ctx, state);
     drawBondBanner(ctx, state);
     drawBanner(ctx, state);

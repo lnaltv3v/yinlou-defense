@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 戰鬥／生成／合併邏輯 v0.8.0
+ * 銀樓防衛 — 戰鬥／生成／合併邏輯 v0.9.0
  */
 (function (global) {
   const { HEROES, ENEMIES, GRID, CORE, heroStats, activeBonds, bondModsFor, MAX_STAR, UPGRADE_PATHS, upgradeCost } = global.YD;
@@ -362,20 +362,22 @@
           kind = 'crit';
           pushFloat(floats, {
             x: hero.x,
-            y: hero.y - 40,
-            text: sk.name + '！',
+            y: hero.y - 44,
+            text: '「' + sk.name + '」',
             color: hero.def.color,
-            size: 13,
-            vy: -26,
-            life: 0.75,
+            size: 15,
+            vy: -32,
+            life: 0.95,
+            bounce: 1.2,
           });
           state.fx.push({
             type: 'skill',
             x: hero.x,
             y: hero.y,
             color: hero.def.color,
-            life: 0.4,
+            life: 0.55,
             text: sk.name,
+            r: 22,
           });
         }
       }
@@ -973,15 +975,50 @@
 
   /** 合併成功特效包 */
   function spawnMergeFx(state, hero) {
-    state.fx.push({ type: 'merge', x: hero.x, y: hero.y, star: hero.star, life: 0.55 });
-    state.fx.push({ type: 'hit', x: hero.x, y: hero.y, color: '#C9A227', life: 0.4, r: 28 });
+    const prev = Math.max(1, (hero.star || 1) - 1);
+    state.fx.push({ type: 'merge', x: hero.x, y: hero.y, star: hero.star, fromStar: prev, life: 0.7 });
+    state.fx.push({ type: 'hit', x: hero.x, y: hero.y, color: '#C9A227', life: 0.48, r: 32 });
+    pushFloat(state.floats, {
+      x: hero.x,
+      y: hero.y - 52,
+      text: '升星 ★' + prev + '→★' + hero.star,
+      color: '#C9A227',
+      size: 16,
+      vy: -34,
+      life: 1.05,
+      bounce: 1.15,
+    });
     if (hero.star >= MAX_STAR) {
-      state.fx.push({ type: 'maxstar', x: hero.x, y: hero.y, life: 1.05 });
-      state.fx.push({ type: 'hit', x: hero.x, y: hero.y - 10, color: '#E8DCC8', life: 0.5, r: 36 });
+      state.fx.push({ type: 'maxstar', x: hero.x, y: hero.y, life: 1.15 });
+      state.fx.push({ type: 'hit', x: hero.x, y: hero.y - 10, color: '#E8DCC8', life: 0.55, r: 40 });
     } else if (hero.star >= 3) {
-      state.fx.push({ type: 'merge', x: hero.x, y: hero.y - 8, star: hero.star, life: 0.45 });
+      state.fx.push({ type: 'merge', x: hero.x, y: hero.y - 8, star: hero.star, life: 0.5 });
     }
-    if (!state.shake || state.shake < 0.14) state.shake = 0.14;
+    if (!state.shake || state.shake < 0.16) state.shake = 0.16;
+  }
+
+  /** 強化成功特效 */
+  function spawnUpgradeFx(state, hero, pathName, level) {
+    state.fx.push({
+      type: 'upgrade',
+      x: hero.x,
+      y: hero.y,
+      text: pathName + ' +' + level,
+      life: 0.65,
+      color: '#C9A227',
+    });
+    state.fx.push({ type: 'hit', x: hero.x, y: hero.y, color: '#D4AF37', life: 0.4, r: 24 });
+    pushFloat(state.floats, {
+      x: hero.x,
+      y: hero.y - 48,
+      text: pathName + ' → ' + level,
+      color: '#D4AF37',
+      size: 15,
+      vy: -30,
+      life: 1.0,
+      bounce: 1.1,
+    });
+    if (!state.shake || state.shake < 0.1) state.shake = 0.1;
   }
 
   global.YDBattle = {
@@ -1002,6 +1039,7 @@
     hitTestCell,
     hitTestHero,
     spawnMergeFx,
+    spawnUpgradeFx,
     pushFloat,
     pushFx,
     announceBoss,

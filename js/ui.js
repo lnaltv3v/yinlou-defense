@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v0.8.0
+ * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v0.9.0
  */
 (function (global) {
   const {
@@ -151,7 +151,8 @@
           handlers && handlers.getSummonCounts ? handlers.getSummonCounts() : {};
         shop.querySelectorAll('.hero-btn').forEach((btn) => {
           const id = btn.dataset.id;
-          const cost = summonCost(id, counts);
+          const cost =
+            handlers && handlers.getCost ? handlers.getCost(id) : summonCost(id, counts);
           const num = btn.querySelector('.cost-num');
           if (num) {
             num.textContent = String(cost);
@@ -305,7 +306,11 @@
             b.disabled = save.maxStageCleared < 1;
             const done = save.dailyDate === today && save.dailyCleared;
             b.textContent = done ? '每日✓' : '每日';
-            b.title = done ? '今日已清（可重打無額外獎）' : '今日挑戰';
+            const meta = dailyStageMeta(today);
+            b.title =
+              (done ? '今日已清（可重打無額外獎）｜' : '') +
+              meta.name +
+              (meta.blurb ? '｜' + meta.blurb : '');
             return;
           }
           const id = Number(b.dataset.stage);
@@ -327,10 +332,14 @@
     } else {
       $('stat-wave').textContent = state.waveIndex + '/' + state.stage.waves.length;
     }
+    const modShort =
+      state.modifiers && state.modifiers.length
+        ? '·' + state.modifiers.map((m) => m.name.slice(0, 2)).join('')
+        : '';
     $('stat-stage').textContent = state.endless
-      ? '無盡'
+      ? '無盡' + modShort
       : state.daily
-        ? '每日'
+        ? '每日' + modShort
         : String(state.stage.id);
     const kills = $('stat-kills');
     if (kills) kills.textContent = String(state.kills || 0);
@@ -351,8 +360,11 @@
     const ov = $('overlay');
     ov.classList.remove('settings-mode');
     ov.classList.remove('codex-mode');
+    ov.classList.remove('paper-panel');
     $('overlay-title').textContent = title;
-    $('overlay-msg').textContent = msg;
+    const msgEl = $('overlay-msg');
+    msgEl.textContent = msg;
+    msgEl.classList.remove('paper-body');
     const btn = $('btn-overlay');
     btn.textContent = btnLabel || '確定';
     btn.onclick = onClick;
@@ -379,6 +391,7 @@
     ov.classList.remove('show');
     ov.classList.remove('settings-mode');
     ov.classList.remove('codex-mode');
+    ov.classList.remove('paper-panel');
   }
 
   function showSettings(opts) {
@@ -399,28 +412,34 @@
     } = opts;
     const save = getSave();
     const ov = $('overlay');
-    ov.classList.add('settings-mode');
+    ov.classList.add('settings-mode', 'paper-panel');
     ov.classList.remove('codex-mode');
     $('overlay-title').textContent = '設定';
     const achN = Object.keys(save.unlockedAch || {}).length;
-    $('overlay-msg').textContent =
-      '欄位高亮：' +
+    const msg = $('overlay-msg');
+    msg.innerHTML =
+      '<div class="paper-summary">' +
+      '<div class="paper-row"><span>顯示</span><strong>高亮 ' +
       (save.showCellHints !== false ? '開' : '關') +
-      '｜技能條：' +
+      ' · 技能條 ' +
       (save.showSkillCd !== false ? '開' : '關') +
-      '｜震屏：' +
+      '</strong></div>' +
+      '<div class="paper-row"><span>手感</span><strong>震屏 ' +
       (save.reduceShake ? '減弱' : '正常') +
-      '｜音效：' +
+      ' · 音效 ' +
       (save.sfxEnabled !== false ? '開' : '關') +
-      '\n教學：' +
-      (save.skipTutorial ? '已略過' : '會顯示') +
-      '｜羈絆 ' +
+      '</strong></div>' +
+      '<div class="paper-row"><span>進度</span><strong>羈絆 ' +
       BONDS.length +
-      '｜成就 ' +
+      ' · 成就 ' +
       achN +
       '/' +
       ACHIEVEMENTS.length +
-      '\n點場上俠客可強化（刀利／甲厚／內息）。存檔可匯出 JSON。';
+      ' · 教學 ' +
+      (save.skipTutorial ? '略過' : '開') +
+      '</strong></div>' +
+      '<p class="paper-note">點場上俠客可強化（刀利／甲厚／內息）。圖鑑／成就請用下方按鈕。</p>' +
+      '</div>';
     const btn = $('btn-overlay');
     btn.textContent = '關閉';
     btn.onclick = () => {
@@ -429,16 +448,23 @@
     };
     const extra = $('overlay-extra');
     extra.innerHTML = '';
+    const section = (title) => {
+      const d = document.createElement('div');
+      d.className = 'paper-section-label';
+      d.textContent = title;
+      extra.appendChild(d);
+    };
     const mk = (label, fn, danger, secondary) => {
       const b = document.createElement('button');
       b.type = 'button';
-      b.className = 'action-btn' + (danger ? ' danger' : secondary ? ' secondary' : '');
+      b.className = 'action-btn paper-btn' + (danger ? ' danger' : secondary ? ' secondary' : '');
       b.textContent = label;
       b.onclick = fn;
       extra.appendChild(b);
     };
+    section('顯示／手感');
     mk(
-      save.showCellHints !== false ? '關閉欄位高亮' : '開啟欄位高亮',
+      save.showCellHints !== false ? '欄位高亮：開' : '欄位高亮：關',
       () => {
         onToggleHints();
         showSettings(opts);
@@ -448,7 +474,7 @@
     );
     if (onToggleSkillCd) {
       mk(
-        save.showSkillCd !== false ? '隱藏技能條' : '顯示技能條',
+        save.showSkillCd !== false ? '技能條：開' : '技能條：關',
         () => {
           onToggleSkillCd();
           showSettings(opts);
@@ -459,7 +485,7 @@
     }
     if (onToggleShake) {
       mk(
-        save.reduceShake ? '震屏：正常' : '震屏：減弱',
+        save.reduceShake ? '震屏：減弱' : '震屏：正常',
         () => {
           onToggleShake();
           showSettings(opts);
@@ -470,7 +496,7 @@
     }
     if (onToggleSfx) {
       mk(
-        save.sfxEnabled !== false ? '關閉音效' : '開啟音效',
+        save.sfxEnabled !== false ? '音效：開' : '音效：關',
         () => {
           onToggleSfx();
           showSettings(opts);
@@ -480,7 +506,7 @@
       );
     }
     mk(
-      save.skipTutorial ? '重開教學' : '略過教學',
+      save.skipTutorial ? '教學：略過' : '教學：顯示',
       () => {
         onSkipTutorial();
         showSettings(opts);
@@ -488,10 +514,12 @@
       false,
       true
     );
-    if (onExportSave) mk('匯出存檔 JSON', () => onExportSave(), false, true);
-    if (onImportSave) mk('匯入存檔 JSON', () => onImportSave(), false, true);
-    if (onOpenCodex) mk('打開圖鑑', () => onOpenCodex(), false, true);
-    if (onOpenAch) mk('成就一覽', () => onOpenAch(), false, true);
+    section('圖鑑／存檔');
+    if (onOpenCodex) mk('圖鑑', () => onOpenCodex(), false, true);
+    if (onOpenAch) mk('成就', () => onOpenAch(), false, true);
+    if (onExportSave) mk('匯出存檔', () => onExportSave(), false, true);
+    if (onImportSave) mk('匯入存檔', () => onImportSave(), false, true);
+    section('本關');
     mk(
       '重開本關',
       () => {
@@ -545,46 +573,51 @@
     const save = getSave();
     const ov = $('overlay');
     ov.classList.remove('settings-mode');
-    ov.classList.add('codex-mode');
+    ov.classList.add('codex-mode', 'paper-panel');
     $('overlay-title').textContent = '圖鑑';
-    const lines = ['【俠客】'];
+    const parts = ['<div class="paper-body">', '<div class="paper-sec">俠客</div>'];
     for (const id of Object.keys(HEROES)) {
       const def = HEROES[id];
       const seen = save.seenHeroes && save.seenHeroes[id];
       if (seen) {
-        lines.push(
-          '· ' +
+        parts.push(
+          '<div class="paper-entry"><strong style="color:' +
+            def.color +
+            '">' +
             def.name +
-            ' — ' +
+            '</strong><span>' +
             def.blurb +
-            (def.skill ? '｜技：' + def.skill.name + '（' + def.skill.blurb + '）' : '')
+            (def.skill ? ' · ' + def.skill.name : '') +
+            '</span></div>'
         );
       } else {
-        lines.push('· ？？？ — 尚未召喚');
+        parts.push('<div class="paper-entry dim"><strong>？？？</strong><span>尚未召喚</span></div>');
       }
     }
-    lines.push('', '【敵人】');
+    parts.push('<div class="paper-sec">敵人</div>');
     for (const id of Object.keys(ENEMIES)) {
       const def = ENEMIES[id];
       const seen = save.seenEnemies && save.seenEnemies[id];
       if (seen) {
-        lines.push(
-          '· ' +
+        parts.push(
+          '<div class="paper-entry"><strong style="color:' +
+            (def.color || '#E8DCC8') +
+            '">' +
             def.name +
-            ' — HP' +
+            '</strong><span>HP' +
             def.hp +
             '／攻' +
             def.atk +
-            (def.boss ? '（Boss）' : '') +
-            '／賞' +
-            def.reward +
-            (def.skill ? '｜技：' + def.skill.name + '（' + def.skill.blurb + '）' : '')
+            (def.boss ? ' · Boss' : '') +
+            (def.skill ? ' · ' + def.skill.name : '') +
+            '</span></div>'
         );
       } else {
-        lines.push('· ？？？ — 尚未遭遇');
+        parts.push('<div class="paper-entry dim"><strong>？？？</strong><span>尚未遭遇</span></div>');
       }
     }
-    $('overlay-msg').textContent = lines.join('\n');
+    parts.push('</div>');
+    $('overlay-msg').innerHTML = parts.join('');
     const btn = $('btn-overlay');
     btn.textContent = '關閉';
     btn.onclick = () => {
@@ -599,34 +632,56 @@
     const save = getSave();
     const ov = $('overlay');
     ov.classList.remove('settings-mode');
-    ov.classList.add('codex-mode');
+    ov.classList.add('codex-mode', 'paper-panel');
     $('overlay-title').textContent = '成就／統計';
     const st = saveStats ? saveStats(save) : {};
-    const lines = [];
-    lines.push(
-      '【統計】',
-      '總擊殺 ' + (st.totalKills || 0) +
-        '｜最高無盡 ' + (st.bestEndlessWave || 0) + ' 波' +
-        '｜累計銀兩帳 ' + (st.totalSilver || 0),
-      '主線進度 ' + (st.maxStageCleared || 0) + '/' + (st.stagesTotal || 6) +
-        '｜成就 ' + (st.achUnlocked || 0) + '/' + (st.achTotal || ACHIEVEMENTS.length),
-      ''
+    const parts = ['<div class="paper-body">'];
+    parts.push(
+      '<div class="paper-summary tight">' +
+        '<div class="paper-row"><span>擊殺</span><strong>' +
+        (st.totalKills || 0) +
+        '</strong></div>' +
+        '<div class="paper-row"><span>無盡</span><strong>' +
+        (st.bestEndlessWave || 0) +
+        ' 波</strong></div>' +
+        '<div class="paper-row"><span>銀帳</span><strong>' +
+        (st.totalSilver || 0) +
+        '</strong></div>' +
+        '<div class="paper-row"><span>主線</span><strong>' +
+        (st.maxStageCleared || 0) +
+        '/' +
+        (st.stagesTotal || 6) +
+        '</strong></div>' +
+        '</div>'
     );
     const cats = ACHIEVEMENT_CATS || [{ id: 'all', name: '全部' }];
     for (const cat of cats) {
       const list = ACHIEVEMENTS.filter((a) => (a.cat || 'all') === cat.id);
       if (!list.length) continue;
       const done = list.filter((a) => save.unlockedAch && save.unlockedAch[a.id]).length;
-      lines.push('【' + cat.name + '】' + done + '/' + list.length);
+      parts.push('<div class="paper-sec">' + cat.name + ' ' + done + '/' + list.length + '</div>');
       for (const a of list) {
         const ok = save.unlockedAch && save.unlockedAch[a.id];
-        lines.push((ok ? '✓ ' : '○ ') + a.name + ' — ' + a.blurb);
+        parts.push(
+          '<div class="paper-entry' +
+            (ok ? ' done' : ' dim') +
+            '"><strong>' +
+            (ok ? '✓ ' : '○ ') +
+            a.name +
+            '</strong><span>' +
+            a.blurb +
+            '</span></div>'
+        );
       }
-      lines.push('');
     }
     const meta = dailyStageMeta();
-    lines.push('今日關卡：' + meta.name + '（' + meta.blurb + '）');
-    $('overlay-msg').textContent = lines.join('\n');
+    parts.push(
+      '<div class="paper-note">今日：' +
+        meta.name +
+        (meta.blurb ? '（' + meta.blurb + '）' : '') +
+        '</div></div>'
+    );
+    $('overlay-msg').innerHTML = parts.join('');
     const btn = $('btn-overlay');
     btn.textContent = '關閉';
     btn.onclick = () => {
