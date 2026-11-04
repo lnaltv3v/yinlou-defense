@@ -1,6 +1,6 @@
 /**
- * 銀樓防衛 — Canvas 繪製 v1.1.0
- * v1.1.0：少重複計算／跟主循環 dt
+ * 銀樓防衛 — Canvas 繪製 v1.2.0
+ * v1.2.0：抄底居士葫蘆剪影
  */
 (function (global) {
   const { COLORS, GRID, CORE, HEROES, ENEMIES, MAX_STAR, upgradeLabel } = global.YD;
@@ -334,6 +334,15 @@
       drawPixelRect(ctx, hx - s - 8, hy - 3, 4, 4, '#C9A227');
       drawPixelRect(ctx, hx - 10, hy - s - 22, 20, 5, '#3A4060');
       drawPixelRect(ctx, hx - 4, hy - s - 28, 8, 6, '#C9A227');
+    } else if (kind === 'gourd' || kind === 'medic') {
+      // 抄底居士：葫蘆＋布袋
+      drawPixelRect(ctx, hx + s - 2 + wx, hy - 4 + wy, 10, 14, '#508070');
+      drawPixelRect(ctx, hx + s + wx, hy - 8 + wy, 8, 6, '#3A7A6A');
+      drawPixelRect(ctx, hx + s + 2 + wx, hy - 10 + wy, 4, 4, '#C9A227');
+      drawPixelRect(ctx, hx - s - 10, hy + 2, 9, 10, '#5A4030');
+      drawPixelRect(ctx, hx - s - 8, hy + 4, 5, 5, '#C9A227');
+      drawPixelRect(ctx, hx - 12, hy - s - 20, 24, 5, '#508070');
+      drawPixelRect(ctx, hx - 6, hy - s - 26, 12, 6, paper);
     }
   }
 

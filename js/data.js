@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 靜態資料 v1.1.0
+ * 銀樓防衛 — 靜態資料 v1.2.0
  * 角色為原創綽號，影射金融江湖氣氛；唔用真人真名／金庸名／Fortias IP。
  */
 (function (global) {
@@ -33,7 +33,7 @@
       atk: 14,
       hp: 90,
       range: 78,
-      cooldown: 0.55,
+      cooldown: 0.52,
       speed: 0,
       skill: {
         id: 'bull_charge',
@@ -264,6 +264,33 @@
         markAllyBonus: 0.35,
       },
     },
+    dip_buyer: {
+      id: 'dip_buyer',
+      name: '抄底居士',
+      blurb: '殘血急救 · 越殘越補',
+      lore: '市崩人走，居士反而蹲低撿刀——專補殘血同門。人笑佢抄底抄到斷手，佢只問：斷手之前，銀樓仲在唔在？',
+      role: 'medic',
+      cost: 31,
+      color: '#508070',
+      silhouette: 'gourd',
+      atk: 5,
+      hp: 72,
+      range: 105,
+      cooldown: 0.95,
+      auraHeal: 6,
+      auraSilver: 0.2,
+      lowHpHealMul: 1.75,
+      skill: {
+        id: 'dip_reload',
+        name: '抄底補倉',
+        type: 'active',
+        blurb: '每第 5 跳對最低血友軍爆發治療',
+        every: 5,
+        healMul: 1.25,
+        lowestBurst: 28,
+        silverBurst: 1,
+      },
+    },
   };
 
   /** 場上羈絆：同時存在列出嘅 id → 被動 */
@@ -328,6 +355,15 @@
       rangeBonus: 12,
       markDurBonus: 1,
       applyTo: ['night_broker', 'arb_walker'],
+    },
+    {
+      id: 'dip_div',
+      name: '細水抄底',
+      need: ['dip_buyer', 'dividend_hermit'],
+      blurb: '雙方光環／急救加強；殘血加成再 +20%',
+      auraMul: 1.18,
+      healLowBonus: 0.2,
+      applyTo: ['dip_buyer', 'dividend_hermit'],
     },
   ];
 
@@ -584,8 +620,8 @@
       id: 3,
       name: '夜盤黑潮',
       story: '夜盤無聲，只聽見傳聞蚊喺巷口起舞。瓦簷上一道黑羽掠過，街燈抖了一下——黑天鵝唔敲門，只破門。你要喺謠言同槓桿之間，留一盞銀樓燈。',
-      startSilver: 205,
-      coreHp: 235,
+      startSilver: 210,
+      coreHp: 240,
       unlockHeroes: Object.keys(HEROES),
       waves: [
         wavePack([
@@ -1003,6 +1039,73 @@
     return mods.map((m) => m.name + '（' + m.blurb + '）').join('｜');
   }
 
+
+  /** 記錄本週每日首清日期（港曆） */
+  function recordWeekDailyClear(save, dateStr, weekKey) {
+    const day = dateStr || hkDateString();
+    const wk = weekKey || hkWeekKey();
+    if (!save.weekDailyMap || typeof save.weekDailyMap !== 'object') save.weekDailyMap = {};
+    const arr = Array.isArray(save.weekDailyMap[wk]) ? save.weekDailyMap[wk].slice() : [];
+    if (!arr.includes(day)) arr.push(day);
+    save.weekDailyMap[wk] = arr;
+    // 只留最近 3 週，避免存檔膨脹
+    const keys = Object.keys(save.weekDailyMap).sort();
+    while (keys.length > 3) {
+      delete save.weekDailyMap[keys.shift()];
+    }
+    return arr.length;
+  }
+
+  function weekDailyCount(save, weekKey) {
+    const wk = weekKey || hkWeekKey();
+    const map = (save && save.weekDailyMap) || {};
+    const arr = map[wk];
+    return Array.isArray(arr) ? arr.length : 0;
+  }
+
+  /** 下一個週一 00:00 港時間提示（簡） */
+  function hkNextMondayHint(dt) {
+    const d = dt ? new Date(dt) : new Date();
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Hong_Kong',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      weekday: 'short',
+    }).formatToParts(d);
+    const get = (t) => parts.find((p) => p.type === t).value;
+    const y = Number(get('year'));
+    const m = Number(get('month'));
+    const day = Number(get('day'));
+    const wd = get('weekday'); // Mon/Tue/...
+    const map = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 };
+    const n = map[wd] || 1;
+    const add = n === 1 ? 7 : 8 - n; // 距下週一
+    const utc = new Date(Date.UTC(y, m - 1, day));
+    utc.setUTCDate(utc.getUTCDate() + add);
+    const yy = utc.getUTCFullYear();
+    const mm = String(utc.getUTCMonth() + 1).padStart(2, '0');
+    const dd = String(utc.getUTCDate()).padStart(2, '0');
+    return yy + '-' + mm + '-' + dd + '（下週一 00:00 港時間重置）';
+  }
+
+  function formatWeekProgress(save) {
+    const wk = hkWeekKey();
+    const dailyN = weekDailyCount(save, wk);
+    const weeklyDone = save && save.weeklyKey === wk && save.weeklyCleared;
+    const dailyDoneToday = save && save.dailyDate === hkDateString() && save.dailyCleared;
+    return {
+      weekKey: wk,
+      dailyN: dailyN,
+      dailyGoal: 7,
+      weeklyDone: !!weeklyDone,
+      dailyDoneToday: !!dailyDoneToday,
+      label: '本週 ' + wk + '｜每日 ' + dailyN + '/7' + (dailyDoneToday ? '（今日✓）' : '') + '｜週挑戰' + (weeklyDone ? '✓' : '未清'),
+      short: '日' + dailyN + '/7·週' + (weeklyDone ? '✓' : '—'),
+      resetHint: hkNextMondayHint(),
+    };
+  }
+
   /** 每日關：用日期 seed 選挑戰組合＋1 修飾詞 */
   function dailyStageMeta(dateStr) {
     const s = dateStr || hkDateString();
@@ -1100,7 +1203,7 @@
         theme.blurb +
         '。雙修飾：「' +
         (mods.map((m) => m.name + '—' + m.blurb).join('；') || '平盤') +
-        '」。週挑戰比每日更密——合星、強化、羈絆齊人再開倉。',
+        '」。週挑戰比每日更密——合星、強化、羈絆齊人再開倉。結算頁會顯示本週每日進度同下週重置。',
       focus: theme.focus,
       startSilver: 175 + (h % 6) * 6,
       coreHp: 200 + (h % 5) * 8,
@@ -1229,6 +1332,13 @@
       blurb: '掮客＋劍＋坦｜觸發暗盤通宵',
       tip: '標記後隊友收割；鐵衛頂前',
     },
+    {
+      id: 'dip_div',
+      name: '細水抄底',
+      heroes: ['dip_buyer', 'dividend_hermit', 'market_guard'],
+      blurb: '雙奶＋坦｜觸發細水抄底',
+      tip: '殘血急救＋分紅光環；鐵衛頂前',
+    },
   ];
 
   /** 失敗後隨機提示 */
@@ -1245,6 +1355,8 @@
     '夜盤掮客標記目標後，隊友打標記怪傷害更高；配空頭劍客觸發「暗盤通宵」。',
     '第 6 關「盤後暗盤」暗盤影又快又陰；前排坦克＋標記收割更穩。',
     '週挑戰雙修飾＋血量加厚——優先合到 2–3 星再硬頂；齊人羈絆先開波。',
+    '抄底居士＋股息隱士 →「細水抄底」：殘血急救更強；坦＋雙奶好捱。',
+    '睇關卡列下方「本週進度」：每日 n/7＋週挑戰首清獎。',
   ];
 
 
@@ -1297,6 +1409,17 @@
     { id: 'silver500', cat: 'meta', name: '銀樓小財', blurb: '累計銀兩帳 ≥ 500', check: (s) => (s.totalSilver || 0) >= 500 },
     { id: 'weekly', cat: 'meta', name: '週結過關', blurb: '完成一次週挑戰', check: (s) => !!s.ach && s.ach.weekly },
     { id: 'bonds3', cat: 'combat', name: '三絆齊鳴', blurb: '單局同時激活 3 個羈絆', check: (s) => !!s.ach && s.ach.bonds3 },
+    {
+      id: 'week_grind',
+      cat: 'meta',
+      name: '本週勤力盤',
+      blurb: '同一週內每日≥3 日＋完成週挑戰',
+      check: (s) => {
+        const wk = typeof hkWeekKey === 'function' ? hkWeekKey() : '';
+        const n = weekDailyCount(s, wk);
+        return n >= 3 && !!s.weeklyCleared && s.weeklyKey === wk;
+      },
+    },
   ];
 
   /** 首通銀兩獎勵（入累計帳） */
@@ -1324,6 +1447,7 @@
       stagesTotal: STAGES.length,
       achUnlocked: Object.keys(s.unlockedAch || {}).length,
       achTotal: ACHIEVEMENTS.length,
+      weekProgress: formatWeekProgress(s).label,
     };
   }
 
@@ -1495,19 +1619,19 @@
     };
   }
 
-  /** 召喚費曲線：同種每多召一次 +8（封頂 +48） */
+  /** 召喚費曲線：同種每多召一次 +6（封頂 +48） */
   function summonCost(heroId, summonCounts) {
     const def = HEROES[heroId];
     if (!def) return 999;
     const n = (summonCounts && summonCounts[heroId]) || 0;
-    return def.cost + Math.min(48, n * 7);
+    return def.cost + Math.min(48, n * 6);
   }
 
   /** 合併回報銀兩（按目標新星級） */
   function mergeRebate(heroId, newStar) {
     const def = HEROES[heroId];
     if (!def) return 0;
-    return Math.round(def.cost * 0.13 * newStar);
+    return Math.round(def.cost * 0.14 * newStar);
   }
 
   function activeBonds(heroes) {
@@ -1516,7 +1640,7 @@
   }
 
   function bondModsFor(heroId, bonds) {
-    const mods = { atkMul: 1, cdMul: 1, tankDmgMul: 1, auraMul: 1, buffBonus: 0, highHpExtra: 0, rangeBonus: 0, markBonus: 0, markDurBonus: 0 };
+    const mods = { atkMul: 1, cdMul: 1, tankDmgMul: 1, auraMul: 1, buffBonus: 0, highHpExtra: 0, rangeBonus: 0, markBonus: 0, markDurBonus: 0, healLowBonus: 0 };
     for (const b of bonds) {
       if (!b.applyTo.includes(heroId)) continue;
       if (b.atkMul) mods.atkMul *= b.atkMul;
@@ -1528,6 +1652,7 @@
       if (b.rangeBonus) mods.rangeBonus += b.rangeBonus;
       if (b.markBonus) mods.markBonus += b.markBonus;
       if (b.markDurBonus) mods.markDurBonus += b.markDurBonus;
+      if (b.healLowBonus) mods.healLowBonus += b.healLowBonus;
     }
     return mods;
   }
@@ -1544,7 +1669,7 @@
 
   function defaultSave() {
     return {
-      version: 11,
+      version: 12,
       totalSilver: 0,
       totalKills: 0,
       maxStageCleared: 0,
@@ -1568,6 +1693,7 @@
       dailyCleared: false,
       weeklyKey: '',
       weeklyCleared: false,
+      weekDailyMap: {},
       firstBootDone: false,
       tutorialDone: false,
     };
@@ -1575,7 +1701,7 @@
 
   function exportSaveJson(save) {
     const payload = {
-      meta: { game: 'yinlou-defense', exportedAt: new Date().toISOString(), version: save.version || 11 },
+      meta: { game: 'yinlou-defense', exportedAt: new Date().toISOString(), version: save.version || 12 },
       save: { ...defaultSave(), ...save },
     };
     return JSON.stringify(payload, null, 2);
@@ -1586,7 +1712,8 @@
     const body = data && data.save ? data.save : data;
     if (!body || typeof body !== 'object') throw new Error('無效存檔');
     const merged = { ...defaultSave(), ...body };
-    merged.version = Math.max(11, merged.version || 11);
+    merged.version = Math.max(12, merged.version || 12);
+    if (!merged.weekDailyMap) merged.weekDailyMap = {};
     if (!merged.firstClears) merged.firstClears = {};
     if (!merged.seenHeroes) merged.seenHeroes = {};
     if (!merged.seenEnemies) merged.seenEnemies = {};
@@ -1636,8 +1763,10 @@
       if (f === 'dark_tape') pick('dark_night', 8);
       else if (f === 'panic_board') pick('arb_hedge', 7);
       else if (f === 'black_swan' || f === 'leverage_fiend') pick('squeeze', 8);
-      else if (f === 'margin_call') pick('iron_wall', 7);
-      else if (f === 'rumor_swarm') pick('leverage', 6);
+      else if (f === 'margin_call') {
+        pick('iron_wall', 7);
+        pick('dip_div', 6);
+      } else if (f === 'rumor_swarm') pick('leverage', 6);
       else pick('bull_bear', 5);
       const kind = weekly ? '週挑戰' : '每日';
       return { lineup: best, reason: kind + '焦點「' + (focusMeta.blurb || f) + '」' };
@@ -1730,6 +1859,10 @@
     dailyStageMeta,
     weeklyStageMeta,
     hkWeekKey,
+    recordWeekDailyClear,
+    weekDailyCount,
+    hkNextMondayHint,
+    formatWeekProgress,
     endlessModifiers,
     pickModifiers,
     buildModContext,

@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 戰鬥／生成／合併邏輯 v1.1.0
+ * 銀樓防衛 — 戰鬥／生成／合併邏輯 v1.2.0
  */
 (function (global) {
   const { HEROES, ENEMIES, GRID, CORE, heroStats, activeBonds, bondModsFor, MAX_STAR, UPGRADE_PATHS, upgradeCost } = global.YD;
@@ -474,7 +474,8 @@
   }
 
   function tickSupport(hero, heroes, state, dt) {
-    if (hero.def.role !== 'support') return;
+    const role = hero.def.role;
+    if (role !== 'support' && role !== 'medic') return;
     const bonds = state._bonds || activeBonds(heroes);
     const mods = bondModsFor(hero.id, bonds);
     hero.auraT += dt;
@@ -484,42 +485,74 @@
     const sk = hero.def.skill;
     let healMul = 1;
     let silExtra = 0;
+    let burst = false;
     if (sk && sk.every) {
       hero.skillProgress = ((hero.auraTicks || 0) % sk.every) / sk.every;
       hero.skillReadyIn = sk.every - ((hero.auraTicks || 0) % sk.every);
     }
     if (sk && sk.every && hero.auraTicks % sk.every === 0) {
       healMul = sk.healMul || 1.35;
-      silExtra = sk.silverBurst || 3;
+      silExtra = sk.silverBurst != null ? sk.silverBurst : role === 'medic' ? 1 : 3;
+      burst = true;
       hero.skillProgress = 1;
+      const col = role === 'medic' ? '#508070' : '#3A7A6A';
       pushFloat(state.floats, {
         x: hero.x,
         y: hero.y - 38,
-        text: (sk.name || '分紅') + '！',
-        color: '#3A7A6A',
+        text: (sk.name || (role === 'medic' ? '抄底' : '分紅')) + '！',
+        color: col,
         size: 12,
         vy: -22,
-        life: 0.7,
+        life: 0.75,
       });
-      state.fx.push({ type: 'skill', x: hero.x, y: hero.y, color: '#3A7A6A', life: 0.4, text: sk.name });
+      state.fx.push({ type: 'skill', x: hero.x, y: hero.y, color: col, life: 0.42, text: sk.name });
     }
     const heal = (hero.def.auraHeal || 0) * hero.star * mods.auraMul * healMul;
     const sil = (hero.def.auraSilver || 0) * hero.star * mods.auraMul + silExtra;
+    let lowest = null;
     for (const h of heroes) {
-      if (Math.abs(h.lane - hero.lane) <= 1) {
-        h.hp = Math.min(h.maxHp, h.hp + heal);
+      if (h.hp <= 0) continue;
+      if (Math.abs(h.lane - hero.lane) > 1) continue;
+      let mul = 1;
+      const pct = h.maxHp > 0 ? h.hp / h.maxHp : 1;
+      if (role === 'medic' || hero.def.lowHpHealMul) {
+        if (pct < 0.5) {
+          mul = (hero.def.lowHpHealMul || 1.6) + (mods.healLowBonus || 0);
+        } else if (pct < 0.75 && role === 'medic') {
+          mul = 1.15 + (mods.healLowBonus || 0) * 0.5;
+        }
+      } else if (mods.healLowBonus && pct < 0.5) {
+        mul = 1 + mods.healLowBonus;
       }
+      h.hp = Math.min(h.maxHp, h.hp + heal * mul);
+      if (!lowest || h.hp / h.maxHp < lowest.hp / lowest.maxHp) lowest = h;
+    }
+    if (burst && sk && sk.lowestBurst && lowest) {
+      const bonus = (sk.lowestBurst || 0) * hero.star * mods.auraMul;
+      lowest.hp = Math.min(lowest.maxHp, lowest.hp + bonus);
+      pushFloat(state.floats, {
+        x: lowest.x,
+        y: lowest.y - 30,
+        text: '+' + Math.round(bonus) + '補',
+        color: '#508070',
+        size: 13,
+        vy: -26,
+        life: 0.8,
+      });
+      state.fx.push({ type: 'hit', x: lowest.x, y: lowest.y, color: '#508070', life: 0.28, r: 14 });
     }
     state.silver += sil;
-    pushFloat(state.floats, {
-      x: hero.x,
-      y: hero.y - 24,
-      text: '+' + sil.toFixed(1) + '兩',
-      color: '#D4AF37',
-      size: 12,
-      vy: -18,
-      life: 0.6,
-    });
+    if (sil > 0.05) {
+      pushFloat(state.floats, {
+        x: hero.x,
+        y: hero.y - 24,
+        text: '+' + sil.toFixed(1) + '兩',
+        color: '#D4AF37',
+        size: 12,
+        vy: -18,
+        life: 0.6,
+      });
+    }
   }
 
   function tickHeroes(state, dt) {

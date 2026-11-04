@@ -1,6 +1,6 @@
 /**
- * 銀樓防衛 — 主循環 v1.1.0
- * v1.1.0：週挑戰雛形／修飾加厚／平衡／三絆成就
+ * 銀樓防衛 — 主循環 v1.2.0
+ * v1.2.0：抄底居士／週進度／結算清晰／小平衡
  */
 (function () {
   const {
@@ -27,6 +27,10 @@
     weeklyStageMeta,
     hkWeekKey,
     hkDateString,
+    recordWeekDailyClear,
+    weekDailyCount,
+    formatWeekProgress,
+    hkNextMondayHint,
     waveClearBonus,
     endlessMilestone,
     summonCost,
@@ -74,6 +78,19 @@
     if (save.weeklyCleared == null) save.weeklyCleared = false;
     writeSave(save);
   }
+  if (save.version < 12) {
+    save.version = 12;
+    if (!save.weekDailyMap) save.weekDailyMap = {};
+    writeSave(save);
+  }
+  if (!save.weekDailyMap) save.weekDailyMap = {};
+  // 若今日已清每日但未入週圖，補一筆（唔重複加獎）
+  try {
+    if (save.dailyCleared && save.dailyDate === hkDateString()) {
+      recordWeekDailyClear(save, save.dailyDate, hkWeekKey());
+      writeSave(save);
+    }
+  } catch (_) {}
   // 週鍵滾動：唔再本週則清 cleared 旗（保留 key 直至新清）
   try {
     const wkNow = hkWeekKey();
@@ -245,13 +262,15 @@
     }
     if (shopApi) shopApi.refresh();
     if (speedApi) speedApi.refresh();
-    if (stageApi)
+    if (UI.refreshWeekProgress) UI.refreshWeekProgress(save);
+    if (stageApi) {
       stageApi.refresh(
         state.endless || state.daily || state.weekly ? null : state.stage.id,
         state.endless,
         state.daily,
         state.weekly
       );
+    }
     if (upgradeApi) upgradeApi.refresh();
     UI.updateHud(state);
     updateHint();
@@ -641,14 +660,22 @@
         }
         writeSave(save);
         notifyAchievements();
+        const wp = formatWeekProgress(save);
+        const meta = (state.stage && state.stage.weeklyMeta) || {};
         UI.showOverlay(
-          '週挑戰過關',
-          '打退 ' +
+          '週挑戰結算',
+          '【' +
+            (meta.name || '週挑戰') +
+            '】\n打退 ' +
             state.waveIndex +
-            ' 波！擊殺 ' +
+            ' 波｜擊殺 ' +
             state.kills +
-            '。' +
-            (weeklyBonus ? '\n本週首清獎金 +' + weeklyBonus + ' 兩入帳。' : '\n本週已領過首清獎。') +
+            '。\n' +
+            (weeklyBonus ? '本週首清獎金 +' + weeklyBonus + ' 兩入帳。' : '本週已領過週挑戰首清獎（重打無額外獎）。') +
+            '\n' +
+            wp.label +
+            '\n重置：' +
+            wp.resetHint +
             runModBlock() +
             '\n累計銀兩帳 ' +
             save.totalSilver +
@@ -677,6 +704,7 @@
 
       if (state.daily) {
         const today = hkDateString();
+        const wk = hkWeekKey();
         let dailyBonus = 0;
         if (save.dailyDate !== today || !save.dailyCleared) {
           dailyBonus = 80;
@@ -684,17 +712,28 @@
           save.dailyCleared = true;
           save.ach.daily = true;
           save.totalSilver += dailyBonus;
+          recordWeekDailyClear(save, today, wk);
         }
         writeSave(save);
         notifyAchievements();
+        const wp = formatWeekProgress(save);
+        const meta = (state.stage && state.stage.dailyMeta) || {};
         UI.showOverlay(
-          '每日過關',
-          '打退 ' +
+          '每日結算',
+          '【' +
+            (meta.name || '每日') +
+            '】\n打退 ' +
             state.waveIndex +
-            ' 波！擊殺 ' +
+            ' 波｜擊殺 ' +
             state.kills +
-            '。' +
-            (dailyBonus ? '\n今日首清獎金 +' + dailyBonus + ' 兩入帳。' : '\n今日已領過首清獎。') +
+            '。\n' +
+            (dailyBonus ? '今日首清獎金 +' + dailyBonus + ' 兩入帳。' : '今日已領過每日首清獎（重打無額外獎）。') +
+            '\n' +
+            wp.label +
+            '\n週挑戰：' +
+            (wp.weeklyDone ? '本週已清' : '尚未清（通關第 2 關後可打）') +
+            '\n週重置：' +
+            wp.resetHint +
             runModBlock() +
             '\n累計銀兩帳 ' +
             save.totalSilver +
@@ -1656,9 +1695,9 @@
     : null;
   UI.showOverlay(
     '銀樓防衛',
-    '合併塔防 v1.1.0\n' +
+    '合併塔防 v1.2.0\n' +
       '三步上手：① 拖俠客落場 ② 同種合併升星 ③ 開波守銀樓。\n' +
-      '新：週挑戰（通關第 2 關解鎖）｜雙修飾高壓週結。\n' +
+      '新：抄底居士｜本週進度條｜每日／週結算更清晰。\n' +
       '失敗必出推薦陣容；卡關提示／閃光／震屏可喺設定關。\n' +
       (bonus > 0 ? '新手首局加銀 +' + bonus + ' 兩\n' : '') +
       (bootRec

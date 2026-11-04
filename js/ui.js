@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v1.1.0
+ * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v1.2.0
  */
 (function (global) {
   const {
@@ -17,6 +17,7 @@
     dailyStageMeta,
     weeklyStageMeta,
     hkWeekKey,
+    formatWeekProgress,
     pickFailTip,
     UPGRADE_PATHS,
     upgradeCost,
@@ -64,6 +65,10 @@
       gear =
         '<i class="av-gear" style="background:#E8DCC8;left:18px;top:6px;width:6px;height:14px"></i>' +
         '<i class="av-gear" style="background:#C45C4A;left:2px;top:10px;width:8px;height:8px"></i>';
+    } else if (sil === 'gourd' || sil === 'medic') {
+      gear =
+        '<i class="av-gear" style="background:#508070;left:18px;top:8px;width:10px;height:12px"></i>' +
+        '<i class="av-gear" style="background:#C9A227;left:20px;top:4px;width:6px;height:5px"></i>';
     }
     return (
       '<span class="hero-avatar" aria-hidden="true" style="--av:' +
@@ -316,25 +321,29 @@
             b.classList.toggle('selected', !!daily && !weekly);
             b.disabled = save.maxStageCleared < 1;
             const done = save.dailyDate === today && save.dailyCleared;
+            const wp = typeof formatWeekProgress === 'function' ? formatWeekProgress(save) : null;
             b.textContent = done ? '每日✓' : '每日';
             const meta = dailyStageMeta(today);
             b.title =
-              (done ? '今日已清（可重打無額外獎）｜' : '') +
+              (done ? '今日已清（可重打無額外獎）｜' : '今日未清｜首清 +80 兩｜') +
               meta.name +
-              (meta.blurb ? '｜' + meta.blurb : '');
+              (meta.blurb ? '｜' + meta.blurb : '') +
+              (wp ? '｜' + wp.label : '');
             return;
           }
           if (b.classList.contains('weekly')) {
             b.classList.toggle('selected', !!weekly);
             b.disabled = save.maxStageCleared < 2;
             const done = save.weeklyKey === weekKey && save.weeklyCleared;
-            b.textContent = done ? '週挑戰✓' : '週挑戰';
+            const wp = typeof formatWeekProgress === 'function' ? formatWeekProgress(save) : null;
+            b.textContent = done ? '週挑戰✓' : wp ? '週挑戰·' + wp.short : '週挑戰';
             const meta = typeof weeklyStageMeta === 'function' ? weeklyStageMeta(weekKey) : { name: '週挑戰', blurb: '' };
             b.title =
               (save.maxStageCleared < 2 ? '通關第 2 關解鎖｜' : '') +
-              (done ? '本週已清（可重打無額外獎）｜' : '') +
+              (done ? '本週已清（可重打無額外獎）｜' : '本週未清｜首清 +160 兩｜') +
               meta.name +
-              (meta.blurb ? '｜' + meta.blurb : '');
+              (meta.blurb ? '｜' + meta.blurb : '') +
+              (wp ? '｜重置 ' + wp.resetHint : '');
             return;
           }
           const id = Number(b.dataset.stage);
@@ -470,6 +479,9 @@
       achN +
       '/' +
       ACHIEVEMENTS.length +
+      '</strong></div>' +
+      '<div class="paper-row"><span>本週</span><strong>' +
+      (typeof formatWeekProgress === 'function' ? formatWeekProgress(save).label : '—') +
       '</strong></div>' +
       '<p class="paper-note">點場上俠客可強化（刀利／甲厚／內息）。圖鑑／成就請用下方按鈕。</p>' +
       '</div>';
@@ -709,6 +721,9 @@
         '/' +
         (st.stagesTotal || 6) +
         '</strong></div>' +
+        '<div class="paper-row"><span>本週</span><strong>' +
+        (st.weekProgress || (typeof formatWeekProgress === 'function' ? formatWeekProgress(save).label : '—')) +
+        '</strong></div>' +
         '</div>'
     );
     const cats = ACHIEVEMENT_CATS || [{ id: 'all', name: '全部' }];
@@ -749,6 +764,51 @@
     ov.classList.add('show');
   }
 
+
+  function ensureWeekProgressEl() {
+    let el = $('week-progress');
+    if (el) return el;
+    const bar = $('stage-bar');
+    if (!bar || !bar.parentNode) return null;
+    el = document.createElement('div');
+    el.id = 'week-progress';
+    el.className = 'week-progress';
+    el.setAttribute('aria-label', '本週進度');
+    bar.parentNode.insertBefore(el, bar.nextSibling);
+    return el;
+  }
+
+  function refreshWeekProgress(save) {
+    const el = ensureWeekProgressEl();
+    if (!el || typeof formatWeekProgress !== 'function') return;
+    const wp = formatWeekProgress(save || {});
+    const dailyPct = Math.min(100, Math.round((wp.dailyN / wp.dailyGoal) * 100));
+    el.innerHTML =
+      '<div class="wp-row">' +
+      '<span class="wp-label">本週進度</span>' +
+      '<strong class="wp-text">' +
+      wp.short +
+      '</strong>' +
+      '<span class="wp-meta">' +
+      wp.weekKey +
+      (wp.dailyDoneToday ? ' · 今日✓' : '') +
+      (wp.weeklyDone ? ' · 週✓' : ' · 週未清') +
+      '</span>' +
+      '</div>' +
+      '<div class="wp-bar" title="' +
+      wp.label.replace(/"/g, '') +
+      '">' +
+      '<i class="wp-fill" style="width:' +
+      dailyPct +
+      '%"></i>' +
+      '</div>' +
+      '<div class="wp-hint">每日首清計入本週 ' +
+      wp.dailyN +
+      '/7｜週挑戰首清另計｜' +
+      wp.resetHint +
+      '</div>';
+  }
+
   function setHint(text) {
     const el = $('hint');
     if (el) el.textContent = text;
@@ -769,6 +829,7 @@
     showCodex,
     showAchievements,
     setHint,
+    refreshWeekProgress,
     renderLineupChips,
     failTipText,
     avatarHtml,
