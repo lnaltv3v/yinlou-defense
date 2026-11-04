@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — Canvas 繪製 v2.1.0
+ * 銀樓防衛 — Canvas 繪製 v2.2.0
  * v1.5：場景四層 ground→mid→wall→props；halt_seal PNG；擊破／暴擊
  */
 (function (global) {
@@ -830,6 +830,22 @@
           ctx.fillText(fx.text, fx.x, fx.y - rr - 4);
         }
         ctx.globalAlpha = 1;
+      } else if (fx.type === 'mergeRing') {
+        const tLife = Math.max(0, fx.life || 0);
+        const r = 18 + (1 - Math.min(1, tLife / 0.55)) * (22 + (fx.star || 1) * 4);
+        ctx.globalAlpha = Math.min(0.85, tLife * 1.6);
+        ctx.strokeStyle = fx.star >= 4 ? '#E8DCC8' : '#C9A227';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(fx.x, fx.y, r, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.globalAlpha = Math.min(0.5, tLife);
+        ctx.strokeStyle = '#D4AF37';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(fx.x, fx.y, r * 0.7, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
       } else if (fx.type === 'maxstar') {
         const t = Math.max(0, fx.life);
         ctx.globalAlpha = Math.min(0.85, t);
@@ -915,6 +931,18 @@
         ctx.globalAlpha = Math.min(0.55, fx.life);
         ctx.strokeStyle = '#C4A070';
         ctx.lineWidth = 4;
+        ctx.strokeRect(48, 48, ctx.canvas.width - 96, ctx.canvas.height - 96);
+        ctx.globalAlpha = 1;
+      } else if (fx.type === 'tripleTideWarn') {
+        const pulse = 0.16 + 0.14 * Math.sin((fx.life || 0) * 16);
+        ctx.globalAlpha = Math.min(state.reduceFlash ? 0.14 : pulse + 0.22, 0.48);
+        drawPixelRect(ctx, 0, 0, ctx.canvas.width, ctx.canvas.height, '#4A1820');
+        ctx.globalAlpha = Math.min(0.65, fx.life);
+        ctx.strokeStyle = '#C45C4A';
+        ctx.lineWidth = 5;
+        ctx.strokeRect(32, 32, ctx.canvas.width - 64, ctx.canvas.height - 64);
+        ctx.strokeStyle = '#C9A227';
+        ctx.lineWidth = 2;
         ctx.strokeRect(48, 48, ctx.canvas.width - 96, ctx.canvas.height - 96);
         ctx.globalAlpha = 1;
       } else if (fx.type === 'eliteWarn') {
@@ -1120,7 +1148,7 @@
     drawLockStatus(ctx, state);
   }
 
-  /** v2.1 羈絆狀態列：加厚芯片＋副標 */
+  /** v2.2 羈絆狀態列：加厚芯片＋副標 */
   function drawBondStrip(ctx, state) {
     const bonds = state._bonds || [];
     if (!bonds.length) return;

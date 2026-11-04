@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v2.1.0
+ * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v2.2.0
  */
 (function (global) {
   const {
@@ -22,6 +22,9 @@
     exportLocalWallJson,
     exportLocalWallText,
     encodeWallShort,
+    parseWallShort,
+    compareWallShort,
+    recordWallSnapshot,
     exportLocalWallShare,
     pickFailTip,
     UPGRADE_PATHS,
@@ -89,7 +92,7 @@
       ink +
       '"></i>' +
       gear;
-    const src = (window.YDSprites && window.YDSprites.urlFor) ? window.YDSprites.urlFor(def.id) : ('assets/sprites/' + def.id + '.png?v=2.1.0');
+    const src = (window.YDSprites && window.YDSprites.urlFor) ? window.YDSprites.urlFor(def.id) : ('assets/sprites/' + def.id + '.png?v=2.2.0');
     return (
       '<span class="hero-avatar" aria-hidden="true" data-hero="' +
       def.id +
@@ -332,6 +335,15 @@
           if (b.classList.contains('endless')) {
             b.classList.toggle('selected', !!endless && !daily && !weekly);
             b.disabled = save.maxStageCleared < 1;
+            const allClear = (save.maxStageCleared || 0) >= STAGES.length;
+            const best = save.bestEndlessWave || 0;
+            b.textContent = allClear ? (best ? '無盡★' + best : '無盡★') : '無盡';
+            b.title = allClear
+              ? '十二關皆破｜無盡最佳 ' + best + ' 波｜每 30 波三潮'
+              : save.maxStageCleared < 1
+                ? '先通關第 1 關解鎖無盡'
+                : '無盡殺跌｜最佳 ' + best + ' 波';
+            b.classList.toggle('finale', allClear);
             return;
           }
           if (b.classList.contains('daily')) {
@@ -478,6 +490,8 @@
       onExportWallJson,
       onExportWallText,
       onCopyWallShare,
+      onCompareWallShare,
+      onSnapWall,
     } = opts;
     const save = getSave();
     const ov = $('overlay');
@@ -521,7 +535,22 @@
       '<div class="paper-row"><span>牆短碼</span><strong class="mono">' +
       (typeof encodeWallShort === 'function' ? encodeWallShort(save) : '—') +
       '</strong></div>' +
-      '<p class="paper-note">點場上俠客可強化（刀利／甲厚／內息）。圖鑑卡片已加厚；本地牆可匯出 JSON／文字（本機｜唔做線上排行）。</p>' +
+      '<div class="paper-row"><span>近牆快照</span><strong>' +
+      (typeof formatLocalBestWall === 'function'
+        ? (function () {
+            const w = formatLocalBestWall(save);
+            const snaps = w.snapshots || [];
+            if (!snaps.length) return '尚無';
+            return snaps
+              .slice(-3)
+              .map(function (s) {
+                return (s.short || s.code || '') + (s.reason ? '·' + s.reason : '');
+              })
+              .join('｜');
+          })()
+        : '—') +
+      '</strong></div>' +
+      '<p class="paper-note">點場上俠客可強化（刀利／甲厚／內息）。圖鑑卡片已加厚；本地牆可匯出／短碼對照／快照（本機｜唔做線上排行）。</p>' +
       '</div>';
     const btn = $('btn-overlay');
     btn.textContent = '關閉';
@@ -628,6 +657,8 @@
     if (onExportWallJson) mk('匯出牆 JSON', () => onExportWallJson(), false, true);
     if (onExportWallText) mk('匯出牆文字', () => onExportWallText(), false, true);
     if (onCopyWallShare) mk('複製牆短碼', () => onCopyWallShare(), false, true);
+    if (onCompareWallShare) mk('對照牆短碼', () => onCompareWallShare(), false, true);
+    if (onSnapWall) mk('留下牆快照', () => onSnapWall(), false, true);
     section('本關');
     mk(
       '重開本關',
@@ -680,7 +711,7 @@
     const src = id && window.YDSprites && window.YDSprites.urlFor
       ? window.YDSprites.urlFor(id)
       : id
-        ? 'assets/sprites/' + id + '.png?v=2.1.0'
+        ? 'assets/sprites/' + id + '.png?v=2.2.0'
         : '';
     const fallback =
       '<span class="codex-thumb-fallback" style="background:' + c + '"></span>';
@@ -842,6 +873,26 @@
         '</strong></div>' +
         '<div class="paper-row"><span>牆短碼</span><strong class="mono">' +
         (typeof encodeWallShort === 'function' ? encodeWallShort(save) : '—') +
+        '</strong></div>' +
+        '<div class="paper-row"><span>近週通關</span><strong>' +
+        (typeof formatLocalBestWall === 'function'
+          ? ((formatLocalBestWall(save).history || []).join('、') || '—')
+          : '—') +
+        '</strong></div>' +
+        '<div class="paper-row"><span>近牆快照</span><strong>' +
+        (typeof formatLocalBestWall === 'function'
+          ? (function () {
+              const snaps = formatLocalBestWall(save).snapshots || [];
+              return snaps.length
+                ? snaps
+                    .slice(-4)
+                    .map(function (s) {
+                      return s.short || s.code;
+                    })
+                    .join('｜')
+                : '—';
+            })()
+          : '—') +
         '</strong></div>' +
         (typeof formatLocalBestWall === 'function'
           ? (function () {

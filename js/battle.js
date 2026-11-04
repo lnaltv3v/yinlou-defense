@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 戰鬥／生成／合併邏輯 v2.1.0
+ * 銀樓防衛 — 戰鬥／生成／合併邏輯 v2.2.0
  * v1.4：擊退／超殺／擊破爆點／陣亡墨塵
  */
 (function (global) {
@@ -873,7 +873,7 @@
         life: 1.0,
         bounce: 1.1,
       });
-      pushFx(state, { type: 'haltTideWarn', life: 1.2 });
+      pushFx(state, { type: 'haltTideWarn', life: 1.35 });
       pushFx(state, {
         type: 'skill',
         x: enemy.x,
@@ -1181,42 +1181,71 @@
     const eid = enemy.id || (enemy.def && enemy.def.id);
     const isCircuit = eid === 'circuit_swan';
     const isTide = eid === 'halt_tide';
-    const life = isCircuit || isTide ? 3.2 : 2.9;
+    const isSwan = eid === 'black_swan';
+    const aliveBossIds = new Set(
+      (state.enemies || [])
+        .filter((e) => e.hp > 0 && e.boss)
+        .map((e) => e.id)
+        .concat([eid])
+    );
+    const triple =
+      aliveBossIds.has('black_swan') &&
+      aliveBossIds.has('circuit_swan') &&
+      aliveBossIds.has('halt_tide');
+    const dual =
+      !triple &&
+      ((aliveBossIds.has('black_swan') && aliveBossIds.has('circuit_swan')) ||
+        (aliveBossIds.has('black_swan') && aliveBossIds.has('halt_tide')) ||
+        (aliveBossIds.has('circuit_swan') && aliveBossIds.has('halt_tide')));
+    const life = triple ? 3.6 : isCircuit || isTide ? 3.2 : 2.9;
     state.bossBanner = {
       name: enemy.def.name,
       life: life,
       maxLife: life,
-      kind: isTide ? 'halt_tide' : isCircuit ? 'circuit' : 'boss',
-      blurb: isTide
-        ? '停牌潮湧入 — 範圍臨停'
-        : isCircuit
-          ? '熔斷鐘將響 — 俠客短暫停刀'
-          : (enemy.def.skill && enemy.def.skill.blurb) || '',
+      kind: triple ? 'triple' : isTide ? 'halt_tide' : isCircuit ? 'circuit' : 'boss',
+      blurb: triple
+        ? '三潮同場 — 黑羽＋金邊＋臨停'
+        : isTide
+          ? '停牌潮湧入 — 範圍臨停'
+          : isCircuit
+            ? '熔斷鐘將響 — 俠客短暫停刀'
+            : (enemy.def.skill && enemy.def.skill.blurb) || '',
     };
-    state.shake = Math.max(state.shake || 0, isCircuit || isTide ? 0.4 : 0.32);
-    state.coreHitFlash = Math.max(state.coreHitFlash || 0, isCircuit || isTide ? 0.55 : 0.35);
+    state.shake = Math.max(state.shake || 0, triple ? 0.52 : isCircuit || isTide ? 0.42 : 0.32);
+    state.coreHitFlash = Math.max(state.coreHitFlash || 0, triple ? 0.7 : isCircuit || isTide ? 0.55 : 0.35);
     state.fx.push({
-      type: isTide ? 'haltTideWarn' : isCircuit ? 'circuitWarn' : 'bossWarn',
-      life: isCircuit || isTide ? 2.8 : 2.5,
+      type: triple ? 'tripleTideWarn' : isTide ? 'haltTideWarn' : isCircuit ? 'circuitWarn' : 'bossWarn',
+      life: triple ? 3.2 : isCircuit || isTide ? 2.8 : 2.5,
     });
+    if (triple) state._tripleTideSeen = (state._tripleTideSeen || 0) + 1;
     pushFloat(state.floats, {
       x: 480,
       y: 190,
-      text: (isTide ? '⛔ ' : isCircuit ? '🔔 ' : '⚠ ') + enemy.def.name + ' 入場',
-      color: isTide ? '#C4A070' : isCircuit ? '#E8C96A' : '#C9A227',
-      size: isCircuit || isTide ? 24 : 22,
+      text:
+        (triple ? '🌊 ' : isTide ? '⛔ ' : isCircuit ? '🔔 ' : '⚠ ') +
+        (triple ? '三潮同場' : enemy.def.name + ' 入場'),
+      color: triple ? '#C45C4A' : isTide ? '#C4A070' : isCircuit ? '#E8C96A' : '#C9A227',
+      size: triple ? 26 : isCircuit || isTide ? 24 : 22,
       vy: -10,
-      life: isCircuit || isTide ? 2.6 : 2.3,
-      bounce: 0.4,
+      life: triple ? 2.9 : isCircuit || isTide ? 2.6 : 2.3,
+      bounce: 0.45,
     });
-    if (isCircuit) {
-      const dual = (state.enemies || []).some(
-        (e) => e.hp > 0 && e.boss && e.uid !== enemy.uid && (e.id === 'black_swan' || e.id === 'circuit_swan' || e.id === 'halt_tide')
-      );
+    if (triple) {
       pushFloat(state.floats, {
         x: 480,
         y: 230,
-        text: dual ? '雙天鵝夾擊 — 先鎖倉再收割' : '熔斷鐘響 — 守住內息',
+        text: '先鎖倉清符 — 再收雙羽',
+        color: '#C45C4A',
+        size: 15,
+        vy: -8,
+        life: 2.4,
+        bounce: 0,
+      });
+    } else if (isCircuit) {
+      pushFloat(state.floats, {
+        x: 480,
+        y: 230,
+        text: dual ? '雙潮夾擊 — 先鎖倉再收割' : '熔斷鐘響 — 守住內息',
         color: '#C45C4A',
         size: 14,
         vy: -8,
@@ -1224,23 +1253,39 @@
         bounce: 0,
       });
       if (dual) {
-        state.bossBanner.blurb = '雙天鵝夜 — 黑羽＋金邊同時在場';
+        state.bossBanner.blurb = '雙潮夜 — 兩大 Boss 同時在場';
         state.bossBanner.kind = 'dual';
       }
     } else if (isTide) {
       pushFloat(state.floats, {
         x: 480,
         y: 230,
-        text: '臨停潮頭 — 先鎖倉再清符',
+        text: dual ? '臨停夾擊 — 鎖倉優先' : '臨停潮頭 — 先鎖倉再清符',
         color: '#C45C4A',
         size: 14,
         vy: -8,
         life: 2.2,
         bounce: 0,
       });
+      if (dual) {
+        state.bossBanner.kind = 'dual';
+        state.bossBanner.blurb = '雙潮夜 — 臨停＋另一羽同時在場';
+      }
+    } else if (isSwan && dual) {
+      pushFloat(state.floats, {
+        x: 480,
+        y: 230,
+        text: '雙潮夾擊 — 守住內息',
+        color: '#C45C4A',
+        size: 14,
+        vy: -8,
+        life: 2.2,
+        bounce: 0,
+      });
+      state.bossBanner.kind = 'dual';
+      state.bossBanner.blurb = '雙潮夜 — 兩大 Boss 同時在場';
     }
   }
-
   function announceElite(state, enemy) {
     state.bossBanner = {
       name: '精英·' + enemy.def.name,
@@ -1356,26 +1401,39 @@
   /** 合併成功特效包 */
   function spawnMergeFx(state, hero) {
     const prev = Math.max(1, (hero.star || 1) - 1);
-    state.fx.push({ type: 'merge', x: hero.x, y: hero.y, star: hero.star, fromStar: prev, life: 0.7 });
-    state.fx.push({ type: 'hit', x: hero.x, y: hero.y, color: '#C9A227', life: 0.48, r: 32 });
+    state.fx.push({ type: 'merge', x: hero.x, y: hero.y, star: hero.star, fromStar: prev, life: 0.85 });
+    state.fx.push({ type: 'hit', x: hero.x, y: hero.y, color: '#C9A227', life: 0.55, r: 36 });
+    state.fx.push({ type: 'mergeRing', x: hero.x, y: hero.y, star: hero.star, life: 0.55 });
     pushFloat(state.floats, {
       x: hero.x,
       y: hero.y - 52,
       text: '升星 ★' + prev + '→★' + hero.star,
       color: '#C9A227',
-      size: 17,
-      vy: -34,
-      life: 1.05,
-      bounce: 1.15,
+      size: hero.star >= 3 ? 19 : 17,
+      vy: -36,
+      life: 1.15,
+      bounce: 1.25,
     });
     if (hero.star >= MAX_STAR) {
-      state.fx.push({ type: 'maxstar', x: hero.x, y: hero.y, life: 1.15 });
-      state.fx.push({ type: 'hit', x: hero.x, y: hero.y - 10, color: '#E8DCC8', life: 0.55, r: 40 });
+      state.fx.push({ type: 'maxstar', x: hero.x, y: hero.y, life: 1.25 });
+      state.fx.push({ type: 'hit', x: hero.x, y: hero.y - 10, color: '#E8DCC8', life: 0.6, r: 44 });
+      state.fx.push({ type: 'mergeRing', x: hero.x, y: hero.y, star: hero.star, life: 0.7 });
+      pushFloat(state.floats, {
+        x: hero.x,
+        y: hero.y - 78,
+        text: '滿星開盤',
+        color: '#E8DCC8',
+        size: 15,
+        vy: -22,
+        life: 1.0,
+        bounce: 0.8,
+      });
     } else if (hero.star >= 3) {
-      state.fx.push({ type: 'merge', x: hero.x, y: hero.y - 8, star: hero.star, life: 0.5 });
+      state.fx.push({ type: 'merge', x: hero.x, y: hero.y - 8, star: hero.star, life: 0.55 });
     }
-    if (!state.shake || state.shake < 0.16) state.shake = 0.16;
+    if (!state.shake || state.shake < 0.18) state.shake = hero.star >= 3 ? 0.22 : 0.18;
   }
+
 
   /** 強化成功特效 */
   function spawnUpgradeFx(state, hero, pathName, level) {

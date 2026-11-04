@@ -1,4 +1,4 @@
-# 銀樓防衛 — 美術短規範（v2.1）
+# 銀樓防衛 — 美術短規範（v2.2）
 
 ## 風格名
 **墨點金融江湖（Ink-Pixel Finance）**：宣紙底、墨點色塊、硬邊直角、統一點陣。質感密度可對齊市面 Merge TD／Fortias 級**可讀性**，但**原創構圖與造型，唔抄 IP**。
@@ -106,3 +106,7 @@
 ## v2.1
 - `halt_tide.png`／`_attack`／`_sheet` 正式接入（48×48）；缺檔借 `halt_seal`。
 - mid／props 未再加厚；ground／wall 維持 v2.0。
+
+
+## v2.2
+- 無新 mid／props／circuit_swan／lock_hermit 覆寫；畫面反饋以 FX（tripleTideWarn／mergeRing）加厚。

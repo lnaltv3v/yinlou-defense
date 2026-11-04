@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 靜態資料 v2.1.0
+ * 銀樓防衛 — 靜態資料 v2.2.0
  * 角色為原創綽號，影射金融江湖氣氛；唔用真人真名／金庸名／Fortias IP。
  */
 (function (global) {
@@ -1440,6 +1440,7 @@
     { wave: 20, silver: 180, label: '廿浪封神' },
     { wave: 30, silver: 260, label: '三十浪傳說' },
     { wave: 40, silver: 340, label: '四十浪三潮' },
+    { wave: 50, silver: 420, label: '五十浪潮守' },
   ];
 
   function endlessMilestone(waveIndex) {
@@ -1602,6 +1603,64 @@
           });
         }
         state._tripleTideEvent = (state._tripleTideEvent || 0) + 1;
+      },
+    },
+    {
+      id: 'halt_drizzle',
+      name: '臨停細雨',
+      blurb: '停牌符零星飄落 ×3',
+      color: '#C4A070',
+      weight: 2,
+      apply: (state) => {
+        if (!state.spawner) return;
+        state.spawner.jobs.push({
+          enemy: 'halt_seal',
+          left: 3,
+          interval: 0.55,
+          delay: 0.9,
+          timer: 0,
+          started: false,
+          laneMode: 'cycle',
+          fixedLane: null,
+          hpMul: 1,
+          elite: false,
+        });
+        state._haltDrizzle = (state._haltDrizzle || 0) + 1;
+      },
+    },
+    {
+      id: 'feather_warn',
+      name: '雙羽預警',
+      blurb: '黑羽與金邊短時壓境（弱化）',
+      color: '#C9A227',
+      weight: 1,
+      apply: (state) => {
+        if (!state.spawner) return;
+        state.spawner.jobs.push({
+          enemy: 'black_swan',
+          left: 1,
+          interval: 0,
+          delay: 1.4,
+          timer: 0,
+          started: false,
+          laneMode: 'fixed',
+          fixedLane: 0,
+          hpMul: 0.78,
+          elite: false,
+        });
+        state.spawner.jobs.push({
+          enemy: 'circuit_swan',
+          left: 1,
+          interval: 0,
+          delay: 3.0,
+          timer: 0,
+          started: false,
+          laneMode: 'fixed',
+          fixedLane: 2,
+          hpMul: 0.78,
+          elite: false,
+        });
+        state._featherWarn = (state._featherWarn || 0) + 1;
       },
     },
   ];
@@ -1801,6 +1860,24 @@
         ctx.enemySpeedMul = (ctx.enemySpeedMul || 1) * 1.05;
       },
     },
+    {
+      id: 'tide_watch',
+      name: '潮守加厚',
+      blurb: '核心 HP +7%；鎖倉持續 ×1.12',
+      apply: (ctx) => {
+        ctx.coreMul = (ctx.coreMul || 1) * 1.07;
+        ctx.lockDurMul = (ctx.lockDurMul || 1) * 1.12;
+      },
+    },
+    {
+      id: 'merge_spark',
+      name: '合星火花',
+      blurb: '合併回報 ×1.18；俠客冷卻 −4%',
+      apply: (ctx) => {
+        ctx.mergeRebateMul = (ctx.mergeRebateMul || 1) * 1.18;
+        ctx.heroCdMul = (ctx.heroCdMul || 1) * 0.96;
+      },
+    },
   ];
 
   function hashStr(s) {
@@ -1929,7 +2006,7 @@
     save.lastWeeklyClearKey = wk;
     if (!Array.isArray(save.weekClearHistory)) save.weekClearHistory = [];
     if (!save.weekClearHistory.includes(wk)) save.weekClearHistory.push(wk);
-    while (save.weekClearHistory.length > 12) save.weekClearHistory.shift();
+    while (save.weekClearHistory.length > 16) save.weekClearHistory.shift();
     if (!save.localBest || typeof save.localBest !== 'object') save.localBest = { endless: 0, weeklyStreak: 0, stageClears: 0 };
     save.localBest.weeklyStreak = Math.max(save.localBest.weeklyStreak || 0, save.weekStreakBest || 0);
     save.localBest.endless = Math.max(save.localBest.endless || 0, save.bestEndlessWave || 0);
@@ -1943,7 +2020,8 @@
     const endless = Math.max(lb.endless || 0, s.bestEndlessWave || 0);
     const streak = Math.max(lb.weeklyStreak || 0, s.weekStreakBest || 0, s.weekStreak || 0);
     const stages = Math.max(lb.stageClears || 0, s.maxStageCleared || 0);
-    const hist = Array.isArray(s.weekClearHistory) ? s.weekClearHistory.slice(-6) : [];
+    const hist = Array.isArray(s.weekClearHistory) ? s.weekClearHistory.slice(-8) : [];
+    const snaps = Array.isArray(s.wallSnapshots) ? s.wallSnapshots.slice(-8) : [];
     const curStreak = s.weekStreak || 0;
     return {
       endless: endless,
@@ -1952,6 +2030,7 @@
       stages: stages,
       stagesTotal: STAGES.length,
       history: hist,
+      snapshots: snaps,
       label:
         '本地最佳牆（本機）｜無盡 ' +
         endless +
@@ -1966,7 +2045,7 @@
         '｜唔做線上排行',
       short: '無盡' + endless + '·連週' + curStreak + '/' + streak + '·主線' + stages + '/' + STAGES.length,
       lines: [
-        { key: 'endless', name: '無盡最佳', value: endless + ' 波', pct: Math.min(100, Math.round((endless / 30) * 100)) },
+        { key: 'endless', name: '無盡最佳', value: endless + ' 波', pct: Math.min(100, Math.round((endless / 50) * 100)) },
         { key: 'streak', name: '連週／最佳', value: curStreak + ' / ' + streak, pct: Math.min(100, Math.round((curStreak / Math.max(3, streak || 3)) * 100)) },
         { key: 'stages', name: '主線進度', value: stages + ' / ' + STAGES.length, pct: Math.min(100, Math.round((stages / Math.max(1, STAGES.length)) * 100)) },
       ],
@@ -2469,6 +2548,11 @@
     { id: 'triple_tide_clear', cat: 'combat', name: '三潮過招', blurb: '單局擊破黑天鵝＋熔斷天鵝＋停牌潮各 ≥1', check: (s) => !!s.ach && !!s.ach.triple_tide_clear },
     { id: 'triple_event', cat: 'combat', name: '三潮警報', blurb: '觸發一次三潮同場市況事件', check: (s) => !!s.ach && !!s.ach.triple_event },
     { id: 'wall_share', cat: 'meta', name: '牆碼相傳', blurb: '複製一次本地牆短碼', check: (s) => !!s.ach && !!s.ach.wall_share },
+    { id: 'wall_compare', cat: 'meta', name: '牆碼對盤', blurb: '本機對照一次牆短碼', check: (s) => !!s.ach && !!s.ach.wall_compare },
+    { id: 'wall_snap', cat: 'meta', name: '牆影存檔', blurb: '留下一次本地牆快照', check: (s) => !!s.ach && !!s.ach.wall_snap },
+    { id: 'endless40', cat: 'combat', name: '四十浪潮城', blurb: '無盡最佳 ≥ 40 波', check: (s) => (s.bestEndlessWave || 0) >= 40 },
+    { id: 'halt_drizzle', cat: 'combat', name: '臨停細雨', blurb: '觸發一次臨停細雨市況', check: (s) => !!s.ach && !!s.ach.halt_drizzle },
+    { id: 'post12_endless', cat: 'meta', name: '全破入無盡', blurb: '十二關皆破後首次挑戰無盡', check: (s) => !!s.ach && !!s.ach.post12_endless },
   ];
 
   /** 首通銀兩獎勵（入累計帳） */
@@ -2580,7 +2664,7 @@
         hpMul: mul * 0.9,
       });
     }
-    // v2.0：每 5 波 milestone Boss 輪換；v2.1：每 30 波「三潮同場」
+    // v2.0：每 5 波 milestone Boss 輪換；v2.2：每 30 波「三潮同場」
     if (n >= 30 && n % 30 === 0) {
       spawns.push({ enemy: 'black_swan', count: 1, lane: 0, interval: 0, delay: 2.0, hpMul: mul });
       spawns.push({ enemy: 'circuit_swan', count: 1, lane: 2, interval: 0, delay: 3.5, hpMul: mul * 1.05 });
@@ -2723,7 +2807,7 @@
   function mergeRebate(heroId, newStar) {
     const def = HEROES[heroId];
     if (!def) return 0;
-    return Math.round(def.cost * 0.172 * newStar);
+    return Math.round(def.cost * 0.174 * newStar);
   }
 
   function activeBonds(heroes) {
@@ -2763,7 +2847,7 @@
 
   function defaultSave() {
     return {
-      version: 21,
+      version: 22,
       totalSilver: 0,
       totalKills: 0,
       maxStageCleared: 0,
@@ -2792,13 +2876,75 @@
       weekStreakBest: 0,
       lastWeeklyClearKey: '',
       weekClearHistory: [],
+      wallSnapshots: [],
       localBest: { endless: 0, weeklyStreak: 0, stageClears: 0 },
+      post12EndlessBonus: false,
       firstBootDone: false,
       tutorialDone: false,
     };
   }
 
 
+
+
+  function parseWallShort(code) {
+    if (!code || typeof code !== 'string') return null;
+    const m = /^YL-E(\d+)-S(\d+)-M(\d+)-H([0-9a-fA-F]{1,8})$/.exec(code.trim());
+    if (!m) return null;
+    return {
+      endless: Number(m[1]) || 0,
+      weekStreakBest: Number(m[2]) || 0,
+      stages: Number(m[3]) || 0,
+      histHash: String(m[4] || '').toLowerCase(),
+      code: 'YL-E' + m[1] + '-S' + m[2] + '-M' + m[3] + '-H' + String(m[4] || '').toLowerCase(),
+    };
+  }
+
+  function compareWallShort(save, otherCode) {
+    const mine = parseWallShort(encodeWallShort(save));
+    const theirs = parseWallShort(otherCode);
+    if (!mine || !theirs) {
+      return { ok: false, error: '短碼格式唔啱（YL-E…-S…-M…-H…）', mine: mine, theirs: theirs };
+    }
+    const dE = mine.endless - theirs.endless;
+    const dS = mine.weekStreakBest - theirs.weekStreakBest;
+    const dM = mine.stages - theirs.stages;
+    const sameHash = mine.histHash === theirs.histHash;
+    const parts = [];
+    parts.push(dE === 0 ? '無盡持平' : dE > 0 ? '無盡領先 +' + dE : '無盡落後 ' + dE);
+    parts.push(dS === 0 ? '連週持平' : dS > 0 ? '連週領先 +' + dS : '連週落後 ' + dS);
+    parts.push(dM === 0 ? '主線持平' : dM > 0 ? '主線領先 +' + dM : '主線落後 ' + dM);
+    parts.push(sameHash ? '週史指紋同' : '週史指紋異');
+    return {
+      ok: true,
+      mine: mine,
+      theirs: theirs,
+      delta: { endless: dE, weekStreakBest: dS, stages: dM, sameHash: sameHash },
+      summary: parts.join('｜'),
+      note: '本機對照｜唔做線上排行',
+    };
+  }
+
+  function recordWallSnapshot(save, reason) {
+    if (!save) return null;
+    if (!Array.isArray(save.wallSnapshots)) save.wallSnapshots = [];
+    const w = formatLocalBestWall(save);
+    const code = encodeWallShort(save);
+    const last = save.wallSnapshots[save.wallSnapshots.length - 1];
+    if (last && last.code === code && last.reason === (reason || 'auto')) return last;
+    const snap = {
+      at: new Date().toISOString(),
+      reason: reason || 'auto',
+      code: code,
+      endless: w.endless,
+      weekStreakBest: w.weekStreakBest,
+      stages: w.stages,
+      short: w.short,
+    };
+    save.wallSnapshots.push(snap);
+    while (save.wallSnapshots.length > 12) save.wallSnapshots.shift();
+    return snap;
+  }
 
   function encodeWallShort(save) {
     const w = formatLocalBestWall(save);
@@ -2828,7 +2974,7 @@
         game: 'yinlou-defense',
         kind: 'local-best-wall',
         exportedAt: new Date().toISOString(),
-        version: (save && save.version) || 21,
+        version: (save && save.version) || 22,
         note: '本機進度牆｜唔做線上排行',
       },
       wall: wall,
@@ -2841,6 +2987,7 @@
         label: wp.label,
       },
       history: wall.history || [],
+      snapshots: wall.snapshots || [],
       shortCode: encodeWallShort(save),
     };
     return JSON.stringify(payload, null, 2);
@@ -2862,13 +3009,16 @@
     if (wall.history && wall.history.length) {
       lines.push('近週通關：' + wall.history.join('、'));
     }
+    if (wall.snapshots && wall.snapshots.length) {
+      lines.push('近牆快照：' + wall.snapshots.slice(-4).map(function (s) { return (s.short || s.code) + '(' + (s.reason || '') + ')'; }).join('、'));
+    }
     lines.push('短碼：' + encodeWallShort(save));
     return lines.join('\n');
   }
 
   function exportSaveJson(save) {
     const payload = {
-      meta: { game: 'yinlou-defense', exportedAt: new Date().toISOString(), version: save.version || 21 },
+      meta: { game: 'yinlou-defense', exportedAt: new Date().toISOString(), version: save.version || 22 },
       save: { ...defaultSave(), ...save },
     };
     return JSON.stringify(payload, null, 2);
@@ -2879,12 +3029,14 @@
     const body = data && data.save ? data.save : data;
     if (!body || typeof body !== 'object') throw new Error('無效存檔');
     const merged = { ...defaultSave(), ...body };
-    merged.version = Math.max(21, merged.version || 21);
+    merged.version = Math.max(22, merged.version || 22);
     if (merged.weekStreak == null) merged.weekStreak = 0;
     if (merged.weekStreakBest == null) merged.weekStreakBest = 0;
     if (!merged.lastWeeklyClearKey) merged.lastWeeklyClearKey = '';
     if (!Array.isArray(merged.weekClearHistory)) merged.weekClearHistory = [];
+    if (!Array.isArray(merged.wallSnapshots)) merged.wallSnapshots = [];
     if (!merged.localBest || typeof merged.localBest !== 'object') merged.localBest = { endless: 0, weeklyStreak: 0, stageClears: 0 };
+    if (merged.post12EndlessBonus == null) merged.post12EndlessBonus = false;
     if (!merged.weekDailyMap) merged.weekDailyMap = {};
     if (!merged.firstClears) merged.firstClears = {};
     if (!merged.seenHeroes) merged.seenHeroes = {};
@@ -3070,6 +3222,9 @@
     exportLocalWallJson,
     exportLocalWallText,
     encodeWallShort,
+    parseWallShort,
+    compareWallShort,
+    recordWallSnapshot,
     exportLocalWallShare,
     importSaveJson,
     pickFailTip,

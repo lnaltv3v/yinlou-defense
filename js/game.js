@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 主循環 v2.1.0
+ * 銀樓防衛 — 主循環 v2.2.0
  * v1.9.0：第7關／鎖倉居士／週連續＋本地最佳牆／手感平衡
  */
 (function () {
@@ -20,6 +20,9 @@
     exportLocalWallJson,
     exportLocalWallText,
     encodeWallShort,
+    parseWallShort,
+    compareWallShort,
+    recordWallSnapshot,
     exportLocalWallShare,
     importSaveJson,
     pickFailTip,
@@ -108,6 +111,7 @@
     if (save.weekStreakBest == null) save.weekStreakBest = 0;
     if (!save.lastWeeklyClearKey) save.lastWeeklyClearKey = '';
     if (!Array.isArray(save.weekClearHistory)) save.weekClearHistory = [];
+    if (!Array.isArray(save.wallSnapshots)) save.wallSnapshots = [];
     if (!save.localBest || typeof save.localBest !== 'object') {
       save.localBest = {
         endless: save.bestEndlessWave || 0,
@@ -364,6 +368,9 @@
     }
     if ((state._tripleTideEvent || 0) >= 1 && !save.ach.triple_event) {
       save.ach.triple_event = true;
+    }
+    if ((state._haltDrizzle || 0) >= 1 && !save.ach.halt_drizzle) {
+      save.ach.halt_drizzle = true;
     }
     if ((state._circuitKills || 0) >= 1 && !save.ach.circuit_kill) {
       save.ach.circuit_kill = true;
@@ -672,7 +679,26 @@
       }
       if (enterStage(0, true, false, false)) {
         const lab = modifierLabel(state.modifiers || []);
-        UI.toast('無盡殺跌' + (lab ? '｜' + lab : ' — 愈打愈密'), 2200);
+        const allClear = (save.maxStageCleared || 0) >= STAGES.length;
+        if (allClear && !save.post12EndlessBonus) {
+          save.post12EndlessBonus = true;
+          if (!save.ach) save.ach = {};
+          save.ach.post12_endless = true;
+          state.silver += 48;
+          writeSave(save);
+          notifyAchievements();
+          if (typeof recordWallSnapshot === 'function') {
+            recordWallSnapshot(save, 'post12');
+            save.ach.wall_snap = true;
+            writeSave(save);
+          }
+          UI.toast('全破入無盡｜開局 +48 兩' + (lab ? '｜' + lab : ''), 2600);
+        } else {
+          UI.toast(
+            (allClear ? '無盡★' : '無盡殺跌') + (lab ? '｜' + lab : ' — 愈打愈密'),
+            2200
+          );
+        }
       }
     },
     () => {
@@ -712,6 +738,8 @@
     if (state._circuitKills) bits.push('熔斷天鵝擊破 ×' + state._circuitKills);
     if (state._haltTideKills) bits.push('停牌潮擊破 ×' + state._haltTideKills);
     if (state._tripleTideEvent) bits.push('三潮市況 ×' + state._tripleTideEvent);
+    if (state._tripleTideSeen) bits.push('三潮入場 ×' + state._tripleTideSeen);
+    if (state._haltDrizzle) bits.push('臨停細雨 ×' + state._haltDrizzle);
     if (state._bonds && state._bonds.length) {
       bits.push('羈絆：' + state._bonds.map((b) => b.name).join('、'));
     }
@@ -796,11 +824,14 @@
         if (ev.id === 'triple_tide') {
           save.ach.triple_event = true;
         }
+        if (ev.id === 'halt_drizzle') {
+          save.ach.halt_drizzle = true;
+        }
         if (!save.ach.market_event) {
           save.ach.market_event = true;
           writeSave(save);
           notifyAchievements();
-        } else if (ev.id === 'triple_tide') {
+        } else if (ev.id === 'triple_tide' || ev.id === 'halt_drizzle') {
           writeSave(save);
           notifyAchievements();
         }
@@ -987,10 +1018,45 @@
         });
       } else {
         extras.push({
-          label: '挑戰無盡',
+          label: '挑戰無盡★',
           onClick: () => {
             UI.hideOverlay();
-            state = freshState(0, true, false, false);
+            enterStage(0, true, false, false);
+            const lab = modifierLabel(state.modifiers || []);
+            if ((save.maxStageCleared || 0) >= STAGES.length && !save.post12EndlessBonus) {
+              save.post12EndlessBonus = true;
+              if (!save.ach) save.ach = {};
+              save.ach.post12_endless = true;
+              state.silver += 48;
+              writeSave(save);
+              notifyAchievements();
+              if (typeof recordWallSnapshot === 'function') {
+                recordWallSnapshot(save, 'post12');
+                save.ach.wall_snap = true;
+                writeSave(save);
+              }
+              UI.toast('全破入無盡｜開局 +48 兩' + (lab ? '｜' + lab : ''), 2600);
+            } else {
+              UI.toast('無盡★' + (lab ? '｜' + lab : ''), 2200);
+            }
+            resetWaveBtn();
+            syncAll();
+          },
+        });
+        extras.push({
+          label: '每日關',
+          onClick: () => {
+            UI.hideOverlay();
+            enterStage(0, false, true, false);
+            resetWaveBtn();
+            syncAll();
+          },
+        });
+        extras.push({
+          label: '週挑戰',
+          onClick: () => {
+            UI.hideOverlay();
+            enterStage(0, false, false, true);
             resetWaveBtn();
             syncAll();
           },
@@ -1063,9 +1129,15 @@
     }
 
     if (state.endless) {
-      save.bestEndlessWave = Math.max(save.bestEndlessWave || 0, state.waveIndex);
+      const prevBest = save.bestEndlessWave || 0;
+      save.bestEndlessWave = Math.max(prevBest, state.waveIndex);
       if (save.localBest) {
         save.localBest.endless = Math.max(save.localBest.endless || 0, save.bestEndlessWave || 0);
+      }
+      if (save.bestEndlessWave > prevBest && typeof recordWallSnapshot === 'function') {
+        recordWallSnapshot(save, 'endless');
+        if (!save.ach) save.ach = {};
+        save.ach.wall_snap = true;
       }
       writeSave(save);
       notifyAchievements();
@@ -1292,7 +1364,6 @@
           };
           if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(text).then(done).catch(() => {
-              // fallback prompt
               window.prompt('複製牆短碼（本機｜唔做線上排行）', pack.code || text);
               done();
             });
@@ -1302,6 +1373,44 @@
           }
         } catch (err) {
           UI.toast('短碼複製失敗');
+        }
+      },
+      onCompareWallShare: () => {
+        try {
+          const mine = typeof encodeWallShort === 'function' ? encodeWallShort(save) : '';
+          const other = window.prompt(
+            '貼上對方牆短碼做本機對照（唔做線上排行）\n你嘅短碼：' + mine,
+            ''
+          );
+          if (other == null || !String(other).trim()) return;
+          const cmp = typeof compareWallShort === 'function' ? compareWallShort(save, other) : null;
+          if (!cmp || !cmp.ok) {
+            UI.toast((cmp && cmp.error) || '短碼格式唔啱');
+            return;
+          }
+          if (!save.ach) save.ach = {};
+          save.ach.wall_compare = true;
+          writeSave(save);
+          notifyAchievements();
+          UI.toast(cmp.summary + '｜' + cmp.note, 3600);
+        } catch (err) {
+          UI.toast('對照失敗');
+        }
+      },
+      onSnapWall: () => {
+        try {
+          if (typeof recordWallSnapshot !== 'function') {
+            UI.toast('快照不可用');
+            return;
+          }
+          const snap = recordWallSnapshot(save, 'manual');
+          if (!save.ach) save.ach = {};
+          save.ach.wall_snap = true;
+          writeSave(save);
+          notifyAchievements();
+          UI.toast('已留牆快照 ' + ((snap && snap.short) || ''), 2400);
+        } catch (err) {
+          UI.toast('快照失敗');
         }
       },
       onExportWallJson: () => {

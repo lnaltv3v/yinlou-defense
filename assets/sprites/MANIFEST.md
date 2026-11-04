@@ -56,3 +56,7 @@
 
 ## v2.1
 - `halt_tide`／`halt_tide_attack`／`halt_tide_sheet`：正式 PNG（48×48／sheet 96×48）；程式 `CACHE_VER=2.1.0`。
+
+
+## v2.2
+- 無新角色 PNG；`CACHE_VER=2.2.0` bust 既有帧。

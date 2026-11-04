@@ -688,3 +688,14 @@ header.title {
 }
 .codex-thumb.has-png .codex-thumb-fallback { display: none; }
 .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: 0.02em; }
+
+
+/* v2.2 全破無盡入口 */
+.stage-btn.finale {
+  border-color: #C9A227;
+  color: #C9A227;
+  box-shadow: 0 0 0 1px rgba(201, 162, 39, 0.35);
+}
+.stage-btn.endless.finale:not(:disabled) {
+  background: linear-gradient(180deg, #3A2A18 0%, #2A2018 100%);
+}

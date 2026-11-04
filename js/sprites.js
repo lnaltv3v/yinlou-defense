@@ -7,7 +7,7 @@
   const BASE = 'assets/sprites/';
   const SCENE_BASE = 'assets/scenes/';
   const FRAME = 48;
-  const CACHE_VER = '2.1.0';
+  const CACHE_VER = '2.2.0';
   const KNOWN_IDS = [
     'long_bull',
     'short_blade',
