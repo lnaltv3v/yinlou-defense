@@ -1041,14 +1041,56 @@
         }
       }
       const taxT = sk.mirageTax || 4;
-      state._mirageTaxT = Math.max(state._mirageTaxT || 0, taxT);
-      state._mirageTaxMax = Math.max(state._mirageTaxMax || 0, taxT);
-      state._mirageTaxMul = sk.mirageTaxMul || 0.55;
-      state._mergeFreezeT = Math.max(state._mergeFreezeT || 0, taxT * 0.85);
+      const baseMul = sk.mirageTaxMul || 0.58;
+      const stackMul = sk.mirageTaxStackMul || 0.88;
+      let floor = sk.mirageTaxFloor || 0.38;
+      if (state.modCtx && state.modCtx.mirageTaxFloorBonus) {
+        floor = Math.min(0.55, floor + state.modCtx.mirageTaxFloorBonus);
+      }
+      const stacking = (state._mirageTaxT || 0) > 0.15;
+      if (stacking) {
+        // v3.5：叠層唔滿刷新——延長較短、倍率遞減見底
+        const ext = taxT * (sk.mirageTaxStackExtend || 0.55);
+        state._mirageTaxT = Math.min(taxT * 1.65, (state._mirageTaxT || 0) + ext);
+        state._mirageTaxMul = Math.max(floor, (state._mirageTaxMul || baseMul) * stackMul);
+        state._mirageTaxStacks = (state._mirageTaxStacks || 1) + 1;
+        state._mirageTaxStacked = true;
+        try {
+          if (window.YDAudio && window.YDAudio.play) window.YDAudio.play('tax_stack');
+        } catch (_) {}
+        pushFloat(state.floats, {
+          x: enemy.x + 10,
+          y: enemy.y - 86,
+          text: '鏡稅叠層 ×' + state._mirageTaxStacks,
+          color: '#C9A227',
+          size: 12,
+          vy: -20,
+          life: 1.1,
+          bounce: 0.85,
+        });
+      } else {
+        state._mirageTaxT = taxT;
+        state._mirageTaxMul = baseMul;
+        state._mirageTaxStacks = 1;
+        state._mirageTaxStacked = false;
+      }
+      state._mirageTaxMax = Math.max(state._mirageTaxMax || 0, state._mirageTaxT, taxT);
+      state._mergeFreezeT = Math.max(
+        state._mergeFreezeT || 0,
+        stacking ? taxT * 0.45 : taxT * 0.85
+      );
+      // 雙帳鏡同場：抽銀再軟一檔
+      const mirageAlive = (state.enemies || []).filter(
+        (e) => e.hp > 0 && e.id === 'ledger_mirage'
+      ).length;
+      if (mirageAlive >= 2 && state._mirageTaxMul < 0.7) {
+        state._mirageTaxMul = Math.min(0.7, state._mirageTaxMul + 0.04);
+        state._dualMirageTax = true;
+      }
       pushFloat(state.floats, {
         x: enemy.x,
         y: enemy.y - 42,
-        text: '🪞 帳鏡封庫！',
+        text: stacking ? '🪞 帳鏡叠封！' : '🪞 帳鏡封庫！',
         color: '#A8C0D8',
         size: 16,
         vy: -28,
@@ -1058,7 +1100,7 @@
       pushFloat(state.floats, {
         x: enemy.x + 18,
         y: enemy.y - 68,
-        text: '擊殺銀縮｜合星凍結',
+        text: '擊殺銀×' + Math.round((state._mirageTaxMul || baseMul) * 100) + '%｜合星凍',
         color: '#7A90A8',
         size: 12,
         vy: -18,
@@ -1558,7 +1600,21 @@
     }
     if (triple) state._tripleTideSeen = (state._tripleTideSeen || 0) + 1;
     if (quad) state._quadTideSeen = (state._quadTideSeen || 0) + 1;
-    if (penta) state._pentaTideSeen = (state._pentaTideSeen || 0) + 1;
+    if (penta) {
+      state._pentaTideSeen = (state._pentaTideSeen || 0) + 1;
+      if (state.endless && state.waveIndex && state.waveIndex % 160 === 0) {
+        state._dualPentaSeen = (state._dualPentaSeen || 0) + 1;
+      }
+    }
+    try {
+      const A = window.YDAudio;
+      if (A && A.play) {
+        if (penta && state._dualPentaSeen) A.play('dual_penta');
+        else if (penta) A.play('penta');
+        else if (isMirage) A.play('mirage');
+        else if (quad || triple) A.play('boss');
+      }
+    } catch (_) {}
     const title = penta
       ? '五潮同場'
       : quad

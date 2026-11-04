@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — Web Audio 極簡蜂鳴 v2.3.0
+ * 銀樓防衛 — Web Audio 極簡蜂鳴 v3.5.0
  * 可關；正式 ogg／wav 仍後備。
  */
 (function (global) {
@@ -99,6 +99,30 @@
     skill: function () {
       tone(600, 0.05, 'triangle', 0.035);
       tone(800, 0.06, 'triangle', 0.03, 0.04);
+    },
+    // v3.5：蜂鳴分層（唔加外部音檔）
+    penta: function () {
+      tone(98, 0.14, 'square', 0.05);
+      tone(130, 0.12, 'sawtooth', 0.035, 0.06);
+      tone(196, 0.1, 'triangle', 0.04, 0.14);
+      tone(247, 0.08, 'triangle', 0.03, 0.22);
+    },
+    mirage: function () {
+      tone(156, 0.1, 'triangle', 0.04);
+      tone(233, 0.12, 'sine', 0.035, 0.07);
+      tone(311, 0.09, 'triangle', 0.028, 0.15);
+    },
+    dual_penta: function () {
+      tone(87, 0.16, 'square', 0.055);
+      tone(110, 0.14, 'sawtooth', 0.04, 0.05);
+      tone(146, 0.12, 'triangle', 0.038, 0.14);
+      tone(220, 0.1, 'triangle', 0.032, 0.24);
+      tone(277, 0.08, 'sine', 0.025, 0.32);
+    },
+    tax_stack: function () {
+      tone(180, 0.06, 'triangle', 0.035);
+      tone(240, 0.07, 'triangle', 0.03, 0.05);
+      tone(320, 0.08, 'sine', 0.028, 0.1);
     },
   };
 

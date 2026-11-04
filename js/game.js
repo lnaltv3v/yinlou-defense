@@ -25,6 +25,8 @@
     recordWallCompare,
     formatWallCompareHistory,
     exportWallCompareHistory,
+    exportWallCompareHistoryJson,
+    listWallCompareDays,
     clearWallCompareHistory,
     recordWallSnapshot,
     formatWallTimeline,
@@ -303,6 +305,8 @@
       _mirageKills: 0,
       _quadTideSeen: 0,
       _pentaTideSeen: 0,
+      _dualPentaSeen: 0,
+      _mirageTaxStacks: 0,
       _circuitProcs: 0,
       _swanKills: 0,
       _killStreak: 0,
@@ -462,6 +466,30 @@
     }
     if ((state._pentaTideSeen || 0) >= 1 && !save.ach.penta_fx_seen) {
       save.ach.penta_fx_seen = true;
+      writeSave(save);
+      notifyAchievements();
+    }
+    if ((state._dualPentaSeen || 0) >= 1 && !save.ach.dual_penta_seen) {
+      save.ach.dual_penta_seen = true;
+      writeSave(save);
+      notifyAchievements();
+      UI.toast('成就｜雙五潮過招', 2200);
+    }
+    if (state._mirageTaxStacked && !save.ach.mirage_tax_stack) {
+      save.ach.mirage_tax_stack = true;
+      writeSave(save);
+      notifyAchievements();
+      UI.toast('成就｜鏡稅叠層', 2000);
+    }
+    if (
+      state.phase === 'prep' &&
+      state.tutorialStep != null &&
+      state.tutorialStep < 2 &&
+      state.tutorialStep < 99 &&
+      state.showCellHints !== false &&
+      !save.ach.tut_cell_highlight
+    ) {
+      save.ach.tut_cell_highlight = true;
       writeSave(save);
       notifyAchievements();
     }
@@ -828,24 +856,33 @@
       if (enterStage(0, true, false, false)) {
         const lab = modifierLabel(state.modifiers || []);
         const lateMods = (state.modifiers || []).filter(
-          (m) => m.late90 || m.late100 || m.late140 || m.late150 || m.late160 || m.late180
+          (m) =>
+            m.late90 ||
+            m.late100 ||
+            m.late140 ||
+            m.late150 ||
+            m.late160 ||
+            m.late180 ||
+            m.late220
         );
         state._lateModBadge = lateMods.length
           ? lateMods.map((m) => m.name).join(' · ')
           : '';
-        state._lateModTier = lateMods.some((m) => m.late180)
-          ? 180
-          : lateMods.some((m) => m.late160)
-            ? 160
-            : lateMods.some((m) => m.late150)
-              ? 150
-              : lateMods.some((m) => m.late140)
-                ? 140
-                : lateMods.some((m) => m.late100)
-                  ? 100
-                  : lateMods.some((m) => m.late90)
-                    ? 90
-                    : 0;
+        state._lateModTier = lateMods.some((m) => m.late220)
+          ? 220
+          : lateMods.some((m) => m.late180)
+            ? 180
+            : lateMods.some((m) => m.late160)
+              ? 160
+              : lateMods.some((m) => m.late150)
+                ? 150
+                : lateMods.some((m) => m.late140)
+                  ? 140
+                  : lateMods.some((m) => m.late100)
+                    ? 100
+                    : lateMods.some((m) => m.late90)
+                      ? 90
+                      : 0;
         if ((save.bestEndlessWave || 0) >= 140) {
           if (!save.ach) save.ach = {};
           save.ach.late140_run = true;
@@ -870,20 +907,28 @@
           writeSave(save);
           notifyAchievements();
         }
+        if ((save.bestEndlessWave || 0) >= 220) {
+          if (!save.ach) save.ach = {};
+          save.ach.late220_run = true;
+          writeSave(save);
+          notifyAchievements();
+        }
         if (state._lateModBadge) {
           setTimeout(() => {
             const tag =
-              state._lateModTier >= 180
-                ? '【180+】'
-                : state._lateModTier >= 160
-                  ? '【160+】'
-                  : state._lateModTier >= 150
-                    ? '【150+】'
-                    : state._lateModTier >= 140
-                      ? '【140+】'
-                      : state._lateModTier >= 100
-                        ? '【100+】'
-                        : '【90+】';
+              state._lateModTier >= 220
+                ? '【220+】'
+                : state._lateModTier >= 180
+                  ? '【180+】'
+                  : state._lateModTier >= 160
+                    ? '【160+】'
+                    : state._lateModTier >= 150
+                      ? '【150+】'
+                      : state._lateModTier >= 140
+                        ? '【140+】'
+                        : state._lateModTier >= 100
+                          ? '【100+】'
+                          : '【90+】';
             UI.toast(tag + state._lateModBadge, 3000);
           }, 200);
         }
@@ -1769,6 +1814,13 @@
           save.ach.wall_compare_export = true;
           writeSave(save);
           notifyAchievements();
+        };
+        window.__yinlouMarkWallHistJson = () => {
+          if (!save.ach) save.ach = {};
+          save.ach.wall_compare_json = true;
+          writeSave(save);
+          notifyAchievements();
+          UI.toast('成就｜牆史 JSON', 1800);
         };
         window.__yinlouMarkWallHistClear = () => {
           if (!save.ach) save.ach = {};

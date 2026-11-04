@@ -808,7 +808,7 @@ header.title {
 }
 
 
-/* v3.4.0 */
+/* v3.5.0 */
 .lane-tips {
   display: flex;
   gap: 8px;
@@ -1003,7 +1003,7 @@ header.title {
 .wall-spark-actions-v31 { gap: 6px; }
 
 
-/* v3.4.0 — tutorial HUD / ach jump / wall copy / mirage tax / wall hist */
+/* v3.5.0 — tutorial HUD / ach jump / wall copy / mirage tax / wall hist */
 .tutorial-hud {
   display: none;
   position: absolute;
@@ -1059,7 +1059,7 @@ button.ach-cat-bar:focus {
 #wall-compare-copy:disabled { opacity: 0.4; cursor: default; }
 
 
-/* v3.4.0 — mirage tax HUD / tut-dot click / wall compare history */
+/* v3.5.0 — mirage tax HUD / tut-dot click / wall compare history */
 .mirage-tax-hud {
   display: none;
   position: absolute;
@@ -1111,7 +1111,7 @@ button.ach-cat-bar:focus {
 .wall-hist-list .dim { opacity: 0.65; }
 
 
-/* v3.4.0 — mirage tax bar / tut blurb / wall hist actions */
+/* v3.5.0 — mirage tax bar / tut blurb / wall hist actions */
 .mirage-tax-hud {
   flex-direction: column;
   gap: 4px;
@@ -1151,3 +1151,13 @@ button.ach-cat-bar:focus {
   margin-top: 6px;
   flex-wrap: wrap;
 }
+
+
+/* v3.5.0 — wall day chips / tut cell */
+.wall-hist-days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 6px 0;
+}
+.wall-hist-days .wall-mode-btn { font-size: 10px; padding: 2px 6px; }

@@ -630,8 +630,11 @@
         type: 'ledger_mirage',
         atkDebuff: 0.2,
         atkDebuffDur: 3.0,
-        mirageTax: 4.2,
-        mirageTaxMul: 0.55,
+        mirageTax: 4.0,
+        mirageTaxMul: 0.58,
+        mirageTaxStackMul: 0.88,
+        mirageTaxFloor: 0.38,
+        mirageTaxStackExtend: 0.55,
         silverDrain: 5,
         coreDmg: 16,
         blotRad: 175,
@@ -1714,7 +1717,7 @@
   const ENDLESS = {
     id: 'endless',
     name: '無盡殺跌',
-    story: '殺跌無盡，浪高過浪。里程碑銀兩係你唯一嘅喘息；修飾詞會改寫盤口——守得愈久，江湖傳聞愈響，亦愈難轉身離場。\n\nv3.4：180／200 里程碑＋第六池；五潮 FX／鏡稅圈；牆史匯出清除；教學步箋。',
+    story: '殺跌無盡，浪高過浪。里程碑銀兩係你唯一嘅喘息；修飾詞會改寫盤口——守得愈久，江湖傳聞愈響，亦愈難轉身離場。\n\nv3.5：220／250＋第七池；雙五潮／鏡稅叠層平衡；牆史按日／JSON；教學空格高亮。',
     startSilver: 215,
     coreHp: 235,
     unlockHeroes: Object.keys(HEROES),
@@ -1732,6 +1735,8 @@
       if (waveIndex >= 160) b += 12;
       if (waveIndex >= 180) b += 14;
       if (waveIndex >= 200) b += 16;
+      if (waveIndex >= 220) b += 18;
+      if (waveIndex >= 250) b += 20;
       return Math.round(b);
     }
     return 26 + waveIndex * 8;
@@ -1758,6 +1763,8 @@
     { wave: 160, silver: 2400, label: '百六十浪五潮城' },
     { wave: 180, silver: 2800, label: '百八十浪長城' },
     { wave: 200, silver: 3200, label: '二百浪封城' },
+    { wave: 220, silver: 3600, label: '二百二十浪潮城' },
+    { wave: 250, silver: 4200, label: '二百五十浪封神' },
   ];
 
   function endlessMilestone(waveIndex) {
@@ -2496,6 +2503,50 @@
     },
   ];
 
+  /** v3.5：曾達 220 再開無盡必帶其一（第七池／潮城） */
+  const RUN_MODIFIERS_220 = [
+    {
+      id: 'tide_city_vault',
+      name: '潮城銀庫',
+      blurb: '開局銀 +24%；核心 HP +11%',
+      late220: true,
+      apply: (ctx) => {
+        ctx.silverMul = (ctx.silverMul || 1) * 1.24;
+        ctx.coreMul = (ctx.coreMul || 1) * 1.11;
+      },
+    },
+    {
+      id: 'dual_mirror_guard',
+      name: '雙鏡鐵衛',
+      blurb: '鏡稅叠層地板 +0.06；抽銀 ×0.22',
+      late220: true,
+      apply: (ctx) => {
+        ctx.mirageTaxFloorBonus = (ctx.mirageTaxFloorBonus || 0) + 0.06;
+        ctx.silverDrainMul = (ctx.silverDrainMul || 1) * 0.22;
+      },
+    },
+    {
+      id: 'star_tide_city',
+      name: '合星潮城',
+      blurb: '合併回報 ×1.4；波次補銀 +11%',
+      late220: true,
+      apply: (ctx) => {
+        ctx.mergeRebateMul = (ctx.mergeRebateMul || 1) * 1.4;
+        ctx.waveBonusMul = (ctx.waveBonusMul || 1) * 1.11;
+      },
+    },
+    {
+      id: 'seal_tide_city',
+      name: '潮城印陣',
+      blurb: '敵速 −7%；鎖倉持續 ×1.14',
+      late220: true,
+      apply: (ctx) => {
+        ctx.enemySpeedMul = (ctx.enemySpeedMul || 1) * 0.93;
+        ctx.lockDurMul = (ctx.lockDurMul || 1) * 1.14;
+      },
+    },
+  ];
+
   function hashStr(s) {
     let h = 0;
     for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
@@ -2794,6 +2845,14 @@
       if (!mods.some((m) => m.id === late6.id)) {
         if (mods.length >= 3) mods[0] = late6;
         else mods.push(late6);
+      }
+    }
+    if (best >= 220 && RUN_MODIFIERS_220.length) {
+      const h8 = (seed ^ 0x220fade) >>> 0;
+      const late7 = RUN_MODIFIERS_220[h8 % RUN_MODIFIERS_220.length];
+      if (!mods.some((m) => m.id === late7.id)) {
+        if (mods.length >= 3) mods[mods.length - 1] = late7;
+        else mods.push(late7);
       }
     }
     return mods;
@@ -3439,6 +3498,13 @@
     { id: 'wall_compare_export', cat: 'meta', name: '牆史出冊', blurb: '匯出一次牆對照歷史', check: (s) => !!s.ach && !!s.ach.wall_compare_export },
     { id: 'wall_compare_clear', cat: 'meta', name: '牆史清冊', blurb: '清除一次牆對照歷史', check: (s) => !!s.ach && !!s.ach.wall_compare_clear },
     { id: 'penta_fx_seen', cat: 'combat', name: '五潮警訊', blurb: '見過五潮同場專屬橫幅／FX', check: (s) => !!s.ach && !!s.ach.penta_fx_seen },
+    { id: 'endless220', cat: 'combat', name: '二百二十浪潮城', blurb: '無盡最佳 ≥ 220 波', check: (s) => (s.bestEndlessWave || 0) >= 220 },
+    { id: 'endless250', cat: 'combat', name: '二百五十浪封神', blurb: '無盡最佳 ≥ 250 波', check: (s) => (s.bestEndlessWave || 0) >= 250 },
+    { id: 'late220_run', cat: 'meta', name: '潮城開盤', blurb: '曾達 220 浪後再開無盡（抽第七池修飾）', check: (s) => !!s.ach && !!s.ach.late220_run },
+    { id: 'dual_penta_seen', cat: 'combat', name: '雙五潮過招', blurb: '經歷過雙五潮週期（含第二帳鏡）', check: (s) => !!s.ach && !!s.ach.dual_penta_seen },
+    { id: 'mirage_tax_stack', cat: 'combat', name: '鏡稅叠層', blurb: '鏡稅叠層觸發一次', check: (s) => !!s.ach && !!s.ach.mirage_tax_stack },
+    { id: 'wall_compare_json', cat: 'meta', name: '牆史 JSON', blurb: '匯出一次牆對照歷史 JSON', check: (s) => !!s.ach && !!s.ach.wall_compare_json },
+    { id: 'tut_cell_highlight', cat: 'meta', name: '教學空格亮', blurb: '教學時見過空格高亮', check: (s) => !!s.ach && !!s.ach.tut_cell_highlight },
   ];
 
   /** 首通銀兩獎勵（入累計帳） */
@@ -3494,7 +3560,9 @@
     const late160 = n >= 160 ? Math.min(0.1, (n - 160) * 0.0028) : 0;
     const late180 = n >= 180 ? Math.min(0.1, (n - 180) * 0.0026) : 0;
     const late200 = n >= 200 ? Math.min(0.08, (n - 200) * 0.0024) : 0;
-    const mul = 1 + (n - 1) * 0.105 + late50 + late75 + late90 + late120 + late130 + late140 + late150 + late160 + late180 + late200;
+    const late220 = n >= 220 ? Math.min(0.08, (n - 220) * 0.0022) : 0;
+    const late250 = n >= 250 ? Math.min(0.08, (n - 250) * 0.002) : 0;
+    const mul = 1 + (n - 1) * 0.105 + late50 + late75 + late90 + late120 + late130 + late140 + late150 + late160 + late180 + late200 + late220 + late250;
     const countLate = n >= 50 ? Math.min(n - 50, 25) * 0.01 + (n >= 75 ? (n - 75) * 0.006 : 0) : 0;
     const count = (base) => {
       let raw = Math.max(1, Math.round(base * (1 + (n - 1) * 0.072 + countLate)));
@@ -3613,13 +3681,26 @@
         });
       }
     }
-    // v3.3：每 80 浪五潮同場（黑羽＋金邊＋臨停＋墨影＋帳鏡）
+    // v3.3／v3.5：每 80 浪五潮；雙週期（%160）雙五潮壓力微調（第二帳鏡＋HP 軟化）
     if (n >= 80 && n % 80 === 0) {
-      spawns.push({ enemy: 'black_swan', count: 1, lane: 0, interval: 0, delay: 1.4, hpMul: mul });
-      spawns.push({ enemy: 'circuit_swan', count: 1, lane: 1, interval: 0, delay: 2.6, hpMul: mul * 1.05 });
-      spawns.push({ enemy: 'halt_tide', count: 1, lane: 2, interval: 0, delay: 3.8, hpMul: mul * 1.08 });
-      spawns.push({ enemy: 'ink_specter', count: 1, lane: 3, interval: 0, delay: 5.0, hpMul: mul * 1.1, inkTag: '左帳' });
-      spawns.push({ enemy: 'ledger_mirage', count: 1, lane: 2, interval: 0, delay: 6.4, hpMul: mul * 1.12 });
+      const dualPenta = n >= 160 && n % 160 === 0;
+      const soft = dualPenta ? 0.94 : 1;
+      spawns.push({ enemy: 'black_swan', count: 1, lane: 0, interval: 0, delay: 1.4, hpMul: mul * soft });
+      spawns.push({ enemy: 'circuit_swan', count: 1, lane: 1, interval: 0, delay: 2.6, hpMul: mul * 1.05 * soft });
+      spawns.push({ enemy: 'halt_tide', count: 1, lane: 2, interval: 0, delay: 3.8, hpMul: mul * 1.08 * soft });
+      spawns.push({ enemy: 'ink_specter', count: 1, lane: 3, interval: 0, delay: 5.0, hpMul: mul * 1.1 * soft, inkTag: '左帳' });
+      spawns.push({ enemy: 'ledger_mirage', count: 1, lane: 2, interval: 0, delay: 6.4, hpMul: mul * 1.12 * soft });
+      if (dualPenta) {
+        // 雙五潮：第二帳鏡稍遲入場、HP 再軟一檔
+        spawns.push({
+          enemy: 'ledger_mirage',
+          count: 1,
+          lane: 1,
+          interval: 0,
+          delay: 8.2,
+          hpMul: mul * 1.05 * soft,
+        });
+      }
       spawns.push({
         enemy: 'dark_tape',
         count: count(5 + Math.floor(n / 12)),
@@ -3714,7 +3795,7 @@
         hpMul: mul * 0.94,
       });
     }
-    if (n === 120 || n === 130 || n === 140 || n === 150 || n === 160 || n === 180 || n === 200) {
+    if (n === 120 || n === 130 || n === 140 || n === 150 || n === 160 || n === 180 || n === 200 || n === 220 || n === 250) {
       let haveInk = spawns.filter((s) => s.enemy === 'ink_specter').reduce((a, s) => a + (s.count || 1), 0);
       if (haveInk < 1) {
         spawns.push({
@@ -3928,7 +4009,10 @@
     if (from < 34) {
       s.ach.v34_migrated = true;
     }
-    s.version = Math.max(34, from, base.version || 34);
+    if (from < 35) {
+      s.ach.v35_migrated = true;
+    }
+    s.version = Math.max(35, from, base.version || 35);
     return s;
   }
 
@@ -3944,7 +4028,7 @@
 
   function defaultSave() {
     return {
-      version: 34,
+      version: 35,
       totalSilver: 0,
       totalKills: 0,
       maxStageCleared: 0,
@@ -4062,19 +4146,44 @@
           }).format(d);
         }
       } catch (_) {}
+      let day = '';
+      try {
+        const d0 = new Date(e.at);
+        if (!isNaN(d0.getTime())) {
+          day = new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'Asia/Hong_Kong',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+          }).format(d0);
+        }
+      } catch (_) {}
       return {
         index: i,
         localAt: local,
+        at: e.at || '',
+        rawAt: e.at || '',
+        day: day,
         summary: e.summary || '',
         otherCode: e.otherCode || '',
         mineCode: e.mineCode || '',
+        delta: e.delta || null,
       };
     });
   }
 
-  function exportWallCompareHistory(save) {
-    const rows = formatWallCompareHistory(save);
-    const lines = ['銀樓防衛｜牆對照歷史（本機）｜v3.4'];
+  function exportWallCompareHistory(save, opts) {
+    opts = opts || {};
+    const day = opts.day || null; // 'YYYY-MM-DD' Asia/Hong_Kong or null=all
+    let rows = formatWallCompareHistory(save);
+    if (day) {
+      rows = rows.filter(function (r) {
+        return wallCompareDayKey(r.at || r.rawAt) === day;
+      });
+    }
+    const lines = [
+      '銀樓防衛｜牆對照歷史（本機）｜v3.5' + (day ? '｜日=' + day : '｜全日'),
+    ];
     if (!rows.length) lines.push('（尚無留底）');
     for (const r of rows) {
       lines.push(
@@ -4086,6 +4195,60 @@
       );
     }
     return lines.join('\n');
+  }
+
+  function wallCompareDayKey(isoOrLocal) {
+    if (!isoOrLocal) return '';
+    try {
+      const d = new Date(isoOrLocal);
+      if (isNaN(d.getTime())) return String(isoOrLocal).slice(0, 10);
+      return new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Hong_Kong',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(d);
+    } catch (_) {
+      return String(isoOrLocal).slice(0, 10);
+    }
+  }
+
+  function listWallCompareDays(save) {
+    const arr = Array.isArray(save && save.wallCompareHistory) ? save.wallCompareHistory : [];
+    const set = {};
+    for (const e of arr) {
+      const k = wallCompareDayKey(e.at);
+      if (k) set[k] = (set[k] || 0) + 1;
+    }
+    return Object.keys(set)
+      .sort()
+      .reverse()
+      .map(function (k) {
+        return { day: k, count: set[k] };
+      });
+  }
+
+  function exportWallCompareHistoryJson(save, opts) {
+    opts = opts || {};
+    const day = opts.day || null;
+    let rows = formatWallCompareHistory(save);
+    if (day) {
+      rows = rows.filter(function (r) {
+        return wallCompareDayKey(r.at || r.rawAt) === day;
+      });
+    }
+    return JSON.stringify(
+      {
+        app: 'yinlou-defense',
+        ver: '3.5.0',
+        exportedAt: new Date().toISOString(),
+        day: day,
+        count: rows.length,
+        rows: rows,
+      },
+      null,
+      2
+    );
   }
 
   function clearWallCompareHistory(save) {
@@ -4553,6 +4716,7 @@
     RUN_MODIFIERS_150,
     RUN_MODIFIERS_160,
     RUN_MODIFIERS_180,
+    RUN_MODIFIERS_220,
     buildEndlessWave,
     buildDailyWaves,
     buildWeeklyWaves,
@@ -4598,6 +4762,9 @@
     recordWallCompare,
     formatWallCompareHistory,
     exportWallCompareHistory,
+    exportWallCompareHistoryJson,
+    listWallCompareDays,
+    wallCompareDayKey,
     clearWallCompareHistory,
     recordWallSnapshot,
     formatWallTimeline,

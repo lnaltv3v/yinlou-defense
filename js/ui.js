@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v3.4.0
+ * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v3.5.0
  */
 (function (global) {
   const {
@@ -27,6 +27,8 @@
     recordWallCompare,
     formatWallCompareHistory,
     exportWallCompareHistory,
+    exportWallCompareHistoryJson,
+    listWallCompareDays,
     clearWallCompareHistory,
     recordWallSnapshot,
     formatWallTimeline,
@@ -100,7 +102,7 @@
       ink +
       '"></i>' +
       gear;
-    const src = (window.YDSprites && window.YDSprites.urlFor) ? window.YDSprites.urlFor(def.id) : ('assets/sprites/' + def.id + '.png?v=3.4.0');
+    const src = (window.YDSprites && window.YDSprites.urlFor) ? window.YDSprites.urlFor(def.id) : ('assets/sprites/' + def.id + '.png?v=3.5.0');
     return (
       '<span class="hero-avatar" aria-hidden="true" data-hero="' +
       def.id +
@@ -617,25 +619,65 @@
     ov.classList.remove('paper-panel');
   }
 
-  function fillWallCompareHist(save) {
+  function fillWallCompareHist(save, dayFilter) {
     const histEl = $('wall-compare-hist');
     if (!histEl) return;
-    const rows =
+    if (dayFilter === undefined) {
+      dayFilter = histEl.getAttribute('data-day') || '';
+    } else {
+      histEl.setAttribute('data-day', dayFilter || '');
+    }
+    const days =
+      typeof listWallCompareDays === 'function' ? listWallCompareDays(save) : [];
+    let rows =
       typeof formatWallCompareHistory === 'function' ? formatWallCompareHistory(save) : [];
+    if (dayFilter) {
+      rows = rows.filter(function (r) {
+        return (r.day || '') === dayFilter;
+      });
+    }
+    const dayChips =
+      '<div class="wall-hist-days" role="tablist">' +
+      '<button type="button" class="wall-mode-btn' +
+      (!dayFilter ? ' selected' : '') +
+      '" data-wall-day="">全日</button>' +
+      days
+        .slice(0, 5)
+        .map(function (d) {
+          return (
+            '<button type="button" class="wall-mode-btn' +
+            (dayFilter === d.day ? ' selected' : '') +
+            '" data-wall-day="' +
+            d.day +
+            '">' +
+            d.day.slice(5) +
+            '(' +
+            d.count +
+            ')</button>'
+          );
+        })
+        .join('') +
+      '</div>';
     const actions =
       '<div class="wall-hist-actions">' +
-      '<button type="button" class="wall-mode-btn" id="wall-hist-export">匯出歷史</button>' +
+      '<button type="button" class="wall-mode-btn" id="wall-hist-export">匯出文字</button>' +
+      '<button type="button" class="wall-mode-btn" id="wall-hist-json">匯出 JSON</button>' +
       '<button type="button" class="wall-mode-btn" id="wall-hist-clear"' +
-      (rows.length ? '' : ' disabled') +
+      (rows.length || (save.wallCompareHistory && save.wallCompareHistory.length) ? '' : ' disabled') +
       '>清除歷史</button></div>';
     if (!rows.length) {
       histEl.innerHTML =
-        '<span class="card-meta">對照歷史：尚無本機留底</span>' + actions;
+        '<strong style="color:#C9A227">對照歷史（本機）</strong>' +
+        dayChips +
+        '<span class="card-meta">此篩選尚無留底</span>' +
+        actions;
     } else {
       histEl.innerHTML =
-        '<strong style="color:#C9A227">對照歷史（本機）</strong><ul class="wall-hist-list">' +
+        '<strong style="color:#C9A227">對照歷史（本機）</strong>' +
+        dayChips +
+        '<ul class="wall-hist-list">' +
         rows
-          .slice(0, 6)
+          .slice(0, 8)
           .map(function (r) {
             return (
               '<li><span class="mono">' +
@@ -650,36 +692,54 @@
         '</ul>' +
         actions;
     }
-    const expBtn = $('wall-hist-export');
-    if (expBtn) {
-      expBtn.onclick = () => {
-        const text =
-          typeof exportWallCompareHistory === 'function'
-            ? exportWallCompareHistory(save)
-            : '';
-        const done = () => {
-          if (window.__yinlouMarkWallHistExport) window.__yinlouMarkWallHistExport();
-          toast('已匯出牆對照歷史', 2000);
-        };
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(text).then(done).catch(() => {
-            prompt('牆對照歷史', text);
-            done();
-          });
-        } else {
+    histEl.querySelectorAll('[data-wall-day]').forEach(function (btn) {
+      btn.onclick = function () {
+        fillWallCompareHist(save, btn.getAttribute('data-wall-day') || '');
+      };
+    });
+    const copyOut = function (text, mark) {
+      const done = function () {
+        if (mark && window[mark]) window[mark]();
+        toast('已複製', 1800);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done).catch(function () {
           prompt('牆對照歷史', text);
           done();
-        }
+        });
+      } else {
+        prompt('牆對照歷史', text);
+        done();
+      }
+    };
+    const expBtn = $('wall-hist-export');
+    if (expBtn) {
+      expBtn.onclick = function () {
+        const text =
+          typeof exportWallCompareHistory === 'function'
+            ? exportWallCompareHistory(save, { day: dayFilter || null })
+            : '';
+        copyOut(text, '__yinlouMarkWallHistExport');
+      };
+    }
+    const jsonBtn = $('wall-hist-json');
+    if (jsonBtn) {
+      jsonBtn.onclick = function () {
+        const text =
+          typeof exportWallCompareHistoryJson === 'function'
+            ? exportWallCompareHistoryJson(save, { day: dayFilter || null })
+            : '{}';
+        copyOut(text, '__yinlouMarkWallHistJson');
       };
     }
     const clrBtn = $('wall-hist-clear');
     if (clrBtn) {
-      clrBtn.onclick = () => {
-        if (!rows.length) return;
+      clrBtn.onclick = function () {
+        if (!(save.wallCompareHistory && save.wallCompareHistory.length)) return;
         if (!confirm('清除本機牆對照歷史？（唔可復原）')) return;
         if (typeof clearWallCompareHistory === 'function') clearWallCompareHistory(save);
         if (window.__yinlouMarkWallHistClear) window.__yinlouMarkWallHistClear();
-        fillWallCompareHist(save);
+        fillWallCompareHist(save, '');
         toast('已清除牆對照歷史', 1800);
       };
     }
@@ -899,10 +959,10 @@
           })()
         : '—') +
       '</strong></div>' +
-      '<div class="paper-row"><span>版本</span><strong>v3.4.0｜存檔 v' +
-      (save.version || 34) +
+      '<div class="paper-row"><span>版本</span><strong>v3.5.0｜存檔 v' +
+      (save.version || 35) +
       '</strong></div>' +
-      '<p class="paper-note">v3.4：五潮 FX／鏡稅圈、無盡180／200＋第六池、牆史匯出清除、教學步箋。點場上俠客可強化；本地牆本機｜唔做線上排行。</p>' +
+      '<p class="paper-note">v3.5：無盡220／250＋第七池、雙五潮／鏡稅叠層、牆史按日／JSON、教學空格高亮。點場上俠客可強化；本地牆本機｜唔做線上排行。</p>' +
       '</div>';
     const btn = $('btn-overlay');
     btn.textContent = '關閉';
@@ -1098,7 +1158,7 @@
     const src = id && window.YDSprites && window.YDSprites.urlFor
       ? window.YDSprites.urlFor(id)
       : id
-        ? 'assets/sprites/' + id + '.png?v=3.4.0'
+        ? 'assets/sprites/' + id + '.png?v=3.5.0'
         : '';
     const fallback =
       '<span class="codex-thumb-fallback" style="background:' + c + '"></span>';

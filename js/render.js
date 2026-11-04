@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — Canvas 繪製 v3.4.0
+ * 銀樓防衛 — Canvas 繪製 v3.5.0
  * v1.5：場景四層 ground→mid→wall→props；halt_seal PNG；擊破／暴擊
  */
 (function (global) {
@@ -438,6 +438,17 @@
       }
       return null;
     }
+    // v3.5：教學步①② prep 時空格柔和高亮
+    const tut = state.tutorialStep;
+    if (
+      state.phase === 'prep' &&
+      tut != null &&
+      tut < 2 &&
+      tut < 99 &&
+      !occ
+    ) {
+      return 'tut';
+    }
     return null;
   }
 
@@ -457,6 +468,9 @@
         if (hl === 'valid' || hl === 'place' || hl === 'move') {
           const pulse = 0.5 + 0.5 * Math.sin(t * 6);
           bg = hl === 'place' || hl === 'valid' ? (pulse > 0.45 ? '#3A4A38' : '#344438') : '#3A4048';
+        } else if (hl === 'tut') {
+          const pulse = 0.5 + 0.5 * Math.sin(t * 4.5);
+          bg = pulse > 0.5 ? '#354838' : '#2E3A30';
         } else if (hl === 'merge') {
           const pulse = 0.5 + 0.5 * Math.sin(t * 8);
           bg = pulse > 0.4 ? '#4A4030' : '#3A3428';
@@ -466,7 +480,12 @@
         drawPixelRect(ctx, x, y, GRID.cellW, GRID.cellH, bg);
         // 格內地板紋
         drawPixelRect(ctx, x + 4, y + GRID.cellH - 10, GRID.cellW - 8, 4, '#252018');
-        ctx.strokeStyle = hl === 'merge' ? '#C9A227' : hl === 'place' || hl === 'valid' ? '#3A7A6A' : '#4A4034';
+        ctx.strokeStyle =
+          hl === 'merge'
+            ? '#C9A227'
+            : hl === 'place' || hl === 'valid' || hl === 'tut'
+              ? '#3A7A6A'
+              : '#4A4034';
         ctx.lineWidth = hl ? 3 : 2;
         ctx.strokeRect(x + 1, y + 1, GRID.cellW - 2, GRID.cellH - 2);
         if (slot === GRID.slots - 1) {

@@ -1,5 +1,14 @@
 # Changelog
 
+## v3.5.0 — 2026-11-05
+
+- **無盡 220／250**：里程碑「二百二十浪潮城」「二百五十浪封神」；`RUN_MODIFIERS_220` 第七池
+- **雙五潮／鏡稅叠層平衡**：%160 雙五潮第二帳鏡＋Boss HP 軟化；鏡稅叠層延長遞減／倍率見底；雙帳鏡同場微緩
+- **牆史按日篩選＋JSON 匯出**；教學 prep 空格高亮（步①②）
+- Web Audio 蜂鳴分層：`penta`／`mirage`／`dual_penta`／`tax_stack`（無外部音檔）
+- mid／props 無新檔；成就 **116**；存檔 **version 35**；`?v=3.5.0`；Pages 全樹一次
+
+
 ## v3.4.0 — 2026-11-05
 
 - **五潮同場 FX／橫幅加厚**：`pentaTideWarn`／`pentaCrack`／`pentaCurtain`；Boss 橫幅雙框＋提示句
