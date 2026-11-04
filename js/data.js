@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 靜態資料 v2.0.0
+ * 銀樓防衛 — 靜態資料 v2.1.0
  * 角色為原創綽號，影射金融江湖氣氛；唔用真人真名／金庸名／Fortias IP。
  */
 (function (global) {
@@ -1273,8 +1273,8 @@
       name: '停牌潮夜',
       story: '子夜過後，告示欄一夜貼滿臨停——唔再係雙天鵝夾擊，而係停牌潮 simultaneous 湧入。掌櫃熄燈再半盞：先擋符紙潮頭，再軋潮心；鎖倉、鐵衛、逼空齊人，否則銀樓只剩空倉同空城。',
       challenge: true,
-      startSilver: 350,
-      coreHp: 380,
+      startSilver: 355,
+      coreHp: 385,
       unlockHeroes: Object.keys(HEROES),
       firstClearBonus: 340,
       waves: [
@@ -1339,6 +1339,79 @@
     },
 
 
+
+    {
+      id: 12,
+      name: '三潮同場',
+      story: '開市鐘三響——黑羽、金邊、臨停潮同時壓境。掌櫃只留一盞燈：今夜唔係單 Boss，係三潮同場。先鎖倉減攻，再分路收割；齊人羈絆開波，否則銀樓只剩空帳。',
+      challenge: true,
+      startSilver: 365,
+      coreHp: 395,
+      unlockHeroes: Object.keys(HEROES),
+      firstClearBonus: 380,
+      waves: [
+        wavePack([
+          { enemy: 'halt_seal', count: 8, lane: 'cycle', interval: 0.52 },
+          { enemy: 'retail_tide', count: 14, lane: 'random', interval: 0.28, delay: 0.3 },
+          { enemy: 'rumor_swarm', count: 11, lane: 'cycle', interval: 0.26, delay: 0.35 },
+        ]),
+        wavePack([
+          { enemy: 'dark_tape', count: 12, lane: 'cycle', interval: 0.32 },
+          { enemy: 'margin_call', count: 8, lane: 'random', interval: 0.55, delay: 0.45 },
+          { enemy: 'halt_seal', count: 8, lane: 'cycle', interval: 0.55, delay: 0.7 },
+        ]),
+        wavePack([
+          { enemy: 'panic_board', count: 5, lane: 'cycle', interval: 0.82, delay: 0.28, elite: true },
+          { enemy: 'leverage_fiend', count: 3, lane: 'random', interval: 1.0, delay: 1.1 },
+          { enemy: 'black_swan', count: 1, lane: 1, interval: 0, delay: 2.8 },
+          { enemy: 'dark_tape', count: 10, lane: 'random', interval: 0.32, delay: 0.55 },
+        ]),
+        wavePack([
+          { enemy: 'rumor_swarm', count: 14, lane: 'cycle', interval: 0.22 },
+          { enemy: 'margin_call', count: 9, lane: 'random', interval: 0.48, delay: 0.35 },
+          { enemy: 'circuit_swan', count: 1, lane: 2, interval: 0, delay: 2.5 },
+          { enemy: 'halt_seal', count: 7, lane: 'cycle', interval: 0.58, delay: 0.8 },
+        ]),
+        wavePack([
+          { enemy: 'panic_board', count: 6, lane: 'cycle', interval: 0.75 },
+          { enemy: 'dark_tape', count: 13, lane: 'random', interval: 0.28, delay: 0.22 },
+          { enemy: 'halt_tide', count: 1, lane: 0, interval: 0, delay: 2.4 },
+          { enemy: 'leverage_fiend', count: 4, lane: 'cycle', interval: 0.88, delay: 0.8, elite: true },
+        ]),
+        wavePack([
+          { enemy: 'halt_seal', count: 10, lane: 'cycle', interval: 0.4 },
+          { enemy: 'margin_call', count: 8, lane: 'random', interval: 0.44, delay: 0.3 },
+          { enemy: 'black_swan', count: 1, lane: 3, interval: 0, delay: 2.2 },
+          { enemy: 'panic_board', count: 5, lane: 'cycle', interval: 0.78, delay: 0.9 },
+        ]),
+        wavePack([
+          { enemy: 'retail_tide', count: 16, lane: 'cycle', interval: 0.22 },
+          { enemy: 'dark_tape', count: 14, lane: 'random', interval: 0.25, delay: 0.18 },
+          { enemy: 'circuit_swan', count: 1, lane: 1, interval: 0, delay: 2.0 },
+          { enemy: 'halt_seal', count: 10, lane: 'cycle', interval: 0.38, delay: 0.3 },
+          { enemy: 'rumor_swarm', count: 12, lane: 'random', interval: 0.22, delay: 0.2 },
+        ]),
+        wavePack([
+          { enemy: 'panic_board', count: 6, lane: 'cycle', interval: 0.68 },
+          { enemy: 'dark_tape', count: 14, lane: 'random', interval: 0.24, delay: 0.18 },
+          { enemy: 'halt_tide', count: 1, lane: 2, interval: 0, delay: 2.0 },
+          { enemy: 'leverage_fiend', count: 4, lane: 'cycle', interval: 0.84, delay: 0.7 },
+          { enemy: 'margin_call', count: 8, lane: 'random', interval: 0.42, delay: 0.35 },
+        ]),
+        wavePack([
+          { enemy: 'halt_seal', count: 12, lane: 'cycle', interval: 0.36 },
+          { enemy: 'panic_board', count: 7, lane: 'random', interval: 0.6, delay: 0.2 },
+          { enemy: 'leverage_fiend', count: 5, lane: 'cycle', interval: 0.78, delay: 0.55, elite: true },
+          { enemy: 'dark_tape', count: 14, lane: 'random', interval: 0.24, delay: 0.25 },
+          { enemy: 'black_swan', count: 1, lane: 0, interval: 0, delay: 1.5 },
+          { enemy: 'circuit_swan', count: 1, lane: 2, interval: 0, delay: 3.0 },
+          { enemy: 'halt_tide', count: 1, lane: 3, interval: 0, delay: 4.5 },
+          { enemy: 'margin_call', count: 9, lane: 'cycle', interval: 0.38, delay: 0.4 },
+          { enemy: 'chase_zombie', count: 6, lane: 'random', interval: 0.46, delay: 0.6 },
+        ]),
+      ],
+    },
+
   ];
 
   const ENDLESS = {
@@ -1366,6 +1439,7 @@
     { wave: 15, silver: 120, label: '十五浪硬頂' },
     { wave: 20, silver: 180, label: '廿浪封神' },
     { wave: 30, silver: 260, label: '三十浪傳說' },
+    { wave: 40, silver: 340, label: '四十浪三潮' },
   ];
 
   function endlessMilestone(waveIndex) {
@@ -1498,6 +1572,36 @@
             h._bladeOilLeft = Math.max(h._bladeOilLeft, 6);
           }
         }
+      },
+    },
+    {
+      id: 'triple_tide',
+      name: '三潮同場',
+      blurb: '黑羽＋金邊＋臨停潮短時壓境',
+      color: '#C45C4A',
+      weight: 1,
+      apply: (state) => {
+        if (!state.spawner) return;
+        const jobs = [
+          { enemy: 'black_swan', left: 1, interval: 0, delay: 1.2, laneMode: 'fixed', fixedLane: 0 },
+          { enemy: 'circuit_swan', left: 1, interval: 0, delay: 2.6, laneMode: 'fixed', fixedLane: 2 },
+          { enemy: 'halt_tide', left: 1, interval: 0, delay: 4.0, laneMode: 'fixed', fixedLane: 3 },
+        ];
+        for (const j of jobs) {
+          state.spawner.jobs.push({
+            enemy: j.enemy,
+            left: j.left,
+            interval: j.interval,
+            delay: j.delay,
+            timer: 0,
+            started: false,
+            laneMode: j.laneMode,
+            fixedLane: j.fixedLane,
+            hpMul: 0.92,
+            elite: false,
+          });
+        }
+        state._tripleTideEvent = (state._tripleTideEvent || 0) + 1;
       },
     },
   ];
@@ -1991,6 +2095,7 @@
       { name: '巷口風聲週', focus: 'rumor_swarm', blurb: '傳聞蚊潮｜清風再硬頂' },
       { name: '停牌潮週', focus: 'halt_tide', blurb: '停牌潮壓軸｜臨停潮' },
       { name: '十一關試煉週', focus: 'halt_seal', blurb: '停牌符潮｜鎖倉加練', tip: 'lock' },
+      { name: '三潮同場週', focus: 'triple_tide', blurb: '黑羽＋金邊＋臨停｜三潮壓境' },
     ];
     const theme = themes[h % themes.length];
     const base = STAGES[2 + (h % Math.max(1, STAGES.length - 2))]; // 3–末關難度帶
@@ -2014,7 +2119,7 @@
       coreHp: 212 + (h % 5) * 9,
       seed: h,
       unlockHeroes: Object.keys(HEROES),
-      waveCount: 6 + (h % 3) + (theme.focus === 'dual_swan' || theme.focus === 'circuit_swan' || theme.focus === 'halt_tide' ? 1 : 0), // 6–9
+      waveCount: 6 + (h % 3) + (theme.focus === 'dual_swan' || theme.focus === 'circuit_swan' || theme.focus === 'halt_tide' || theme.focus === 'triple_tide' ? 1 : 0), // 6–9
       baseStageId: base.id,
       modifiers: mods,
       hpScale: 1.08 + (h % 3) * 0.02,
@@ -2069,6 +2174,11 @@
           });
         }
       }
+      if (meta.focus === 'triple_tide') {
+        last.spawns.push({ enemy: 'black_swan', count: 1, lane: 0, interval: 0, delay: 2.5, hpMul: 1.08 * scale });
+        last.spawns.push({ enemy: 'circuit_swan', count: 1, lane: 2, interval: 0, delay: 4.2, hpMul: 1.1 * scale });
+        last.spawns.push({ enemy: 'halt_tide', count: 1, lane: 3, interval: 0, delay: 5.8, hpMul: 1.1 * scale });
+      }
     }
     return waves;
   }
@@ -2077,7 +2187,7 @@
     const n = meta.waveCount;
     const focus = meta.focus;
     const waves = [];
-    const bossish = focus === 'black_swan' || focus === 'circuit_swan' || focus === 'dual_swan' || focus === 'halt_tide';
+    const bossish = focus === 'black_swan' || focus === 'circuit_swan' || focus === 'dual_swan' || focus === 'halt_tide' || focus === 'triple_tide';
     const swarmish = focus === 'rumor_swarm' || focus === 'dark_tape';
     const focusEnemy = focus === 'dual_swan' ? 'black_swan' : focus === 'circuit_swan' ? 'circuit_swan' : focus;
     for (let i = 1; i <= n; i++) {
@@ -2306,7 +2416,8 @@
     { id: 'stage9', cat: 'stage', name: '開年軋空', blurb: '通關第 9 關「開年軋空」', check: (s) => (s.maxStageCleared || 0) >= 9 },
     { id: 'stage10', cat: 'stage', name: '雙天鵝夜', blurb: '通關第 10 關「雙天鵝夜」', check: (s) => (s.maxStageCleared || 0) >= 10 },
     { id: 'stage11', cat: 'stage', name: '停牌潮夜', blurb: '通關第 11 關「停牌潮夜」', check: (s) => (s.maxStageCleared || 0) >= 11 },
-    { id: 'all_stages', cat: 'stage', name: '十一關皆破', blurb: '通關全部主線關卡', check: (s) => (s.maxStageCleared || 0) >= STAGES.length },
+    { id: 'stage12', cat: 'stage', name: '三潮同場', blurb: '通關第 12 關「三潮同場」', check: (s) => (s.maxStageCleared || 0) >= 12 },
+    { id: 'all_stages', cat: 'stage', name: '十二關皆破', blurb: '通關全部主線關卡', check: (s) => (s.maxStageCleared || 0) >= STAGES.length },
     { id: 'star3', cat: 'merge', name: '三星掛牌', blurb: '首次合成 3 星', check: (s) => !!s.ach && s.ach.star3 },
     { id: 'maxstar', cat: 'merge', name: '滿星開盤', blurb: '首次合成 4 星', check: (s) => !!s.ach && s.ach.maxstar },
     { id: 'upgrade', cat: 'merge', name: '鍛打開倉', blurb: '首次強化場上俠客', check: (s) => !!s.ach && s.ach.upgrade },
@@ -2355,6 +2466,9 @@
     { id: 'halt_tide_kill', cat: 'combat', name: '軋斷臨停', blurb: '擊敗一次停牌潮', check: (s) => !!s.ach && !!s.ach.halt_tide_kill },
     { id: 'endless30', cat: 'combat', name: '卅浪長城', blurb: '無盡最佳 ≥ 30 波', check: (s) => (s.bestEndlessWave || 0) >= 30 },
     { id: 'wall_export', cat: 'meta', name: '牆文出庫', blurb: '匯出一次本地最佳牆', check: (s) => !!s.ach && !!s.ach.wall_export },
+    { id: 'triple_tide_clear', cat: 'combat', name: '三潮過招', blurb: '單局擊破黑天鵝＋熔斷天鵝＋停牌潮各 ≥1', check: (s) => !!s.ach && !!s.ach.triple_tide_clear },
+    { id: 'triple_event', cat: 'combat', name: '三潮警報', blurb: '觸發一次三潮同場市況事件', check: (s) => !!s.ach && !!s.ach.triple_event },
+    { id: 'wall_share', cat: 'meta', name: '牆碼相傳', blurb: '複製一次本地牆短碼', check: (s) => !!s.ach && !!s.ach.wall_share },
   ];
 
   /** 首通銀兩獎勵（入累計帳） */
@@ -2370,7 +2484,8 @@
     9: 260,
     10: 300,
     11: 340,
-    all: 420,
+    12: 380,
+    all: 480,
   };
 
   function stageFirstClearBonus(stageId) {
@@ -2465,8 +2580,20 @@
         hpMul: mul * 0.9,
       });
     }
-    // v2.0：每 5 波 milestone Boss 輪換 黑天鵝 → 熔斷天鵝 → 停牌潮
-    if (n >= 5 && n % 5 === 0) {
+    // v2.0：每 5 波 milestone Boss 輪換；v2.1：每 30 波「三潮同場」
+    if (n >= 30 && n % 30 === 0) {
+      spawns.push({ enemy: 'black_swan', count: 1, lane: 0, interval: 0, delay: 2.0, hpMul: mul });
+      spawns.push({ enemy: 'circuit_swan', count: 1, lane: 2, interval: 0, delay: 3.5, hpMul: mul * 1.05 });
+      spawns.push({ enemy: 'halt_tide', count: 1, lane: 3, interval: 0, delay: 5.0, hpMul: mul * 1.08 });
+      spawns.push({
+        enemy: 'halt_seal',
+        count: count(3 + Math.floor(n / 10)),
+        lane: 'cycle',
+        interval: 0.45,
+        delay: 1.2,
+        hpMul: mul * 0.95,
+      });
+    } else if (n >= 5 && n % 5 === 0) {
       const rot = ['black_swan', 'circuit_swan', 'halt_tide'];
       const bossId = rot[(Math.floor(n / 5) - 1) % 3];
       const bossCount = bossId === 'black_swan' ? Math.max(1, Math.floor(n / 15) || 1) : 1;
@@ -2596,7 +2723,7 @@
   function mergeRebate(heroId, newStar) {
     const def = HEROES[heroId];
     if (!def) return 0;
-    return Math.round(def.cost * 0.17 * newStar);
+    return Math.round(def.cost * 0.172 * newStar);
   }
 
   function activeBonds(heroes) {
@@ -2636,7 +2763,7 @@
 
   function defaultSave() {
     return {
-      version: 20,
+      version: 21,
       totalSilver: 0,
       totalKills: 0,
       maxStageCleared: 0,
@@ -2672,6 +2799,27 @@
   }
 
 
+
+  function encodeWallShort(save) {
+    const w = formatLocalBestWall(save);
+    // 短碼：YL-E{endless}-S{streakBest}-M{stages}-H{histHash}（本機分享用，唔做線上驗證）
+    const hist = (w.history || []).join(',');
+    let h = 0;
+    for (let i = 0; i < hist.length; i++) h = ((h << 5) - h + hist.charCodeAt(i)) | 0;
+    const hex = (h >>> 0).toString(16).slice(0, 4);
+    return 'YL-E' + w.endless + '-S' + w.weekStreakBest + '-M' + w.stages + '-H' + hex;
+  }
+
+  function exportLocalWallShare(save) {
+    const w = formatLocalBestWall(save);
+    const code = encodeWallShort(save);
+    return {
+      code: code,
+      text: '銀樓防衛本地牆短碼（本機｜唔做線上排行）\n' + code + '\n' + w.short + '\n' + w.label,
+      wall: w,
+    };
+  }
+
   function exportLocalWallJson(save) {
     const wall = formatLocalBestWall(save);
     const wp = formatWeekProgress(save);
@@ -2680,7 +2828,7 @@
         game: 'yinlou-defense',
         kind: 'local-best-wall',
         exportedAt: new Date().toISOString(),
-        version: (save && save.version) || 20,
+        version: (save && save.version) || 21,
         note: '本機進度牆｜唔做線上排行',
       },
       wall: wall,
@@ -2693,6 +2841,7 @@
         label: wp.label,
       },
       history: wall.history || [],
+      shortCode: encodeWallShort(save),
     };
     return JSON.stringify(payload, null, 2);
   }
@@ -2713,12 +2862,13 @@
     if (wall.history && wall.history.length) {
       lines.push('近週通關：' + wall.history.join('、'));
     }
+    lines.push('短碼：' + encodeWallShort(save));
     return lines.join('\n');
   }
 
   function exportSaveJson(save) {
     const payload = {
-      meta: { game: 'yinlou-defense', exportedAt: new Date().toISOString(), version: save.version || 20 },
+      meta: { game: 'yinlou-defense', exportedAt: new Date().toISOString(), version: save.version || 21 },
       save: { ...defaultSave(), ...save },
     };
     return JSON.stringify(payload, null, 2);
@@ -2729,7 +2879,7 @@
     const body = data && data.save ? data.save : data;
     if (!body || typeof body !== 'object') throw new Error('無效存檔');
     const merged = { ...defaultSave(), ...body };
-    merged.version = Math.max(20, merged.version || 20);
+    merged.version = Math.max(21, merged.version || 21);
     if (merged.weekStreak == null) merged.weekStreak = 0;
     if (merged.weekStreakBest == null) merged.weekStreakBest = 0;
     if (!merged.lastWeeklyClearKey) merged.lastWeeklyClearKey = '';
@@ -2787,6 +2937,7 @@
       else if (f === 'black_swan' || f === 'leverage_fiend') pick('squeeze', 8);
       else if (f === 'circuit_swan' || f === 'dual_swan') pick('squeeze_lock', 9);
       else if (f === 'halt_tide' || f === 'halt_seal') pick('halt_lock', 9);
+      else if (f === 'triple_tide') pick('halt_lock', 10);
       else if (f === 'margin_call') {
         pick('iron_wall', 7);
         pick('dip_div', 6);
@@ -2918,6 +3069,8 @@
     exportSaveJson,
     exportLocalWallJson,
     exportLocalWallText,
+    encodeWallShort,
+    exportLocalWallShare,
     importSaveJson,
     pickFailTip,
     pickStuckTip,

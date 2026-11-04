@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 主循環 v2.0.0
+ * 銀樓防衛 — 主循環 v2.1.0
  * v1.9.0：第7關／鎖倉居士／週連續＋本地最佳牆／手感平衡
  */
 (function () {
@@ -19,6 +19,8 @@
     exportSaveJson,
     exportLocalWallJson,
     exportLocalWallText,
+    encodeWallShort,
+    exportLocalWallShare,
     importSaveJson,
     pickFailTip,
     firstRunBonus,
@@ -351,6 +353,17 @@
     }
     if ((state._haltTideKills || 0) >= 1 && !save.ach.halt_tide_kill) {
       save.ach.halt_tide_kill = true;
+    }
+    if (
+      (state._swanKills || 0) >= 1 &&
+      (state._circuitKills || 0) >= 1 &&
+      (state._haltTideKills || 0) >= 1 &&
+      !save.ach.triple_tide_clear
+    ) {
+      save.ach.triple_tide_clear = true;
+    }
+    if ((state._tripleTideEvent || 0) >= 1 && !save.ach.triple_event) {
+      save.ach.triple_event = true;
     }
     if ((state._circuitKills || 0) >= 1 && !save.ach.circuit_kill) {
       save.ach.circuit_kill = true;
@@ -698,6 +711,7 @@
     if (state.lockKills) bits.push('鎖倉擊殺 ' + state.lockKills);
     if (state._circuitKills) bits.push('熔斷天鵝擊破 ×' + state._circuitKills);
     if (state._haltTideKills) bits.push('停牌潮擊破 ×' + state._haltTideKills);
+    if (state._tripleTideEvent) bits.push('三潮市況 ×' + state._tripleTideEvent);
     if (state._bonds && state._bonds.length) {
       bits.push('羈絆：' + state._bonds.map((b) => b.name).join('、'));
     }
@@ -779,8 +793,14 @@
           maxLife: 2.5,
         };
         UI.toast('市況｜' + ev.name + ' — ' + ev.blurb, 2400);
+        if (ev.id === 'triple_tide') {
+          save.ach.triple_event = true;
+        }
         if (!save.ach.market_event) {
           save.ach.market_event = true;
+          writeSave(save);
+          notifyAchievements();
+        } else if (ev.id === 'triple_tide') {
           writeSave(save);
           notifyAchievements();
         }
@@ -944,7 +964,7 @@
         save.firstClears.all = true;
         finaleBonus = (YD.STAGE_FIRST_CLEAR && YD.STAGE_FIRST_CLEAR.all) || 250;
         save.totalSilver += finaleBonus;
-        rewardLines.push('十一關皆破！終局獎勵 +' + finaleBonus + ' 兩');
+        rewardLines.push('十二關皆破！終局獎勵 +' + finaleBonus + ' 兩');
       }
       if (save.localBest) {
         save.localBest.stageClears = Math.max(save.localBest.stageClears || 0, save.maxStageCleared || 0);
@@ -984,31 +1004,35 @@
         },
       });
       const title =
-        stageId >= 11
+        stageId >= 12
           ? hasNext
-            ? '停牌潮夜'
-            : '十一關皆破'
-          : stageId >= 10
+            ? '三潮同場'
+            : '十二關皆破'
+          : stageId >= 11
             ? hasNext
-              ? '雙天鵝夜'
-              : '十一關皆破'
-            : stageId >= 9
+              ? '停牌潮夜'
+              : '十二關皆破'
+            : stageId >= 10
               ? hasNext
-                ? '開年軋空'
-                : '十一關皆破'
-              : stageId >= 8
+                ? '雙天鵝夜'
+                : '十二關皆破'
+              : stageId >= 9
                 ? hasNext
-                  ? '銀樓守歲'
-                  : '十一關皆破'
-                : stageId >= 7
+                  ? '開年軋空'
+                  : '十二關皆破'
+                : stageId >= 8
                   ? hasNext
-                    ? '斷索開市'
-                    : '十一關皆破'
-                  : stageId >= 6
-                    ? '暗盤破曉'
-                    : hasNext
-                      ? '銀樓倖存'
-                      : '十一關皆破';
+                    ? '銀樓守歲'
+                    : '十二關皆破'
+                  : stageId >= 7
+                    ? hasNext
+                      ? '斷索開市'
+                      : '十二關皆破'
+                    : stageId >= 6
+                      ? '暗盤破曉'
+                      : hasNext
+                        ? '銀樓倖存'
+                        : '十二關皆破';
       const rewardBlock = rewardLines.length ? '\n' + rewardLines.join('\n') + '。' : '';
       UI.showOverlay(
         title,
@@ -1023,7 +1047,7 @@
           runModBlock() + settleExtraBlock() +
           (hasNext
             ? '\n已解鎖下一關' + (wasNew ? '「' + STAGES[nextIdx].name + '」' : '') + '。'
-            : '\n主線全破！可挑戰無盡／每日／週挑戰，或重溫停牌潮／雙天鵝。'),
+            : '\n主線全破！可挑戰無盡／每日／週挑戰，或重溫三潮／停牌潮／雙天鵝。'),
         hasNext ? '下一關' : '回第 1 關',
         () => {
           UI.hideOverlay();
@@ -1254,6 +1278,32 @@
         syncAll();
       },
 
+      onCopyWallShare: () => {
+        try {
+          const pack = typeof exportLocalWallShare === 'function' ? exportLocalWallShare(save) : { code: '', text: '' };
+          const text = pack.text || pack.code || '';
+          const done = () => {
+            if (!save.ach) save.ach = {};
+            save.ach.wall_share = true;
+            save.ach.wall_export = true;
+            writeSave(save);
+            notifyAchievements();
+            UI.toast('已複製牆短碼 ' + (pack.code || ''));
+          };
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done).catch(() => {
+              // fallback prompt
+              window.prompt('複製牆短碼（本機｜唔做線上排行）', pack.code || text);
+              done();
+            });
+          } else {
+            window.prompt('複製牆短碼（本機｜唔做線上排行）', pack.code || text);
+            done();
+          }
+        } catch (err) {
+          UI.toast('短碼複製失敗');
+        }
+      },
       onExportWallJson: () => {
         try {
           const json = typeof exportLocalWallJson === 'function' ? exportLocalWallJson(save) : '{}';

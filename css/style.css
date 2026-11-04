@@ -647,3 +647,44 @@ header.title {
 #overlay.codex-mode .paper-body {
   max-height: 400px;
 }
+
+
+/* v2.1 圖鑑縮圖 */
+#overlay.paper-panel .paper-entry.card-row {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 10px;
+}
+#overlay.paper-panel .card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+.codex-thumb {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  image-rendering: pixelated;
+  background: #1A1510;
+  border: 1px solid #5A4030;
+  overflow: hidden;
+}
+.codex-thumb img {
+  position: absolute;
+  inset: 0;
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  z-index: 1;
+}
+.codex-thumb-fallback {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.codex-thumb.has-png .codex-thumb-fallback { display: none; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: 0.02em; }

@@ -52,3 +52,7 @@
 ## v2.0
 - `halt_tide`（停牌潮）：未派正式 PNG；執行時借 `halt_seal` idle／attack，否則幾何。
 - `circuit_swan`／`lock_hermit` 維持既有正式 PNG。
+
+
+## v2.1
+- `halt_tide`／`halt_tide_attack`／`halt_tide_sheet`：正式 PNG（48×48／sheet 96×48）；程式 `CACHE_VER=2.1.0`。

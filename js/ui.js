@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v2.0.0
+ * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v2.1.0
  */
 (function (global) {
   const {
@@ -21,6 +21,8 @@
     formatLocalBestWall,
     exportLocalWallJson,
     exportLocalWallText,
+    encodeWallShort,
+    exportLocalWallShare,
     pickFailTip,
     UPGRADE_PATHS,
     upgradeCost,
@@ -87,7 +89,7 @@
       ink +
       '"></i>' +
       gear;
-    const src = (window.YDSprites && window.YDSprites.urlFor) ? window.YDSprites.urlFor(def.id) : ('assets/sprites/' + def.id + '.png?v=1.6.0');
+    const src = (window.YDSprites && window.YDSprites.urlFor) ? window.YDSprites.urlFor(def.id) : ('assets/sprites/' + def.id + '.png?v=2.1.0');
     return (
       '<span class="hero-avatar" aria-hidden="true" data-hero="' +
       def.id +
@@ -475,6 +477,7 @@
       onImportSave,
       onExportWallJson,
       onExportWallText,
+      onCopyWallShare,
     } = opts;
     const save = getSave();
     const ov = $('overlay');
@@ -514,6 +517,9 @@
       '</strong></div>' +
       '<div class="paper-row"><span>本地牆</span><strong>' +
       (typeof formatLocalBestWall === 'function' ? formatLocalBestWall(save).short : '—') +
+      '</strong></div>' +
+      '<div class="paper-row"><span>牆短碼</span><strong class="mono">' +
+      (typeof encodeWallShort === 'function' ? encodeWallShort(save) : '—') +
       '</strong></div>' +
       '<p class="paper-note">點場上俠客可強化（刀利／甲厚／內息）。圖鑑卡片已加厚；本地牆可匯出 JSON／文字（本機｜唔做線上排行）。</p>' +
       '</div>';
@@ -621,6 +627,7 @@
     section('本地最佳牆');
     if (onExportWallJson) mk('匯出牆 JSON', () => onExportWallJson(), false, true);
     if (onExportWallText) mk('匯出牆文字', () => onExportWallText(), false, true);
+    if (onCopyWallShare) mk('複製牆短碼', () => onCopyWallShare(), false, true);
     section('本關');
     mk(
       '重開本關',
@@ -667,7 +674,30 @@
     container.appendChild(wrap);
   }
 
-  function failTipText(seed) {
+  function codexThumbHtml(def, kind) {
+    const c = (def && def.color) || '#E8DCC8';
+    const id = def && def.id;
+    const src = id && window.YDSprites && window.YDSprites.urlFor
+      ? window.YDSprites.urlFor(id)
+      : id
+        ? 'assets/sprites/' + id + '.png?v=2.1.0'
+        : '';
+    const fallback =
+      '<span class="codex-thumb-fallback" style="background:' + c + '"></span>';
+    if (!src) return '<span class="codex-thumb">' + fallback + '</span>';
+    return (
+      '<span class="codex-thumb" aria-hidden="true">' +
+      '<img src="' +
+      src +
+      '" width="40" height="40" alt="" decoding="async" ' +
+      "onload=\"this.parentNode.classList.add('has-png')\" " +
+      'onerror="this.remove()" />' +
+      fallback +
+      '</span>'
+    );
+  }
+
+    function failTipText(seed) {
     return pickFailTip ? pickFailTip(seed) : '';
   }
 
@@ -690,7 +720,9 @@
             '</div>'
           : '';
         parts.push(
-          '<div class="paper-entry card-thick"><strong style="color:' +
+          '<div class="paper-entry card-thick card-row">' +
+            codexThumbHtml(def, 'hero') +
+            '<div class="card-body"><strong style="color:' +
             def.color +
             '">' +
             def.name +
@@ -705,7 +737,7 @@
             '</span>' +
             sk +
             (def.lore ? '<em class="lore">' + def.lore + '</em>' : '') +
-            '</div>'
+            '</div></div>'
         );
       } else {
         parts.push('<div class="paper-entry dim card-thick"><strong>？？？</strong><span>尚未召喚</span></div>');
@@ -724,7 +756,9 @@
             '</div>'
           : '';
         parts.push(
-          '<div class="paper-entry card-thick"><strong style="color:' +
+          '<div class="paper-entry card-thick card-row">' +
+            codexThumbHtml(def, 'enemy') +
+            '<div class="card-body"><strong style="color:' +
             (def.color || '#E8DCC8') +
             '">' +
             def.name +
@@ -740,7 +774,7 @@
             '</span>' +
             sk +
             (def.lore ? '<em class="lore">' + def.lore + '</em>' : '') +
-            '</div>'
+            '</div></div>'
         );
       } else {
         parts.push('<div class="paper-entry dim card-thick"><strong>？？？</strong><span>尚未遭遇</span></div>');
@@ -805,6 +839,9 @@
         '）</strong></div>' +
         '<div class="paper-row"><span>本地牆</span><strong>' +
         (st.localBest || (typeof formatLocalBestWall === 'function' ? formatLocalBestWall(save).label : '—')) +
+        '</strong></div>' +
+        '<div class="paper-row"><span>牆短碼</span><strong class="mono">' +
+        (typeof encodeWallShort === 'function' ? encodeWallShort(save) : '—') +
         '</strong></div>' +
         (typeof formatLocalBestWall === 'function'
           ? (function () {

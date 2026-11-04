@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — Canvas 繪製 v2.0.0
+ * 銀樓防衛 — Canvas 繪製 v2.1.0
  * v1.5：場景四層 ground→mid→wall→props；halt_seal PNG；擊破／暴擊
  */
 (function (global) {
@@ -1120,7 +1120,7 @@
     drawLockStatus(ctx, state);
   }
 
-  /** v2.0 羈絆狀態列：加厚芯片＋副標 */
+  /** v2.1 羈絆狀態列：加厚芯片＋副標 */
   function drawBondStrip(ctx, state) {
     const bonds = state._bonds || [];
     if (!bonds.length) return;
