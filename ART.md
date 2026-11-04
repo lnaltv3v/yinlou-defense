@@ -134,6 +134,7 @@
 
 
 ### v4.2.0 十四池／共鳴徽記
+- mid／props：**無新檔**；`CACHE_VER=4.8.0`。
 - mid／props：**無新檔**；`CACHE_VER=4.7.0`。
 - mid／props：**無新檔**；`CACHE_VER=4.6.0`。
 - mid／props：**無新檔**；`CACHE_VER=4.2.0`。

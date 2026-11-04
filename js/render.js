@@ -550,13 +550,20 @@
       ctx.arc(cb.x, cb.y, 3, 0, Math.PI * 2);
       ctx.fill();
     });
-    // v4.7：吸附可視化環（靈敏度半徑）＋僅合法合高亮＋目標環
+    // v4.8：吸附環按星級上色＋合法合高亮＋目標環
     const drag = state.drag;
     if (drag && drag.active) {
+      function hexAlpha(hex, a) {
+        if (!hex || hex[0] !== '#' || hex.length < 7) return 'rgba(201,162,39,' + a + ')';
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return 'rgba(' + r + ',' + g + ',' + b + ',' + a + ')';
+      }
       const snapRing = drag.snapRing;
       if (snapRing && snapRing.r > 0) {
         ctx.setLineDash([5, 4]);
-        ctx.strokeStyle = 'rgba(201,162,39,' + (0.25 + 0.2 * pulse).toFixed(2) + ')';
+        ctx.strokeStyle = hexAlpha(snapRing.color || '#C9A227', 0.25 + 0.2 * pulse);
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.arc(snapRing.x, snapRing.y, snapRing.r, 0, Math.PI * 2);
@@ -566,7 +573,7 @@
       const legal = drag.legalMergeCells || [];
       legal.forEach(function (c) {
         const sc = cellCenter(c.lane, c.slot);
-        ctx.strokeStyle = 'rgba(58,122,106,' + (0.35 + 0.25 * pulse).toFixed(2) + ')';
+        ctx.strokeStyle = hexAlpha(c.color || '#3a7a6a', 0.35 + 0.25 * pulse);
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.arc(sc.x, sc.y, 18 + 2 * pulse, 0, Math.PI * 2);
@@ -577,7 +584,7 @@
         const sc = cellCenter(snap.lane, snap.slot);
         const ring = 14 + 4 * Math.sin(t * 8);
         ctx.setLineDash([]);
-        ctx.strokeStyle = 'rgba(58,122,106,' + (0.55 + 0.35 * pulse).toFixed(2) + ')';
+        ctx.strokeStyle = hexAlpha(snap.color || '#3a7a6a', 0.55 + 0.35 * pulse);
         ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.arc(sc.x, sc.y, ring, 0, Math.PI * 2);
@@ -585,7 +592,7 @@
         ctx.fillStyle = 'rgba(232,220,200,' + (0.75 + 0.2 * pulse).toFixed(2) + ')';
         ctx.font = 'bold 11px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('吸附·合', sc.x, sc.y - ring - 6);
+        ctx.fillText('★' + (snap.star || '') + '吸附', sc.x, sc.y - ring - 6);
         if (window.__yinlouMarkTutMergeSnap) window.__yinlouMarkTutMergeSnap();
       }
     }

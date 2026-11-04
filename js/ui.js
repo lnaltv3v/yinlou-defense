@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v4.7.0
+ * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v4.8.0
  */
 (function (global) {
   const {
@@ -44,6 +44,10 @@
     decodeDualPresetShort,
     importDualPresetShort,
     exportDualPresetsShort,
+    encodeCharmLockShort,
+    decodeCharmLockShort,
+    importCharmLockShort,
+    exportCharmLockShort,
     mergeSnapRadius,
     syncMergeSnapDevice,
     loadMergeSnapDevice,
@@ -1298,9 +1302,43 @@ function fillWallCompareHist(save, dayFilter) {
     btn.onclick = function () {
       hideOverlay();
     };
-    $('overlay-extra').innerHTML = '';
+    const extra = $('overlay-extra');
+    extra.innerHTML =
+      '<div class="lock-short-row">' +
+      '<input type="text" id="charm-lock-short-input" class="dual-short-input" placeholder="YD48L...." value="' +
+      (typeof exportCharmLockShort === 'function' ? exportCharmLockShort(save) || '' : '') +
+      '"/>' +
+      '<button type="button" class="wall-mode-btn" id="charm-lock-export">匯出鎖欄短碼</button>' +
+      '<button type="button" class="wall-mode-btn" id="charm-lock-import">匯入鎖欄短碼</button>' +
+      '</div>';
     ov.classList.add('show');
     if (window.__yinlouMarkSetBadgeDetail) window.__yinlouMarkSetBadgeDetail();
+    const lockExp = $('charm-lock-export');
+    if (lockExp) {
+      lockExp.onclick = function () {
+        const code = window.__yinlouExportCharmLockShort
+          ? window.__yinlouExportCharmLockShort()
+          : typeof exportCharmLockShort === 'function'
+            ? exportCharmLockShort(save)
+            : '';
+        const inp = $('charm-lock-short-input');
+        if (inp) inp.value = code || '';
+        if (code && navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(code).catch(function () {});
+        }
+        toast(code ? '鎖欄短碼已複製' : '無裝備可匯出', 1800);
+      };
+    }
+    const lockImp = $('charm-lock-import');
+    if (lockImp) {
+      lockImp.onclick = function () {
+        const inp = $('charm-lock-short-input');
+        const code = (inp && inp.value) || '';
+        if (window.__yinlouImportCharmLockShort) window.__yinlouImportCharmLockShort(code);
+        else if (typeof importCharmLockShort === 'function') importCharmLockShort(save, code);
+        showCharmSetDetail(focusSet, getSave || window.__yinlouGetSave);
+      };
+    }
     document.querySelectorAll('[data-equip-next]').forEach(function (b) {
       b.onclick = function (ev) {
         ev.stopPropagation();
@@ -1673,6 +1711,7 @@ function fillWallCompareHist(save, dayFilter) {
         '<button type="button" class="wall-mode-btn" id="dual-custom-apply">套用自訂</button>' +
         '<button type="button" class="wall-mode-btn" id="dual-preset-save">收藏方案</button>' +
         '<button type="button" class="wall-mode-btn" id="dual-card-png">對照卡 PNG</button>' +
+        '<button type="button" class="wall-mode-btn" id="dual-share-card">分享卡 PNG</button>' +
         '<button type="button" class="wall-mode-btn" id="dual-short-export">匯出短碼</button>' +
         '<button type="button" class="wall-mode-btn" id="dual-short-import">匯入短碼</button></div>' +
         '<div class="dual-short-row"><input type="text" id="dual-short-input" class="dual-short-input" placeholder="YD47...." value="' +
@@ -1960,53 +1999,108 @@ function fillWallCompareHist(save, dayFilter) {
         showEndlessReplay(getSave, onClose, filterOpts);
       };
     }
+    function drawDualMiniSpark(ctx, x, y, w, h, rows, color) {
+      if (!rows || !rows.length) {
+        ctx.strokeStyle = '#5A4A38';
+        ctx.strokeRect(x, y, w, h);
+        ctx.fillStyle = '#5A4A38';
+        ctx.font = '10px sans-serif';
+        ctx.fillText('無資料', x + 8, y + h / 2 + 3);
+        return;
+      }
+      const vals = rows.map(function (r) { return Number(r.wave) || 0; });
+      const maxV = Math.max.apply(null, vals.concat([1]));
+      const minV = Math.min.apply(null, vals);
+      const span = Math.max(1, maxV - minV);
+      ctx.fillStyle = 'rgba(26,21,16,0.5)';
+      ctx.fillRect(x, y, w, h);
+      ctx.strokeStyle = '#5A4A38';
+      ctx.strokeRect(x, y, w, h);
+      ctx.strokeStyle = color || '#C9A227';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      vals.forEach(function (v, i) {
+        const px = x + (vals.length > 1 ? (i / (vals.length - 1)) * w : w / 2);
+        const py = y + h - ((v - minV) / span) * (h - 4) - 2;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      });
+      ctx.stroke();
+    }
+    function buildDualCardCanvas(share) {
+      const W = share ? 560 : 520;
+      const H = share ? 360 : 300;
+      const canvas = document.createElement('canvas');
+      canvas.width = W;
+      canvas.height = H;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#1A1510';
+      ctx.fillRect(0, 0, W, H);
+      ctx.strokeStyle = '#C9A227';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(10, 10, W - 20, H - 20);
+      ctx.fillStyle = '#C9A227';
+      ctx.font = 'bold 18px sans-serif';
+      ctx.fillText(share ? '銀樓防衛｜雙區間分享卡' : '銀樓防衛｜雙區間對照卡', 28, 42);
+      const dlt = dual.delta || {};
+      function col(x0, title, block, color) {
+        ctx.fillStyle = '#C9A227';
+        ctx.font = 'bold 14px sans-serif';
+        ctx.fillText(title, x0, 72);
+        ctx.fillStyle = '#E8DCC8';
+        ctx.font = '12px sans-serif';
+        ctx.fillText('n=' + block.count + '｜浪均 ' + block.wave, x0, 94);
+        ctx.fillText('殺 ' + block.kills + '｜銀 ' + block.silver, x0, 114);
+        ctx.fillText('傷 ' + block.damage, x0, 134);
+        const rows =
+          typeof formatEndlessReplay === 'function'
+            ? formatEndlessReplay(save, {
+                minWave: block.min,
+                maxWave: block.max,
+                favOnly: favOnly,
+              })
+            : [];
+        drawDualMiniSpark(ctx, x0, 148, 200, 56, rows.slice(0, 24), color);
+      }
+      col(36, dual.a.label, dual.a, '#5a9a7a');
+      col(280, dual.b.label, dual.b, '#3a8aba');
+      ctx.fillStyle = '#A89070';
+      ctx.font = '11px sans-serif';
+      let foot =
+        'Δ浪 ' +
+        (dlt.wave != null ? dlt.wave : '—') +
+        '｜Δ殺 ' +
+        (dlt.kills != null ? dlt.kills : '—') +
+        '｜Δ銀 ' +
+        (dlt.silver != null ? dlt.silver : '—') +
+        '｜本機｜v4.8';
+      if (share) {
+        const dualCode =
+          typeof exportDualPresetsShort === 'function' ? exportDualPresetsShort(save) : '';
+        const lockCode =
+          typeof exportCharmLockShort === 'function' ? exportCharmLockShort(save) : '';
+        const wall =
+          typeof encodeWallShort === 'function' ? encodeWallShort(save) : '';
+        ctx.fillText(foot, 28, H - 48);
+        ctx.fillStyle = '#C9A227';
+        ctx.font = '10px monospace';
+        ctx.fillText(
+          (dualCode ? '區間 ' + dualCode.slice(0, 42) : '區間 —') +
+            (lockCode ? '｜鎖 ' + lockCode.slice(0, 28) : ''),
+          28,
+          H - 30
+        );
+        ctx.fillStyle = '#A89070';
+        ctx.fillText('牆 ' + (wall || '—'), 28, H - 14);
+      } else {
+        ctx.fillText(foot, 28, H - 20);
+      }
+      return canvas;
+    }
     const dualCardPng = $('dual-card-png');
     if (dualCardPng && dual && dual.a && dual.b) {
       dualCardPng.onclick = function () {
-        const W = 520;
-        const H = 280;
-        const canvas = document.createElement('canvas');
-        canvas.width = W;
-        canvas.height = H;
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#1A1510';
-        ctx.fillRect(0, 0, W, H);
-        ctx.strokeStyle = '#C9A227';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(10, 10, W - 20, H - 20);
-        ctx.fillStyle = '#C9A227';
-        ctx.font = 'bold 18px sans-serif';
-        ctx.fillText('銀樓防衛｜雙區間對照卡', 28, 42);
-        ctx.font = '13px sans-serif';
-        ctx.fillStyle = '#E8DCC8';
-        const dlt = dual.delta || {};
-        function col(x, title, block) {
-          ctx.fillStyle = '#C9A227';
-          ctx.font = 'bold 14px sans-serif';
-          ctx.fillText(title, x, 78);
-          ctx.fillStyle = '#E8DCC8';
-          ctx.font = '12px sans-serif';
-          ctx.fillText('n=' + block.count, x, 100);
-          ctx.fillText('浪均 ' + block.wave, x, 120);
-          ctx.fillText('殺 ' + block.kills, x, 140);
-          ctx.fillText('銀 ' + block.silver, x, 160);
-          ctx.fillText('傷 ' + block.damage, x, 180);
-        }
-        col(36, dual.a.label, dual.a);
-        col(280, dual.b.label, dual.b);
-        ctx.fillStyle = '#A89070';
-        ctx.font = '11px sans-serif';
-        ctx.fillText(
-          'Δ浪 ' +
-            (dlt.wave != null ? dlt.wave : '—') +
-            '｜Δ殺 ' +
-            (dlt.kills != null ? dlt.kills : '—') +
-            '｜Δ銀 ' +
-            (dlt.silver != null ? dlt.silver : '—') +
-            '｜本機｜v4.7',
-          28,
-          H - 24
-        );
+        const canvas = buildDualCardCanvas(false);
         canvas.toBlob(function (blob) {
           if (!blob) {
             toast('對照卡失敗', 1800);
@@ -2023,7 +2117,31 @@ function fillWallCompareHist(save, dayFilter) {
             const A = window.YDAudio;
             if (A && A.play) A.play('dual_card');
           } catch (_) {}
-          toast('已匯出對照卡 PNG', 1800);
+          toast('已匯出對照卡 PNG（含迷你折線）', 1800);
+        });
+      };
+    }
+    const dualShareCard = $('dual-share-card');
+    if (dualShareCard && dual && dual.a && dual.b) {
+      dualShareCard.onclick = function () {
+        const canvas = buildDualCardCanvas(true);
+        canvas.toBlob(function (blob) {
+          if (!blob) {
+            toast('分享卡失敗', 1800);
+            return;
+          }
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'yinlou-dual-share.png';
+          a.click();
+          setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+          if (window.__yinlouMarkDualShareCard) window.__yinlouMarkDualShareCard();
+          try {
+            const A = window.YDAudio;
+            if (A && A.play) A.play('dual_card');
+          } catch (_) {}
+          toast('已匯出分享卡 PNG', 1800);
         });
       };
     }
@@ -2371,10 +2489,10 @@ function fillWallCompareHist(save, dayFilter) {
       ' · buzz ' +
       (save.mergeSnapBuzz !== false ? '開' : '關') +
       '</strong></div>' +
-      '<div class="paper-row"><span>版本</span><strong>v4.7.0｜存檔 v' +
-      (save.version || 47) +
+      '<div class="paper-row"><span>版本</span><strong>v4.8.0｜存檔 v' +
+      (save.version || 48) +
       '</strong></div>' +
-      '<p class="paper-note">v4.7：十九池1250–1300、超千二多 Boss、欄鎖／推薦套、雙區間短碼＋對照卡、吸附環／僅合法合。本地牆本機｜唔做線上排行。</p>' +
+      '<p class="paper-note">v4.8：二十池1350–1400、超千三節奏、鎖欄短碼、對照折線／分享卡、吸附星級色＋合失敗 buzz。本地牆本機｜唔做線上排行。</p>' +
       '<div id="charm-equip-bar" class="charm-equip-bar"></div>' +
       '</div>';
     const btn = $('btn-overlay');
@@ -2485,6 +2603,16 @@ function fillWallCompareHist(save, dayFilter) {
       () => {
         if (window.__yinlouToggleMergeLegalOnly) window.__yinlouToggleMergeLegalOnly();
         else save.mergeLegalOnly = save.mergeLegalOnly === false;
+        showSettings(opts);
+      },
+      false,
+      true
+    );
+    mk(
+      save.mergeFailBuzz !== false ? '合失敗 buzz：開' : '合失敗 buzz：關',
+      () => {
+        if (window.__yinlouToggleMergeFailBuzz) window.__yinlouToggleMergeFailBuzz();
+        else save.mergeFailBuzz = save.mergeFailBuzz === false;
         showSettings(opts);
       },
       false,

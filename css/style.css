@@ -1580,3 +1580,7 @@ button.set-badge { appearance: none; -webkit-appearance: none; }
 .dual-short-row { margin: 4px 0 8px; }
 .dual-short-input { width: 100%; max-width: 420px; font-size: 12px; padding: 4px 6px; background: #1A1510; color: #E8DCC8; border: 1px solid #5A4A38; border-radius: 4px; }
 .set-lock-slot { opacity: 0.9; }
+
+/* v4.8 lock short */
+.lock-short-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 8px 0; }
+.lock-short-row .dual-short-input { flex: 1 1 180px; }
