@@ -1783,6 +1783,8 @@
     { wave: 1000, silver: 16200, label: '千浪不朽城' },
     { wave: 1050, silver: 17000, label: '千五十浪十七池' },
     { wave: 1100, silver: 17800, label: '千百浪長城' },
+    { wave: 1150, silver: 18600, label: '千百五十浪十八池' },
+    { wave: 1200, silver: 19400, label: '千二百浪不朽池' },
   ];
 
   function endlessMilestone(waveIndex) {
@@ -3072,6 +3074,62 @@
     },
   ];
 
+  const RUN_MODIFIERS_1150 = [
+    {
+      id: 'eighteen_vault',
+      name: '十八池銀庫',
+      blurb: '開局銀 +46%；核心 HP +30%',
+      late1150: true,
+      apply: (ctx) => {
+        ctx.silverMul = (ctx.silverMul || 1) * 1.46;
+        ctx.coreMul = (ctx.coreMul || 1) * 1.3;
+      },
+    },
+    {
+      id: 'eighteen_mirror',
+      name: '十八池鏡穹',
+      blurb: '鏡稅地板 +0.28；抽銀 ×0.055',
+      late1150: true,
+      apply: (ctx) => {
+        ctx.mirageTaxFloorBonus = (ctx.mirageTaxFloorBonus || 0) + 0.28;
+        ctx.silverDrainMul = (ctx.silverDrainMul || 1) * 0.055;
+      },
+    },
+    {
+      id: 'eighteen_rot',
+      name: '十八池輪換',
+      blurb: '合星 ×1.2；進階共鳴 ×1.18',
+      late1150: true,
+      apply: (ctx) => {
+        ctx.mergeRebateMul = (ctx.mergeRebateMul || 1) * 1.2;
+        ctx.charmSetAdvMul = (ctx.charmSetAdvMul || 1) * 1.18;
+      },
+    },
+    {
+      id: 'eighteen_seal',
+      name: '十八池印陣',
+      blurb: '敵速 −18%；俠客冷卻 −16%',
+      late1150: true,
+      apply: (ctx) => {
+        ctx.enemySpeedMul = (ctx.enemySpeedMul || 1) * 0.82;
+        ctx.heroCdMul = (ctx.heroCdMul || 1) * 0.84;
+      },
+    },
+  ];
+
+  /** 超千浪 Boss 輪換表（每 5 浪單 Boss） */
+  const ENDLESS_BOSS_ROT = ['black_swan', 'circuit_swan', 'halt_tide', 'ink_specter', 'ledger_mirage'];
+  const ENDLESS_ULTRA_BOSS_ROT = [
+    'ledger_mirage',
+    'ink_specter',
+    'halt_tide',
+    'circuit_swan',
+    'black_swan',
+    'ledger_mirage',
+    'ink_specter',
+    'halt_tide',
+  ];
+
   /** 符咒 → 本局修飾欄項目（可裝備） */
   const CHARM_MAX_STAR = 3;
   const CHARM_EQUIP_SLOTS = 3;
@@ -3415,8 +3473,25 @@
                 '">換欄</button>';
             }
           }
+          const dragAttrs =
+            m.equipped && slot >= 0
+              ? ' draggable="true" data-drag-slot="' +
+                slot +
+                '" data-set="' +
+                r.set +
+                '" title="拖曳換欄｜長按卸下"'
+              : '';
           return (
-            '<span class="set-member-row">' + mark + m.name + (slot >= 0 ? '·欄' + (slot + 1) : '') + actions + '</span>'
+            '<span class="set-member-row' +
+            (m.equipped && slot >= 0 ? ' equipped' : '') +
+            '"' +
+            dragAttrs +
+            '>' +
+            mark +
+            m.name +
+            (slot >= 0 ? '·欄' + (slot + 1) : '') +
+            actions +
+            '</span>'
           );
         })
         .join('');
@@ -3456,7 +3531,7 @@
     return (
       '<div class="paper-body set-detail-page">' +
       bits.join('') +
-      '<p class="paper-note">點徽記睇明細｜裝下件／卸／換欄｜◆已裝備　◇已擁有　·未擁有｜v4.5</p></div>'
+      '<p class="paper-note">點徽記睇明細｜拖曳換欄｜長按卸｜◆◇·｜v4.6</p></div>'
     );
   }
 
@@ -3870,6 +3945,14 @@
       if (!mods.some((m) => m.id === late17.id)) {
         if (mods.length >= 3) mods[mods.length - 1] = late17;
         else mods.push(late17);
+      }
+    }
+    if (best >= 1150 && RUN_MODIFIERS_1150.length) {
+      const h19 = (seed ^ 0x1150beef) >>> 0;
+      const late18 = RUN_MODIFIERS_1150[h19 % RUN_MODIFIERS_1150.length];
+      if (!mods.some((m) => m.id === late18.id)) {
+        if (mods.length >= 3) mods[0] = late18;
+        else mods.push(late18);
       }
     }
     return mods;
@@ -4555,6 +4638,10 @@
     { id: 'late850_run', cat: 'meta', name: '十五池開盤', blurb: '曾達 850 浪後再開無盡（抽第十五池修飾）', check: (s) => !!s.ach && !!s.ach.late850_run },
     { id: 'late950_run', cat: 'meta', name: '十六池開盤', blurb: '曾達 950 浪後再開無盡（抽第十六池修飾）', check: (s) => !!s.ach && !!s.ach.late950_run },
     { id: 'late1050_run', cat: 'meta', name: '十七池開盤', blurb: '曾達 1050 浪後再開無盡（抽第十七池修飾）', check: (s) => !!s.ach && !!s.ach.late1050_run },
+    { id: 'late1150_run', cat: 'meta', name: '十八池開盤', blurb: '曾達 1150 浪後再開無盡（抽第十八池修飾）', check: (s) => !!s.ach && !!s.ach.late1150_run },
+    { id: 'set_drag_swap', cat: 'meta', name: '拖曳換欄', blurb: '徽記明細拖曳換欄或長按卸下', check: (s) => !!s.ach && !!s.ach.set_drag_swap },
+    { id: 'dual_preset_fav', cat: 'meta', name: '區間方案', blurb: '收藏過自訂雙區間預設', check: (s) => !!s.ach && !!s.ach.dual_preset_fav },
+    { id: 'merge_snap_slider', cat: 'meta', name: '吸附滑桿', blurb: '用過吸附靈敏度滑桿', check: (s) => !!s.ach && !!s.ach.merge_snap_slider },
     { id: 'set_badge_hud', cat: 'meta', name: '共鳴徽記', blurb: '見過進階共鳴 HUD 徽記', check: (s) => !!s.ach && !!s.ach.set_badge_hud },
     { id: 'set_badge_detail', cat: 'meta', name: '徽記明細', blurb: '點開共鳴徽記睇過套裝明細／下一件', check: (s) => !!s.ach && !!s.ach.set_badge_detail },
     { id: 'set_equip_next', cat: 'meta', name: '一鍵裝下件', blurb: '由徽記明細一鍵裝上下一件符咒', check: (s) => !!s.ach && !!s.ach.set_equip_next },
@@ -4657,12 +4744,15 @@
     const late1000 = n >= 1000 ? Math.min(0.024, (n - 1000) * 0.0004) : 0;
     const late1050 = n >= 1050 ? Math.min(0.022, (n - 1050) * 0.00038) : 0;
     const late1100 = n >= 1100 ? Math.min(0.02, (n - 1100) * 0.00035) : 0;
-    const mul = 1 + (n - 1) * 0.105 + late50 + late75 + late90 + late120 + late130 + late140 + late150 + late160 + late180 + late200 + late220 + late250 + late300 + late350 + late400 + late450 + late500 + late550 + late600 + late650 + late700 + late750 + late800 + late850 + late900 + late950 + late1000 + late1050 + late1100;
+    const late1150 = n >= 1150 ? Math.min(0.018, (n - 1150) * 0.00032) : 0;
+    const late1200 = n >= 1200 ? Math.min(0.016, (n - 1200) * 0.0003) : 0;
+    const mul = 1 + (n - 1) * 0.105 + late50 + late75 + late90 + late120 + late130 + late140 + late150 + late160 + late180 + late200 + late220 + late250 + late300 + late350 + late400 + late450 + late500 + late550 + late600 + late650 + late700 + late750 + late800 + late850 + late900 + late950 + late1000 + late1050 + late1100 + late1150 + late1200;
     const countLate = n >= 50 ? Math.min(n - 50, 25) * 0.01 + (n >= 75 ? (n - 75) * 0.006 : 0) : 0;
     const count = (base) => {
       let raw = Math.max(1, Math.round(base * (1 + (n - 1) * 0.072 + countLate)));
       // v2.4：絕對軟頂——75+ 壓力改由 Boss／精英／間隔承担，避免符紙／暗盤洪峰
-      if (n >= 1050) raw = Math.min(raw, 18 + Math.min(4, Math.floor((n - 1050) / 30)));
+      if (n >= 1150) raw = Math.min(raw, 16 + Math.min(4, Math.floor((n - 1150) / 35)));
+      else if (n >= 1050) raw = Math.min(raw, 18 + Math.min(4, Math.floor((n - 1050) / 30)));
       else if (n >= 950) raw = Math.min(raw, 20 + Math.min(5, Math.floor((n - 950) / 25)));
       else if (n >= 850) raw = Math.min(raw, 22 + Math.min(6, Math.floor((n - 850) / 20)));
       else if (n >= 75) raw = Math.min(raw, 20 + Math.min(8, Math.floor((n - 75) / 5)));
@@ -4833,7 +4923,7 @@
         hpMul: mul * 0.95,
       });
     } else if (n >= 5 && n % 5 === 0) {
-      const rot = ['black_swan', 'circuit_swan', 'halt_tide', 'ink_specter', 'ledger_mirage'];
+      const rot = n >= 1000 ? ENDLESS_ULTRA_BOSS_ROT : ENDLESS_BOSS_ROT;
       const bossId = rot[(Math.floor(n / 5) - 1) % rot.length];
       const bossCount = bossId === 'black_swan' ? Math.max(1, Math.floor(n / 15) || 1) : 1;
       const hpBoss =
@@ -4877,8 +4967,10 @@
         ink_specter: 1,
         ledger_mirage: 1,
       };
-      const bossExtra = n >= 1100 ? 1.45 : n >= 1050 ? 1.25 : n >= 1000 ? 1.1 : 0.75;
-      const trashMul = n >= 1100 ? 1.16 : n >= 1050 ? 1.12 : n >= 1000 ? 1.1 : 1.08;
+      const bossExtra =
+        n >= 1200 ? 1.65 : n >= 1150 ? 1.55 : n >= 1100 ? 1.45 : n >= 1050 ? 1.25 : n >= 1000 ? 1.1 : 0.75;
+      const trashMul =
+        n >= 1200 ? 1.2 : n >= 1150 ? 1.18 : n >= 1100 ? 1.16 : n >= 1050 ? 1.12 : n >= 1000 ? 1.1 : 1.08;
       for (let i = 0; i < spawns.length; i++) {
         const s = spawns[i];
         if (bossIds[s.enemy]) {
@@ -5157,7 +5249,12 @@
     if (!s.endlessReplayFav || typeof s.endlessReplayFav !== 'object') s.endlessReplayFav = {};
     if (!s.mergeSnapSens) s.mergeSnapSens = 'mid';
     if (s.mergeSnapBuzz == null) s.mergeSnapBuzz = true;
-    s.version = Math.max(45, from, base.version || 45);
+    if (s.mergeSnapPx == null) {
+      const map = { off: 0, low: 40, mid: 70, high: 100 };
+      s.mergeSnapPx = map[s.mergeSnapSens] != null ? map[s.mergeSnapSens] : 70;
+    }
+    if (!Array.isArray(s.dualRangePresets)) s.dualRangePresets = [];
+    s.version = Math.max(46, from, base.version || 46);
     return s;
   }
 
@@ -5173,7 +5270,7 @@
 
   function defaultSave() {
     return {
-      version: 45,
+      version: 46,
       totalSilver: 0,
       totalKills: 0,
       maxStageCleared: 0,
@@ -5185,6 +5282,8 @@
       showCellHints: true,
       mergeSnapSens: 'mid',
       mergeSnapBuzz: true,
+      mergeSnapPx: 70,
+      dualRangePresets: [],
       showSkillCd: true,
       reduceShake: false,
       reduceFlash: false,
@@ -5535,6 +5634,66 @@
         damage: b.damage - a.damage,
       },
     };
+  }
+
+
+  function listDualRangePresets(save) {
+    const arr = Array.isArray(save && save.dualRangePresets) ? save.dualRangePresets.slice() : [];
+    return arr.filter(function (p) { return p && p.key; }).slice(0, 8);
+  }
+
+  function saveDualRangePreset(save, key, label) {
+    if (!save || !key) return { ok: false, error: '無效方案' };
+    if (!Array.isArray(save.dualRangePresets)) save.dualRangePresets = [];
+    const lab = (label || key).slice(0, 24);
+    save.dualRangePresets = save.dualRangePresets.filter(function (p) { return p && p.key !== key; });
+    save.dualRangePresets.unshift({ key: key, label: lab, at: new Date().toISOString() });
+    while (save.dualRangePresets.length > 8) save.dualRangePresets.pop();
+    return { ok: true, presets: listDualRangePresets(save) };
+  }
+
+  function removeDualRangePreset(save, key) {
+    if (!save) return { ok: false };
+    if (!Array.isArray(save.dualRangePresets)) save.dualRangePresets = [];
+    save.dualRangePresets = save.dualRangePresets.filter(function (p) { return p && p.key !== key; });
+    return { ok: true, presets: listDualRangePresets(save) };
+  }
+
+  function mergeSnapRadius(save, isTouch) {
+    let px = save && save.mergeSnapPx;
+    if (px == null) {
+      const map = { off: 0, low: 40, mid: 70, high: 100 };
+      px = map[(save && save.mergeSnapSens) || 'mid'] || 70;
+    }
+    px = Math.max(0, Math.min(120, Number(px) || 0));
+    if (px <= 0) return 0;
+    return isTouch ? Math.round(px * 1.15) : px;
+  }
+
+  function syncMergeSnapDevice(save) {
+    try {
+      if (typeof localStorage === 'undefined' || !save) return;
+      localStorage.setItem('yd_merge_snap_px', String(save.mergeSnapPx != null ? save.mergeSnapPx : 70));
+      localStorage.setItem('yd_merge_snap_buzz', save.mergeSnapBuzz === false ? '0' : '1');
+    } catch (_) {}
+  }
+
+  function loadMergeSnapDevice(save) {
+    try {
+      if (typeof localStorage === 'undefined' || !save) return save;
+      const px = localStorage.getItem('yd_merge_snap_px');
+      if (px != null && px !== '') {
+        save.mergeSnapPx = Math.max(0, Math.min(120, Number(px) || 0));
+        if (save.mergeSnapPx <= 0) save.mergeSnapSens = 'off';
+        else if (save.mergeSnapPx < 50) save.mergeSnapSens = 'low';
+        else if (save.mergeSnapPx < 85) save.mergeSnapSens = 'mid';
+        else save.mergeSnapSens = 'high';
+      }
+      const bz = localStorage.getItem('yd_merge_snap_buzz');
+      if (bz === '0') save.mergeSnapBuzz = false;
+      if (bz === '1') save.mergeSnapBuzz = true;
+    } catch (_) {}
+    return save;
   }
 
   function formatEndlessReplayTimeline(save) {
@@ -6273,6 +6432,9 @@
     RUN_MODIFIERS_850,
     RUN_MODIFIERS_950,
     RUN_MODIFIERS_1050,
+    RUN_MODIFIERS_1150,
+    ENDLESS_BOSS_ROT,
+    ENDLESS_ULTRA_BOSS_ROT,
     DUAL_PENTA_CHARMS,
     pickDualPentaCharm,
     charmAsModifier,
@@ -6351,6 +6513,12 @@
     formatEndlessReplayChart,
     formatEndlessReplayMultiChart,
     formatReplayDualRange,
+    listDualRangePresets,
+    saveDualRangePreset,
+    removeDualRangePreset,
+    mergeSnapRadius,
+    syncMergeSnapDevice,
+    loadMergeSnapDevice,
     formatFailShareText,
     formatEndlessReplayTimeline,
     toggleEndlessReplayFav,
