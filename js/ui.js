@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v2.9.0
+ * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v3.0.0
  */
 (function (global) {
   const {
@@ -96,7 +96,7 @@
       ink +
       '"></i>' +
       gear;
-    const src = (window.YDSprites && window.YDSprites.urlFor) ? window.YDSprites.urlFor(def.id) : ('assets/sprites/' + def.id + '.png?v=2.9.0');
+    const src = (window.YDSprites && window.YDSprites.urlFor) ? window.YDSprites.urlFor(def.id) : ('assets/sprites/' + def.id + '.png?v=3.0.0');
     return (
       '<span class="hero-avatar" aria-hidden="true" data-hero="' +
       def.id +
@@ -548,6 +548,62 @@
     ov.classList.remove('paper-panel');
   }
 
+  function showFailPanel(opts) {
+    opts = opts || {};
+    const ov = $('overlay');
+    ov.classList.remove('settings-mode');
+    ov.classList.add('codex-mode', 'paper-panel', 'fail-panel');
+    $('overlay-title').textContent = opts.title || '銀樓失守';
+    const rec = opts.rec;
+    let html = '<div class="paper-body fail-body"><p class="story-body">' + String(opts.body || '').replace(/\n/g, '<br/>') + '</p>';
+    if (rec && rec.lineup) {
+      html +=
+        '<div class="paper-entry card-thick stage-rec-card fail-rec">' +
+        '<strong style="color:#C9A227">重整推薦｜' +
+        rec.lineup.name +
+        '</strong><span class="card-meta">' +
+        (rec.reason || '') +
+        '</span>';
+      if (rec.tips && rec.tips.length) {
+        html += '<ul class="rec-tips">';
+        for (let i = 0; i < Math.min(3, rec.tips.length); i++) html += '<li>' + rec.tips[i] + '</li>';
+        html += '</ul>';
+      }
+      html += '</div>';
+    }
+    html += '<p class="paper-note">重開保留關卡進度帳；跟推薦芯片可快速重整旗鼓。</p></div>';
+    $('overlay-msg').innerHTML = html;
+    const btn = $('btn-overlay');
+    btn.textContent = '重開本關';
+    btn.onclick = () => {
+      hideOverlay();
+      if (opts.onRetry) opts.onRetry();
+    };
+    const extra = $('overlay-extra');
+    extra.innerHTML = '';
+    const mk = (label, fn, secondary) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'action-btn' + (secondary ? ' secondary' : '');
+      b.textContent = label;
+      b.onclick = fn;
+      extra.appendChild(b);
+    };
+    if (opts.onRetryLineup && rec && rec.lineup) {
+      mk('用「' + rec.lineup.name + '」再開', () => {
+        hideOverlay();
+        opts.onRetryLineup();
+      }, true);
+    }
+    if (opts.onMenu) {
+      mk('回選關（第 1 關）', () => {
+        hideOverlay();
+        opts.onMenu();
+      }, true);
+    }
+    ov.classList.add('show');
+  }
+
   function showSettings(opts) {
     const {
       getSave,
@@ -630,7 +686,10 @@
           })()
         : '—') +
       '</strong></div>' +
-      '<p class="paper-note">點場上俠客可強化（刀利／甲厚／內息）。圖鑑卡片已加厚；本地牆可匯出／短碼對照／快照（本機｜唔做線上排行）。</p>' +
+      '<div class="paper-row"><span>版本</span><strong>v3.0.0｜存檔 v' +
+      (save.version || 30) +
+      '</strong></div>' +
+      '<p class="paper-note">v3.0 大打磨：五步教學、失敗重整、推薦卡全關、成就分類。點場上俠客可強化；本地牆本機匯出｜唔做線上排行。無障礙：可減震屏／閃光。</p>' +
       '</div>';
     const btn = $('btn-overlay');
     btn.textContent = '關閉';
@@ -728,6 +787,17 @@
       false,
       true
     );
+    if (opts.onReplayTutorial) {
+      mk(
+        '重播新手五步導引',
+        () => {
+          opts.onReplayTutorial();
+          hideOverlay();
+        },
+        false,
+        true
+      );
+    }
     section('圖鑑／存檔');
     if (onOpenCodex) mk('圖鑑', () => onOpenCodex(), false, true);
     if (onOpenAch) mk('成就', () => onOpenAch(), false, true);
@@ -793,7 +863,7 @@
     const src = id && window.YDSprites && window.YDSprites.urlFor
       ? window.YDSprites.urlFor(id)
       : id
-        ? 'assets/sprites/' + id + '.png?v=2.9.0'
+        ? 'assets/sprites/' + id + '.png?v=3.0.0'
         : '';
     const fallback =
       '<span class="codex-thumb-fallback" style="background:' + c + '"></span>';
@@ -914,10 +984,17 @@
             (b.color || '#C9A227') +
             '">' +
             b.name +
-            ' · 入場</strong><span class="card-meta">' +
+            ' · 入場</strong>' +
+            (b.threat
+              ? '<span class="boss-threat">威脅｜' + b.threat + '</span>'
+              : '') +
+            '<span class="card-meta">' +
             (b.entrance || '') +
             '</span>' +
             (b.skill ? '<div class="card-skill">' + b.skill + '</div>' : '') +
+            (b.counter
+              ? '<div class="boss-counter">對策｜' + b.counter + '</div>'
+              : '') +
             '<span class="card-meta">HP' +
             (b.hp || '') +
             '／攻' +
@@ -1357,34 +1434,65 @@
           : '') +
         '</div>'
     );
-    const cats = ACHIEVEMENT_CATS || [{ id: 'all', name: '全部' }];
+    const cats = [{ id: 'all', name: '全部' }].concat(ACHIEVEMENT_CATS || []);
+    parts.push('<div class="ach-tabs" role="tablist" aria-label="成就分類">');
     for (const cat of cats) {
-      const list = ACHIEVEMENTS.filter((a) => (a.cat || 'all') === cat.id);
-      if (!list.length) continue;
-      const done = list.filter((a) => save.unlockedAch && save.unlockedAch[a.id]).length;
-      parts.push('<div class="paper-sec">' + cat.name + ' ' + done + '/' + list.length + '</div>');
-      for (const a of list) {
-        const ok = save.unlockedAch && save.unlockedAch[a.id];
-        parts.push(
-          '<div class="paper-entry' +
-            (ok ? ' done' : ' dim') +
-            '"><strong>' +
-            (ok ? '✓ ' : '○ ') +
-            a.name +
-            '</strong><span>' +
-            a.blurb +
-            '</span></div>'
-        );
-      }
+      parts.push(
+        '<button type="button" class="ach-tab' +
+          (cat.id === 'all' ? ' selected' : '') +
+          '" data-ach-cat="' +
+          cat.id +
+          '" role="tab">' +
+          cat.name +
+          '</button>'
+      );
     }
+    parts.push('</div><div id="ach-list-mount"></div>');
     const meta = dailyStageMeta();
     parts.push(
       '<div class="paper-note">今日：' +
         meta.name +
         (meta.blurb ? '（' + meta.blurb + '）' : '') +
-        '</div></div>'
+        '｜撳分類標籤篩選</div></div>'
     );
     $('overlay-msg').innerHTML = parts.join('');
+    const mount = $('ach-list-mount');
+    const renderCat = (catId) => {
+      const list =
+        catId === 'all'
+          ? ACHIEVEMENTS.slice()
+          : ACHIEVEMENTS.filter((a) => (a.cat || 'all') === catId);
+      const done = list.filter((a) => save.unlockedAch && save.unlockedAch[a.id]).length;
+      let html =
+        '<div class="paper-sec">' +
+        (catId === 'all' ? '全部' : (ACHIEVEMENT_CATS.find((c) => c.id === catId) || {}).name || catId) +
+        ' ' +
+        done +
+        '/' +
+        list.length +
+        '</div>';
+      for (const a of list) {
+        const ok = save.unlockedAch && save.unlockedAch[a.id];
+        html +=
+          '<div class="paper-entry' +
+          (ok ? ' done' : ' dim') +
+          '"><strong>' +
+          (ok ? '✓ ' : '○ ') +
+          a.name +
+          '</strong><span>' +
+          a.blurb +
+          '</span></div>';
+      }
+      if (mount) mount.innerHTML = html;
+      document.querySelectorAll('.ach-tab').forEach((b) => {
+        b.classList.toggle('selected', b.getAttribute('data-ach-cat') === catId);
+        b.setAttribute('aria-selected', b.getAttribute('data-ach-cat') === catId ? 'true' : 'false');
+      });
+    };
+    renderCat('all');
+    document.querySelectorAll('.ach-tab').forEach((b) => {
+      b.onclick = () => renderCat(b.getAttribute('data-ach-cat'));
+    });
     const btn = $('btn-overlay');
     btn.textContent = '關閉';
     btn.onclick = () => {
@@ -1498,6 +1606,7 @@
     showOverlay,
     hideOverlay,
     showSettings,
+    showFailPanel,
     showStory,
     showCodex,
     showWallTimeline,

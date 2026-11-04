@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 靜態資料 v2.3.0
+ * 銀樓防衛 — 靜態資料 v3.0.0
  * 角色為原創綽號，影射金融江湖氣氛；唔用真人真名／金庸名／Fortias IP。
  */
 (function (global) {
@@ -495,7 +495,7 @@
       id: 'black_swan',
       name: '黑天鵝',
       lore: '黑羽掠過街燈——Boss 級災變，專震核心同陣腳。帳本寫得再靚，羽一落，盤口照樣裂。',
-      entrance: '黑羽驚惶入場 — 全體短暫減速＋核心震盪',
+      entrance: '黑羽驚惶入場 — 全體短暫減速＋核心震盪｜對策：鐵衛頂前、逼空收割、合星後再開逼',
       hp: 325,
       atk: 22,
       speed: 20,
@@ -521,7 +521,7 @@
       id: 'circuit_swan',
       name: '熔斷天鵝',
       lore: '開年第一聲熔斷鐘——黑羽披金邊，專停俠客刀口。唔係普通黑天鵝：佢一鳴，櫃檯燈光齊閃，內息一滯。正式像素後金邊更易辨——鐘響先鎖倉。',
-      entrance: '熔斷鐘入場 — 全場停刀＋核心震盪；鄰近敵短暫加速',
+      entrance: '熔斷鐘入場 — 全場停刀＋核心震盪；鄰近敵短暫加速｜對策：甲厚／內息撐窗、鎖倉減攻、唔好硬拼鐘響',
       hp: 430,
       atk: 25,
       speed: 18,
@@ -550,7 +550,7 @@
       id: 'halt_tide',
       name: '停牌潮',
       lore: '第三變體——唔係黑羽、唔係金邊，係整街臨停告示 simultaneous 貼上。刀客未出鞘已收手；潮頭過處，符紙飛舞。原創綽號，影射臨停潮，唔抄 IP。',
-      entrance: '停牌潮湧入 — 範圍臨停＋核心震盪；鄰近停牌符短暫加速',
+      entrance: '停牌潮湧入 — 範圍臨停＋核心震盪；鄰近停牌符短暫加速｜對策：先清符再軋潮心、鎖倉鐵壁',
       hp: 470,
       atk: 24,
       speed: 17,
@@ -580,7 +580,7 @@
       id: 'ink_specter',
       name: '墨影帳',
       lore: '第四潮——帳本裂縫滲出墨影，唔係黑羽、金邊、臨停符，係假帳同時翻開。原創綽號，影射對帳幽靈，唔抄 IP、唔用真人名。',
-      entrance: '墨影翻帳入場 — 範圍降攻＋抽銀＋核心震盪；鄰近暗盤短暫加速',
+      entrance: '墨影翻帳入場 — 範圍降攻＋抽銀＋核心震盪；鄰近暗盤短暫加速｜對策：護銀分路、鎖倉減抽、先清暗盤影',
       hp: 520,
       atk: 26,
       speed: 16,
@@ -599,7 +599,7 @@
         type: 'ink_specter',
         atkDebuff: 0.22,
         atkDebuffDur: 3.2,
-        silverDrain: 9,
+        silverDrain: 7,
         coreDmg: 15,
         blotRad: 170,
         tapeRush: 0.65,
@@ -727,8 +727,8 @@
       id: 1,
       name: '錢莊初夜',
       story: '夜雨初歇，錢莊門楣掛起「銀樓」燈籠。櫃檯後頭算盤未停，門外已有腳步聲——散戶潮聞風而至。掌櫃話：開市前唔擺好第一盤棋，天亮只剩空倉同空城。',
-      startSilver: 200,
-      coreHp: 210,
+      startSilver: 210,
+      coreHp: 220,
       unlockHeroes: Object.keys(HEROES),
       waves: [
         wavePack([{ enemy: 'retail_tide', count: 3, lane: 'cycle', interval: 1.2 }]),
@@ -757,8 +757,8 @@
       id: 2,
       name: '午市殺跌',
       story: '午市鐘響，追保令滿天飛，茶館裡頭嘈到拆天。多頭刀客同空頭劍客隔檯對望——多空對決開倉。掌櫃拍門：誰守得住盤口，誰就係今日莊家；守唔住，銀樓燈籠今晚熄。',
-      startSilver: 182,
-      coreHp: 195,
+      startSilver: 190,
+      coreHp: 205,
       unlockHeroes: Object.keys(HEROES),
       waves: [
         wavePack([
@@ -798,8 +798,8 @@
       id: 3,
       name: '夜盤黑潮',
       story: '夜盤無聲，只聽見傳聞蚊喺巷口起舞。瓦簷上一道黑羽掠過，街燈抖了一下——黑天鵝唔敲門，只破門。你要喺謠言同槓桿之間，留一盞銀樓燈。',
-      startSilver: 210,
-      coreHp: 240,
+      startSilver: 218,
+      coreHp: 248,
       unlockHeroes: Object.keys(HEROES),
       waves: [
         wavePack([
@@ -848,8 +848,8 @@
       id: 4,
       name: '清算之夜',
       story: '清算之夜，帳本翻紅。槓桿反噬如刀，追保令連環砸落。銀樓鐵壁若齊人，尚有一息可守；否則只剩空倉、空城，同天亮後無人認領嘅門牌。',
-      startSilver: 240,
-      coreHp: 265,
+      startSilver: 248,
+      coreHp: 272,
       unlockHeroes: Object.keys(HEROES),
       waves: [
         wavePack([
@@ -905,8 +905,8 @@
       id: 5,
       name: '熔斷黎明',
       story: '熔斷黎明前最後一炷香。恐慌盤如潮湧向櫃檯，門環震得作響。套利行者已跨巷收割，鼓聲遠近——撐過呢一浪，江湖記得你名；撐唔過，只剩熔斷後嘅沉寂。',
-      startSilver: 255,
-      coreHp: 280,
+      startSilver: 262,
+      coreHp: 288,
       unlockHeroes: Object.keys(HEROES),
       waves: [
         wavePack([
@@ -966,8 +966,8 @@
       name: '盤後暗盤',
       story: '收市鐘已響，暗盤卻未歇。夜盤掮客提燈入巷，影在磚縫遊走，像未簽完嘅契。呢一晚唔係開市，係清算未完嘅債——標記、收割、護盤，一氣呵成，否則債入骨髓。',
       challenge: true,
-      startSilver: 265,
-      coreHp: 295,
+      startSilver: 272,
+      coreHp: 302,
       unlockHeroes: Object.keys(HEROES),
       firstClearBonus: 150,
       waves: [
@@ -1027,8 +1027,8 @@
       name: '斷索開市',
       story: '開市鑼未響，槓桿索已斷。停牌符貼滿城門，暗盤影同恐慌盤一齊湧向櫃檯——掌櫃拍桌：今夜唔係開市，係斷索之後第一盤棋。鎖倉、護盤、軋空，一氣呵成，否則只剩空倉同空城。',
       challenge: true,
-      startSilver: 288,
-      coreHp: 312,
+      startSilver: 295,
+      coreHp: 318,
       unlockHeroes: Object.keys(HEROES),
       firstClearBonus: 200,
       waves: [
@@ -1097,8 +1097,8 @@
       name: '銀樓守歲',
       story: '除夕子時，銀樓門神換墨。停牌符同暗盤影趁辭歲鼓聲湧入——掌櫃點燈：今夜唔睇盤口，只守歲。鎖倉居士鐵筆一點，鐵衛擋門，隱士分紅；守過子時，來年開張先有底氣。',
       challenge: true,
-      startSilver: 308,
-      coreHp: 336,
+      startSilver: 315,
+      coreHp: 342,
       unlockHeroes: Object.keys(HEROES),
       firstClearBonus: 220,
       waves: [
@@ -1167,8 +1167,8 @@
       name: '開年軋空',
       story: '正月開市第一鑼，軋空客同熔斷天鵝一齊殺入銀樓巷——掌櫃拍門環：今夜唔睇紅盤，只守開年第一倉。鎖倉減攻、鐵衛擋門、逼空收割，軋得過先有來年。',
       challenge: true,
-      startSilver: 328,
-      coreHp: 352,
+      startSilver: 335,
+      coreHp: 358,
       unlockHeroes: Object.keys(HEROES),
       firstClearBonus: 260,
       waves: [
@@ -1237,8 +1237,8 @@
       name: '雙天鵝夜',
       story: '子夜兩聲鐘——黑羽同金邊一齊落。掌櫃熄一半燈：今夜唔係單 Boss，係雙天鵝夾擊。先軋黑羽，再擋熔斷；鎖倉、逼空、鐵衛，一個都唔能少，否則銀樓只剩空帳同空城。',
       challenge: true,
-      startSilver: 342,
-      coreHp: 372,
+      startSilver: 348,
+      coreHp: 378,
       unlockHeroes: Object.keys(HEROES),
       firstClearBonus: 300,
       waves: [
@@ -1308,8 +1308,8 @@
       name: '停牌潮夜',
       story: '子夜過後，告示欄一夜貼滿臨停——唔再係雙天鵝夾擊，而係停牌潮 simultaneous 湧入。掌櫃熄燈再半盞：先擋符紙潮頭，再軋潮心；鎖倉、鐵衛、逼空齊人，否則銀樓只剩空倉同空城。',
       challenge: true,
-      startSilver: 355,
-      coreHp: 385,
+      startSilver: 360,
+      coreHp: 390,
       unlockHeroes: Object.keys(HEROES),
       firstClearBonus: 340,
       waves: [
@@ -1380,8 +1380,8 @@
       name: '三潮同場',
       story: '開市鐘三響——黑羽、金邊、臨停潮同時壓境。掌櫃只留一盞燈：今夜唔係單 Boss，係三潮同場。先鎖倉減攻，再分路收割；齊人羈絆開波，否則銀樓只剩空帳。',
       challenge: true,
-      startSilver: 365,
-      coreHp: 395,
+      startSilver: 372,
+      coreHp: 402,
       unlockHeroes: Object.keys(HEROES),
       firstClearBonus: 380,
       waves: [
@@ -1455,8 +1455,8 @@
         '今夜只打一潮：護住銀袋，先清影再軋帳心。鎖倉居士減抽、鐵衛頂前；合到 2–3 星再開波。\n\n' +
         '中段會見弱化墨影試探，末波正式翻帳——銀兩唔好堆住等人抽。',
       challenge: true,
-      startSilver: 412,
-      coreHp: 438,
+      startSilver: 420,
+      coreHp: 445,
       unlockHeroes: Object.keys(HEROES),
       firstClearBonus: 440,
       waves: [
@@ -1525,8 +1525,8 @@
         '分路口訣：左帳（上線）鐵衛＋鎖倉減抽；右帳（下線）第二鐵衛／刀客清影。\n\n' +
         '護銀分路，先清暗盤再開合星階梯回補。末波兩帳分先後入場——唔好兩邊都空。',
       challenge: true,
-      startSilver: 428,
-      coreHp: 455,
+      startSilver: 435,
+      coreHp: 462,
       unlockHeroes: Object.keys(HEROES),
       firstClearBonus: 480,
       waves: [
@@ -1593,19 +1593,22 @@
   const ENDLESS = {
     id: 'endless',
     name: '無盡殺跌',
-    story: '殺跌無盡，浪高過浪。里程碑銀兩係你唯一嘅喘息；修飾詞會改寫盤口——守得愈久，江湖傳聞愈響，亦愈難轉身離場。',
-    startSilver: 200,
-    coreHp: 220,
+    story: '殺跌無盡，浪高過浪。里程碑銀兩係你唯一嘅喘息；修飾詞會改寫盤口——守得愈久，江湖傳聞愈響，亦愈難轉身離場。\n\nv3.0：100+ 雙墨週期、130 長帳；合星階梯同護銀係晚盤關鍵。',
+    startSilver: 215,
+    coreHp: 235,
     unlockHeroes: Object.keys(HEROES),
   };
 
   /** 波次結束補銀（關卡／無盡分開） */
   function waveClearBonus(waveIndex, endless) {
     if (endless) {
-      // 無盡：前期略甜、後期仍升但唔失控
-      return Math.round(18 + waveIndex * 6.5 + Math.min(40, waveIndex * 1.2));
+      // v3.0：前期略甜；100+ 補銀略增以對沖雙墨抽銀
+      let b = 18 + waveIndex * 6.5 + Math.min(40, waveIndex * 1.2);
+      if (waveIndex >= 100) b += 8 + Math.min(18, (waveIndex - 100) * 0.35);
+      if (waveIndex >= 130) b += 6;
+      return Math.round(b);
     }
-    return 24 + waveIndex * 8;
+    return 26 + waveIndex * 8;
   }
 
   /** 無盡里程碑獎勵（銀兩）；同一局只領一次 */
@@ -3019,6 +3022,9 @@
     { id: 'dual_ink_cycle', cat: 'combat', name: '雙墨週期', blurb: '無盡 100+ 遇上雙墨常駐週期', check: (s) => !!s.ach && !!s.ach.dual_ink_cycle },
     { id: 'wall_png', cat: 'meta', name: '牆影出圖', blurb: '匯出一次牆走勢圖（本機）', check: (s) => !!s.ach && !!s.ach.wall_png },
     { id: 'ink_lanes', cat: 'combat', name: '左右分帳', blurb: '雙墨同場時睇過左／右帳提示', check: (s) => !!s.ach && !!s.ach.ink_lanes },
+    { id: 'v3_migrated', cat: 'meta', name: '銀樓三開', blurb: '升級到 v3.0 存檔（version 30）', check: (s) => (s.version || 0) >= 30 || !!(s.ach && s.ach.v3_migrated) },
+    { id: 'fail_retry', cat: 'meta', name: '重整旗鼓', blurb: '失敗後用推薦陣容重開一次', check: (s) => !!s.ach && !!s.ach.fail_retry },
+    { id: 'tutorial_v3', cat: 'meta', name: '五步入門', blurb: '完成 v3 新手五步導引', check: (s) => !!s.ach && !!s.ach.tutorial_v3 },
   ];
 
   /** 首通銀兩獎勵（入累計帳） */
@@ -3068,7 +3074,7 @@
     const late75 = n >= 75 ? (n - 75) * 0.011 : 0;
     const late90 = n >= 90 ? (n - 90) * 0.008 : 0;
     const late120 = n >= 120 ? (n - 120) * 0.006 : 0;
-    const late130 = n >= 130 ? (n - 130) * 0.005 : 0;
+    const late130 = n >= 130 ? Math.min(0.12, (n - 130) * 0.004) : 0;
     const mul = 1 + (n - 1) * 0.105 + late50 + late75 + late90 + late120 + late130;
     const countLate = n >= 50 ? Math.min(n - 50, 25) * 0.01 + (n >= 75 ? (n - 75) * 0.006 : 0) : 0;
     const count = (base) => {
@@ -3425,7 +3431,7 @@
   function mergeRebate(heroId, newStar) {
     const def = HEROES[heroId];
     if (!def) return 0;
-    return Math.round(def.cost * 0.188 * newStar);
+    return Math.round(def.cost * 0.19 * newStar);
   }
 
   function activeBonds(heroes) {
@@ -3453,11 +3459,37 @@
     return mods;
   }
 
+  function migrateSave(raw) {
+    const base = defaultSave();
+    const s = Object.assign({}, base, raw || {});
+    const from = Number(s.version) || 0;
+    // v3.0 遷移：補齊缺欄、抬版本、標記大版本
+    if (!s.ach) s.ach = {};
+    if (!s.unlockedAch) s.unlockedAch = {};
+    if (!s.firstClears) s.firstClears = {};
+    if (!s.seenHeroes) s.seenHeroes = {};
+    if (!s.seenEnemies) s.seenEnemies = {};
+    if (!Array.isArray(s.wallSnapshots)) s.wallSnapshots = [];
+    if (!Array.isArray(s.weekClearHistory)) s.weekClearHistory = [];
+    if (!s.localBest || typeof s.localBest !== 'object') {
+      s.localBest = { endless: 0, weeklyStreak: 0, stageClears: 0 };
+    }
+    if (s.orientDismissed == null) s.orientDismissed = false;
+    if (s.a11yAnnounce == null) s.a11yAnnounce = true;
+    if (s.prefersReducedMotion == null) s.prefersReducedMotion = !!s.reduceFlash;
+    if (from < 30) {
+      s.ach.v3_migrated = true;
+      if (s.reduceFlash) s.prefersReducedMotion = true;
+    }
+    s.version = Math.max(30, from, base.version || 30);
+    return s;
+  }
+
   function loadSave() {
     try {
       const raw = localStorage.getItem(SAVE_KEY);
       if (!raw) return defaultSave();
-      return { ...defaultSave(), ...JSON.parse(raw) };
+      return migrateSave(JSON.parse(raw));
     } catch (_) {
       return defaultSave();
     }
@@ -3465,7 +3497,7 @@
 
   function defaultSave() {
     return {
-      version: 29,
+      version: 30,
       totalSilver: 0,
       totalKills: 0,
       maxStageCleared: 0,
@@ -3500,6 +3532,9 @@
       quadTideTutorialDone: false,
       firstBootDone: false,
       tutorialDone: false,
+      orientDismissed: false,
+      a11yAnnounce: true,
+      prefersReducedMotion: false,
     };
   }
 
@@ -3545,6 +3580,12 @@
   }
 
   function listBossPreviews() {
+    const tips = {
+      black_swan: { threat: '減速震核', counter: '鐵衛頂前 · 逼空收割 · 合星再開' },
+      circuit_swan: { threat: '停刀鐘響', counter: '甲厚內息撐窗 · 鎖倉減攻' },
+      halt_tide: { threat: '臨停潮湧', counter: '先清符 · 鎖倉鐵壁 · 再軋潮心' },
+      ink_specter: { threat: '抽銀降攻', counter: '護銀分路 · 鎖倉減抽 · 清暗盤' },
+    };
     return Object.keys(ENEMIES)
       .map(function (id) {
         return ENEMIES[id];
@@ -3553,12 +3594,15 @@
         return d && d.boss;
       })
       .map(function (d) {
+        const tip = tips[d.id] || { threat: 'Boss', counter: '合星穩陣 · 鐵衛頂前' };
         return {
           id: d.id,
           name: d.name,
           color: d.color || '#C9A227',
           entrance: d.entrance || (d.skill && d.skill.blurb) || d.lore || '',
           skill: d.skill ? d.skill.name + ' — ' + (d.skill.blurb || '') : '',
+          threat: tip.threat,
+          counter: tip.counter,
           hp: d.hp,
           atk: d.atk,
           reward: d.reward,
@@ -3773,23 +3817,7 @@
     const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
     const body = data && data.save ? data.save : data;
     if (!body || typeof body !== 'object') throw new Error('無效存檔');
-    const merged = { ...defaultSave(), ...body };
-    merged.version = Math.max(24, merged.version || 24);
-    if (merged.weekStreak == null) merged.weekStreak = 0;
-    if (merged.weekStreakBest == null) merged.weekStreakBest = 0;
-    if (!merged.lastWeeklyClearKey) merged.lastWeeklyClearKey = '';
-    if (!Array.isArray(merged.weekClearHistory)) merged.weekClearHistory = [];
-    if (!Array.isArray(merged.wallSnapshots)) merged.wallSnapshots = [];
-    if (!merged.localBest || typeof merged.localBest !== 'object') merged.localBest = { endless: 0, weeklyStreak: 0, stageClears: 0 };
-    if (merged.post12EndlessBonus == null) merged.post12EndlessBonus = false;
-    if (merged.quadTideTutorialDone == null) merged.quadTideTutorialDone = false;
-    if (!merged.weekDailyMap) merged.weekDailyMap = {};
-    if (!merged.firstClears) merged.firstClears = {};
-    if (!merged.seenHeroes) merged.seenHeroes = {};
-    if (!merged.seenEnemies) merged.seenEnemies = {};
-    if (!merged.ach) merged.ach = {};
-    if (!merged.unlockedAch) merged.unlockedAch = {};
-    return merged;
+    return migrateSave(body);
   }
 
   function pickFailTip(seed) {
@@ -3808,7 +3836,11 @@
   function recommendForStage(stage, endless, daily, weekly) {
     if (stage && stage.id === 13) {
       const lu = LINEUPS.find((x) => x && x.id === 'ink_guard') || LINEUPS[0];
-      return { lineup: lu, reason: '墨影翻帳——護銀抗墨：鐵衛＋鎖倉清影' };
+      return {
+        lineup: lu,
+        reason: '墨影翻帳——護銀抗墨：鐵衛＋鎖倉清影',
+        tips: ['鐵衛頂前減抽', '鎖倉壓墨影弱化窗', '合星階梯回補被抽銀兩'],
+      };
     }
     if (stage && stage.id === 14) {
       const lu = LINEUPS.find((x) => x && x.id === 'ink_guard') || LINEUPS[0];
@@ -3833,7 +3865,7 @@
     let best = LINEUPS[0];
     let score = -1;
     const pick = (id, sc) => {
-      const lu = LINEUPS.find((x) => x.id === id);
+      const lu = LINEUPS.find((x) => x && x.id === id);
       if (lu && sc >= score) {
         score = sc;
         best = lu;
@@ -3842,7 +3874,11 @@
     if (endless) {
       pick('arb_hedge', 5);
       pick('dark_night', 4);
-      return { lineup: best, reason: '無盡浪種雜——跨 lane／標記收割較穩' };
+      return {
+        lineup: best,
+        reason: '無盡浪種雜——跨 lane／標記收割較穩',
+        tips: ['跨 lane 標記收割', '100+ 留意雙墨週期', '合星階梯撐銀流'],
+      };
     }
     const focusMeta = (weekly && stage && stage.weeklyMeta) || (daily && stage && stage.dailyMeta);
     if (focusMeta) {
@@ -3859,11 +3895,31 @@
       } else if (f === 'rumor_swarm') pick('leverage', 6);
       else pick('bull_bear', 5);
       const kind = weekly ? '週挑戰' : '每日';
-      return { lineup: best, reason: kind + '焦點「' + (focusMeta.blurb || f) + '」' };
+      const metaTips = {
+        dark_night: ['標記暗盤', '劍減速', '鐵衛頂前'],
+        arb_hedge: ['行者跨 lane', '點殺恐慌', '合星補銀'],
+        squeeze: ['軋空高血', '鼓手開倉', 'Boss 合星'],
+        squeeze_lock: ['軋空＋鎖倉', '鐵衛頂雙羽', '合 3 星'],
+        halt_lock: ['先清符', '鎖倉減攻', '劍收割'],
+        iron_wall: ['鐵衛頂', '隱士回血', '刀客後排'],
+        dip_div: ['雙奶穩核', '鐵衛頂', '殘血急救'],
+        leverage: ['範圍清潮', '刺客打後', '鐵衛頂'],
+        bull_bear: ['近遠互補', '鼓手加攻', '合星再開'],
+        ink_guard: ['護銀分路', '鎖倉減抽', '合星回補'],
+      };
+      return {
+        lineup: best,
+        reason: kind + '焦點「' + (focusMeta.blurb || f) + '」',
+        tips: metaTips[best.id] || ['跟芯片召齊', '合 2–3 星', '前坦後輸出'],
+      };
     }
     // 第 1 關固定偏新手鐵壁
     if (stage && stage.id === 1) {
-      return { lineup: LINEUPS[0], reason: '教學關——鐵衛＋隱士＋刀客最穩' };
+      return {
+        lineup: LINEUPS[0],
+        reason: '教學關——鐵衛＋隱士＋刀客最穩',
+        tips: ['鐵衛放前排', '隱士中排回血', '刀客後排輸出；合 2 星再開波'],
+      };
     }
     const dark = counts.dark_tape || 0;
     const panic = counts.panic_board || 0;
@@ -3887,7 +3943,23 @@
     else if (best.id === 'leverage') reason = '傳聞蚊／槓桿潮——範圍清場';
     else if (best.id === 'iron_wall') reason = '追保／前壓——鐵壁更穩';
     else if (best.id === 'bull_bear') reason = '多空齊開——近遠互補';
-    return { lineup: best, reason };
+    else if (best.id === 'squeeze_lock') reason = '雙天鵝／熔斷——軋空鎖倉';
+    else if (best.id === 'halt_lock') reason = '停牌潮——臨停鎖倉';
+    const tipMap = {
+      iron_wall: ['鐵衛前排頂', '隱士中排', '刀客後排；合星優先'],
+      bull_bear: ['刀劍同場', '鼓手加攻', '對潮怪先減速'],
+      leverage: ['狂僧清潮', '刺客打後', '鐵衛頂前'],
+      squeeze: ['逼空打高血', '鼓手開倉', 'Boss 波合星'],
+      arb_hedge: ['行者跨 lane', '劍減速', '鐵衛頂恐慌'],
+      dark_night: ['掮客標記', '劍收割', '先清暗盤影'],
+      dip_div: ['雙奶穩核', '鐵衛頂', '殘血急救'],
+      lock_wall: ['鎖倉減攻', '鐵衛頂', '隱士回血'],
+      squeeze_lock: ['逼空＋鎖倉', '鐵衛頂雙羽', '合 3 星再開'],
+      halt_lock: ['鐵筆減攻', '先清符', '劍減速收割'],
+      ink_guard: ['護銀分路', '鎖倉減抽', '合星階梯回補'],
+    };
+    const tips = tipMap[best.id] || ['跟芯片召齊', '合 2–3 星再開波', '前坦後輸出'];
+    return { lineup: best, reason: reason, tips: tips };
   }
 
   function formatRunModifiers(mods) {
@@ -3984,6 +4056,7 @@
     loadSave,
     writeSave,
     defaultSave,
+    migrateSave,
     exportSaveJson,
     exportLocalWallJson,
     exportLocalWallText,

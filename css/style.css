@@ -808,7 +808,7 @@ header.title {
 }
 
 
-/* v2.9.0 */
+/* v3.0.0 */
 .lane-tips {
   display: flex;
   gap: 8px;
@@ -845,3 +845,54 @@ header.title {
   color: #A09070;
 }
 .stage-rec-card .lore { display: block; margin-top: 4px; opacity: 0.85; }
+
+
+/* v3.0.0 — fail panel / ach tabs / boss preview */
+.fail-panel .fail-body { max-width: 520px; }
+.fail-rec { margin-top: 10px; border-color: rgba(201,162,39,0.45); }
+.boss-threat {
+  display: inline-block;
+  margin: 4px 0 2px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(160,40,40,0.18);
+  color: #C45C5C;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+.boss-counter {
+  margin-top: 4px;
+  padding: 4px 8px;
+  border-left: 3px solid #C9A227;
+  color: #D4C4A8;
+  font-size: 12px;
+  line-height: 1.4;
+  background: rgba(201,162,39,0.08);
+}
+.ach-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 10px;
+}
+.ach-tab {
+  appearance: none;
+  border: 1px solid rgba(201,162,39,0.35);
+  background: rgba(20,16,12,0.55);
+  color: #C9B99A;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.ach-tab.selected,
+.ach-tab[aria-selected="true"] {
+  background: rgba(201,162,39,0.22);
+  color: #F0E0B8;
+  border-color: #C9A227;
+}
+.orient-card strong { letter-spacing: 0.04em; }
+.orient-sub { max-width: 280px; }
+@media (prefers-reduced-motion: reduce) {
+  .orient-hint, .boss-preview { transition: none !important; }
+}

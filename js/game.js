@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 主循環 v2.9.0
+ * 銀樓防衛 — 主循環 v3.0.0
  * v1.9.0：第7關／鎖倉居士／週連續＋本地最佳牆／手感平衡
  */
 (function () {
@@ -59,6 +59,7 @@
     modifierLabel,
     pickStuckTip,
     recommendForStage,
+    migrateSave,
     formatRunModifiers,
     ENDLESS_MILESTONES,
     pickWaveEvent,
@@ -72,6 +73,10 @@
   ctx.imageSmoothingEnabled = false;
 
   let save = loadSave();
+  if (typeof migrateSave === 'function') {
+    save = migrateSave(save);
+    writeSave(save);
+  }
   // migrate soft fields
   if (!save.seenHeroes) save.seenHeroes = {};
   if (!save.seenEnemies) save.seenEnemies = {};
@@ -491,11 +496,15 @@
     if (state.tutorialStep >= 99) return;
     if (to != null) state.tutorialStep = Math.max(state.tutorialStep, to);
     else state.tutorialStep += 1;
-    if (state.tutorialStep >= 3) {
+    if (state.tutorialStep >= 5) {
       state.tutorialStep = 99;
       if (!save.tutorialDone) {
         save.tutorialDone = true;
+        if (!save.ach) save.ach = {};
+        save.ach.tutorial_v3 = true;
         writeSave(save);
+        notifyAchievements();
+        UI.toast('成就｜五步入門', 2000);
       }
     }
   }
@@ -507,15 +516,23 @@
       return;
     }
     if (state.tutorialStep === 0) {
-      UI.setHint('① 拖底欄俠客到綠色空格放置（同種愈召愈貴）');
+      UI.setHint('① 拖底欄俠客到綠色空格放置（同種愈召愈貴）｜可撳推薦陣容芯片');
       return;
     }
     if (state.tutorialStep === 1) {
-      UI.setHint('② 拖兩名同種同星疊埋 → 合併升星（最高 ' + MAX_STAR + ' 星，有銀兩回報）');
+      UI.setHint('② 拖兩名同種同星疊埋 → 合併升星（最高 ' + MAX_STAR + ' 星，有銀兩回報／階梯）');
       return;
     }
     if (state.tutorialStep === 2) {
-      UI.setHint('③ 按「開波」守銀樓；齊人觸發羈絆；每人有簡版技能');
+      UI.setHint('③ 點場上俠客強化：刀利／甲厚／內息（銀兩夠用先升級）');
+      return;
+    }
+    if (state.tutorialStep === 3) {
+      UI.setHint('④ 按「開波」守銀樓；齊人觸發羈絆；每人有簡版技能');
+      return;
+    }
+    if (state.tutorialStep === 4) {
+      UI.setHint('⑤ 失敗可重開／跟推薦芯片；設定可略過教學或重播導引');
       return;
     }
     if (state.drag && state.drag.active) {
@@ -717,10 +734,14 @@
           ? st.name || '每日'
           : '第 ' + st.id + ' 關・' + st.name;
     const rec =
-      !state.endless && !state.daily && !state.weekly && st && (st.id === 13 || st.id === 14) && recommendForStage
+      !state.endless && !state.daily && !state.weekly && st && recommendForStage
         ? recommendForStage(st, false, false, false)
-        : null;
-    const rich = !!(rec && rec.lineup) || (st && (st.id === 13 || st.id === 14) && !state.endless);
+        : state.endless || state.daily || state.weekly
+          ? recommendForStage
+            ? recommendForStage(st, state.endless, state.daily, state.weekly)
+            : null
+          : null;
+    const rich = !!(rec && rec.lineup) && !save.skipTutorial;
     UI.showStory(
       title,
       story,
@@ -743,10 +764,12 @@
         .map((id) => (HEROES[id] ? HEROES[id].name : id))
         .join('＋');
     const long =
-      state.stage && (state.stage.id === 13 || state.stage.id === 14) && !state.endless
-        ? '本關推薦｜' + rec.lineup.name + '（' + (heroes || '') + '）— ' + rec.reason
-        : '本關推薦｜' + rec.lineup.name + ' — ' + rec.reason;
-    UI.toast(long, state.stage && (state.stage.id === 13 || state.stage.id === 14) ? 3600 : 2800);
+      '本關推薦｜' +
+      rec.lineup.name +
+      (heroes ? '（' + heroes + '）' : '') +
+      ' — ' +
+      rec.reason;
+    UI.toast(long, rec.tips && rec.tips.length ? 3600 : 2800);
   }
 
   function enterStage(idx, endless, daily, weekly) {
@@ -948,7 +971,7 @@
     }
     state.phase = 'wave';
     noteAction();
-    advanceTutorial(3);
+    advanceTutorial(4);
     if (AudioSfx) AudioSfx.play('wave');
     UI.toast(
       (state.endless ? '無盡第 ' : state.weekly ? '週挑戰第 ' : state.daily ? '每日第 ' : '第 ') +
@@ -1357,39 +1380,85 @@
       recLu.name +
       (rec && rec.reason ? '（' + rec.reason + '）' : '') +
       ' — 下方芯片可一鍵跟單。';
-    UI.showOverlay(
-      '銀樓失守',
+    const failBody =
       '核心被攻破。擊殺 ' +
-        state.kills +
-        (state.endless
-          ? '｜無盡撐到第 ' + state.waveIndex + ' 波（最佳 ' + (save.bestEndlessWave || 0) + '）'
-          : state.weekly
-            ? '｜週挑戰未過'
-            : state.daily
-              ? '｜每日未過'
+      state.kills +
+      (state.endless
+        ? '｜無盡撐到第 ' + state.waveIndex + ' 波（最佳 ' + (save.bestEndlessWave || 0) + '）'
+        : state.weekly
+          ? '｜週挑戰未過'
+          : state.daily
+            ? '｜每日未過'
+            : state.stage
+              ? '｜第 ' + state.stage.id + ' 關「' + state.stage.name + '」'
               : '') +
-        '。' +
-        runModBlock() + settleExtraBlock() +
-        '\n\n提示：' +
-        tip +
-        recLine,
-      '重開本關',
-      () => {
-        UI.hideOverlay();
-        resetRun(state.endless, state.daily, state.weekly);
-      },
-      [
-        {
-          label: '用「' + recLu.name + '」再開',
-          secondary: true,
-          onClick: () => {
-            UI.hideOverlay();
-            resetRun(state.endless, state.daily, state.weekly);
-            applyLineup(recLu);
-          },
+      '。' +
+      runModBlock() +
+      settleExtraBlock() +
+      '\n\n提示：' +
+      tip +
+      recLine +
+      (rec && rec.tips && rec.tips.length
+        ? '\n分路／陣容：' + rec.tips.slice(0, 2).join('；')
+        : '');
+    if (UI.showFailPanel) {
+      UI.showFailPanel({
+        title: '銀樓失守',
+        body: failBody,
+        rec: rec,
+        onRetry: () => {
+          UI.hideOverlay();
+          resetRun(state.endless, state.daily, state.weekly);
         },
-      ]
-    );
+        onRetryLineup: () => {
+          UI.hideOverlay();
+          resetRun(state.endless, state.daily, state.weekly);
+          applyLineup(recLu);
+          if (!save.ach) save.ach = {};
+          save.ach.fail_retry = true;
+          writeSave(save);
+          notifyAchievements();
+        },
+        onMenu: () => {
+          UI.hideOverlay();
+          resetRun(false, false, false);
+          UI.toast('已回第 1 關｜可喺頂欄換關', 2400);
+        },
+      });
+    } else {
+      UI.showOverlay(
+        '銀樓失守',
+        failBody,
+        '重開本關',
+        () => {
+          UI.hideOverlay();
+          resetRun(state.endless, state.daily, state.weekly);
+        },
+        [
+          {
+            label: '用「' + recLu.name + '」再開',
+            secondary: true,
+            onClick: () => {
+              UI.hideOverlay();
+              resetRun(state.endless, state.daily, state.weekly);
+              applyLineup(recLu);
+              if (!save.ach) save.ach = {};
+              save.ach.fail_retry = true;
+              writeSave(save);
+              notifyAchievements();
+            },
+          },
+          {
+            label: '回選關',
+            secondary: true,
+            onClick: () => {
+              UI.hideOverlay();
+              resetRun(false, false, false);
+            },
+          },
+        ]
+      );
+    }
     // 失敗畫面必出推薦陣容芯片
     setTimeout(() => {
       const extra = document.getElementById('overlay-extra');
@@ -1490,6 +1559,14 @@
           AudioSfx.setEnabled(save.sfxEnabled !== false);
           if (save.sfxEnabled !== false) AudioSfx.play('click');
         }
+        syncAll();
+      },
+      onReplayTutorial: () => {
+        save.skipTutorial = false;
+        save.tutorialDone = false;
+        state.tutorialStep = 0;
+        writeSave(save);
+        UI.toast('已重播新手導引｜跟底欄五步', 2400);
         syncAll();
       },
       onSkipTutorial: () => {
@@ -1813,9 +1890,9 @@
     }
     state._mergeComboT = nowMs;
     if (state._mergeCombo >= 2) {
-      const ladder = { 2: 6, 3: 12, 4: 18, 5: 28 };
+      const ladder = { 2: 8, 3: 14, 4: 22, 5: 32 };
       const step = state._mergeCombo;
-      const bonus = ladder[step] || (step > 5 ? 28 + (step - 5) * 4 : 0);
+      const bonus = ladder[step] || (step > 5 ? 32 + (step - 5) * 5 : 0);
       if (bonus > 0 && (state._mergeComboPaid || 0) < step) {
         state._mergeComboPaid = step;
         state.silver += bonus;
@@ -2437,9 +2514,9 @@
   (function setupOrientHint() {
     const el = document.getElementById('orient-hint');
     if (!el) return;
-    let dismissed = false;
+    let dismissed = !!(save && save.orientDismissed);
     try {
-      dismissed = sessionStorage.getItem('yinlou-orient-dismiss') === '1';
+      if (!dismissed) dismissed = sessionStorage.getItem('yinlou-orient-dismiss') === '1';
     } catch (_) {}
     function update() {
       if (dismissed) {
@@ -2451,6 +2528,9 @@
       const show = portrait && narrow;
       el.classList.toggle('show', show);
       el.setAttribute('aria-hidden', show ? 'false' : 'true');
+      if (show && save && save.a11yAnnounce !== false) {
+        el.setAttribute('role', 'status');
+      }
     }
     update();
     window.addEventListener('resize', update);
@@ -2459,10 +2539,14 @@
     if (btn) {
       btn.addEventListener('click', () => {
         dismissed = true;
+        save.orientDismissed = true;
+        writeSave(save);
         try {
           sessionStorage.setItem('yinlou-orient-dismiss', '1');
         } catch (_) {}
         el.classList.remove('show');
+        el.setAttribute('aria-hidden', 'true');
+        UI.toast('已記住橫屏提示偏好', 1400);
       });
     }
   })();
