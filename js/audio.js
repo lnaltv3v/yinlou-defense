@@ -203,6 +203,14 @@
       buzz(560, 0.03, 'sine', 0.028);
       setTimeout(function () { buzz(780, 0.04, 'triangle', 0.032); }, 35);
     },
+    lesson_open: function () {
+      buzz(420, 0.04, 'sine', 0.03);
+      setTimeout(function () { buzz(560, 0.05, 'triangle', 0.028); }, 45);
+    },
+    deeplink_preview: function () {
+      buzz(660, 0.03, 'sine', 0.026);
+      setTimeout(function () { buzz(880, 0.035, 'square', 0.02); }, 40);
+    },
     merge_snap: function () {
       buzz(540, 0.028, 'sine', 0.028);
       setTimeout(function () { buzz(760, 0.035, 'triangle', 0.03); }, 30);

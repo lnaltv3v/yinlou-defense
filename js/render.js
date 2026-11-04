@@ -550,7 +550,7 @@
       ctx.arc(cb.x, cb.y, 3, 0, Math.PI * 2);
       ctx.fill();
     });
-    // v4.9：吸附環按星級上色＋合法合高亮＋目標環
+    // v5.0：吸附環按星級上色＋合法合高亮＋目標環
     const drag = state.drag;
     if (drag && drag.active) {
       function hexAlpha(hex, a) {
@@ -596,7 +596,7 @@
         if (window.__yinlouMarkTutMergeSnap) window.__yinlouMarkTutMergeSnap();
       }
     }
-    // v4.9：合失敗紅閃環
+    // v5.0：合失敗紅閃環
     const fail = state.mergeFailFlash;
     if (fail) {
       const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
