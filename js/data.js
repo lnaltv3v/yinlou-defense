@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 靜態資料 v1.6.0
+ * 銀樓防衛 — 靜態資料 v1.7.0
  * 角色為原創綽號，影射金融江湖氣氛；唔用真人真名／金庸名／Fortias IP。
  */
 (function (global) {
@@ -300,10 +300,10 @@
       cost: 33,
       color: '#406858',
       silhouette: 'brush',
-      atk: 9,
-      hp: 70,
-      range: 158,
-      cooldown: 0.72,
+      atk: 10,
+      hp: 72,
+      range: 160,
+      cooldown: 0.70,
       speed: 0,
       slow: 0.18,
       slowDur: 0.9,
@@ -918,8 +918,8 @@
       name: '斷索開市',
       story: '開市鑼未響，槓桿索已斷。停牌符貼滿城門，暗盤影同恐慌盤一齊湧向櫃檯——掌櫃拍桌：今夜唔係開市，係斷索之後第一盤棋。鎖倉、護盤、軋空，一氣呵成，否則只剩空倉同空城。',
       challenge: true,
-      startSilver: 278,
-      coreHp: 308,
+      startSilver: 288,
+      coreHp: 312,
       unlockHeroes: Object.keys(HEROES),
       firstClearBonus: 200,
       waves: [
@@ -979,6 +979,76 @@
           { enemy: 'margin_call', count: 8, lane: 'cycle', interval: 0.48, delay: 0.5 },
           { enemy: 'black_swan', count: 2, lane: 'cycle', interval: 3.0, delay: 2.0 },
           { enemy: 'chase_zombie', count: 6, lane: 'random', interval: 0.55, delay: 0.6 },
+        ]),
+      ],
+    },
+
+    {
+      id: 8,
+      name: '銀樓守歲',
+      story: '除夕子時，銀樓門神換墨。停牌符同暗盤影趁辭歲鼓聲湧入——掌櫃點燈：今夜唔睇盤口，只守歲。鎖倉居士鐵筆一點，鐵衛擋門，隱士分紅；守過子時，來年開張先有底氣。',
+      challenge: true,
+      startSilver: 300,
+      coreHp: 330,
+      unlockHeroes: Object.keys(HEROES),
+      firstClearBonus: 220,
+      waves: [
+        wavePack([
+          { enemy: 'halt_seal', count: 6, lane: 'cycle', interval: 0.65 },
+          { enemy: 'retail_tide', count: 12, lane: 'random', interval: 0.36, delay: 0.5 },
+          { enemy: 'rumor_swarm', count: 8, lane: 'cycle', interval: 0.34, delay: 0.4 },
+        ]),
+        wavePack([
+          { enemy: 'dark_tape', count: 9, lane: 'cycle', interval: 0.42 },
+          { enemy: 'margin_call', count: 6, lane: 'random', interval: 0.7, delay: 0.7 },
+          { enemy: 'halt_seal', count: 5, lane: 'cycle', interval: 0.8, delay: 1.0 },
+        ]),
+        wavePack([
+          { enemy: 'panic_board', count: 5, lane: 'cycle', interval: 0.95, delay: 0.4, elite: true },
+          { enemy: 'chase_zombie', count: 7, lane: 'random', interval: 0.65, delay: 0.7 },
+          { enemy: 'leverage_fiend', count: 3, lane: 'cycle', interval: 1.2, delay: 1.8 },
+          { enemy: 'dark_tape', count: 8, lane: 'random', interval: 0.4, delay: 1.2 },
+        ]),
+        wavePack([
+          { enemy: 'halt_seal', count: 8, lane: 'cycle', interval: 0.55 },
+          { enemy: 'rumor_swarm', count: 14, lane: 'random', interval: 0.26, delay: 0.25 },
+          { enemy: 'margin_call', count: 7, lane: 'cycle', interval: 0.55, delay: 0.7 },
+          { enemy: 'black_swan', count: 1, lane: 1, interval: 0, delay: 3.8 },
+        ]),
+        wavePack([
+          { enemy: 'panic_board', count: 6, lane: 'cycle', interval: 0.85 },
+          { enemy: 'dark_tape', count: 10, lane: 'random', interval: 0.36, delay: 0.4 },
+          { enemy: 'leverage_fiend', count: 4, lane: 'cycle', interval: 1.0, delay: 1.0, elite: true },
+          { enemy: 'halt_seal', count: 6, lane: 'random', interval: 0.7, delay: 0.8 },
+        ]),
+        wavePack([
+          { enemy: 'margin_call', count: 9, lane: 'cycle', interval: 0.48 },
+          { enemy: 'panic_board', count: 6, lane: 'random', interval: 0.78, delay: 0.45 },
+          { enemy: 'black_swan', count: 1, lane: 2, interval: 0, delay: 3.0 },
+          { enemy: 'dark_tape', count: 10, lane: 'cycle', interval: 0.34, delay: 1.2 },
+        ]),
+        wavePack([
+          { enemy: 'retail_tide', count: 16, lane: 'cycle', interval: 0.26 },
+          { enemy: 'halt_seal', count: 8, lane: 'random', interval: 0.5, delay: 0.3 },
+          { enemy: 'panic_board', count: 5, lane: 'cycle', interval: 0.8, delay: 0.7 },
+          { enemy: 'leverage_fiend', count: 4, lane: 'random', interval: 0.9, delay: 1.0 },
+          { enemy: 'rumor_swarm', count: 14, lane: 'cycle', interval: 0.24, delay: 0.2 },
+        ]),
+        wavePack([
+          { enemy: 'dark_tape', count: 14, lane: 'cycle', interval: 0.3 },
+          { enemy: 'halt_seal', count: 9, lane: 'random', interval: 0.48, delay: 0.3 },
+          { enemy: 'panic_board', count: 6, lane: 'cycle', interval: 0.75, delay: 0.5 },
+          { enemy: 'black_swan', count: 1, lane: 0, interval: 0, delay: 3.2 },
+          { enemy: 'black_swan', count: 1, lane: 3, interval: 0, delay: 5.5 },
+        ]),
+        wavePack([
+          { enemy: 'dark_tape', count: 16, lane: 'cycle', interval: 0.26 },
+          { enemy: 'panic_board', count: 7, lane: 'random', interval: 0.68, delay: 0.3 },
+          { enemy: 'halt_seal', count: 10, lane: 'cycle', interval: 0.45, delay: 0.35 },
+          { enemy: 'leverage_fiend', count: 5, lane: 'random', interval: 0.82, delay: 0.8, elite: true },
+          { enemy: 'margin_call', count: 9, lane: 'cycle', interval: 0.45, delay: 0.45 },
+          { enemy: 'black_swan', count: 2, lane: 'cycle', interval: 2.8, delay: 1.8 },
+          { enemy: 'chase_zombie', count: 7, lane: 'random', interval: 0.5, delay: 0.55 },
         ]),
       ],
     },
@@ -1279,6 +1349,41 @@
         ctx.coreMul = (ctx.coreMul || 1) * 0.95;
       },
     },
+    {
+      id: 'vault_echo',
+      name: '銀庫回聲',
+      blurb: '敵賞金 +10%；核心 HP −4%',
+      apply: (ctx) => {
+        ctx.rewardMul = (ctx.rewardMul || 1) * 1.1;
+        ctx.coreMul = (ctx.coreMul || 1) * 0.96;
+      },
+    },
+    {
+      id: 'calm_tape',
+      name: '靜盤緩行',
+      blurb: '敵人移速 −8%',
+      apply: (ctx) => {
+        ctx.enemySpeedMul = (ctx.enemySpeedMul || 1) * 0.92;
+      },
+    },
+    {
+      id: 'star_packet',
+      name: '升星紅包',
+      blurb: '合併回報 ×1.28；開局銀 +6%',
+      apply: (ctx) => {
+        ctx.mergeRebateMul = (ctx.mergeRebateMul || 1) * 1.28;
+        ctx.silverMul = (ctx.silverMul || 1) * 1.06;
+      },
+    },
+    {
+      id: 'seal_tide',
+      name: '鎖潮加印',
+      blurb: '鎖倉持續 ×1.22；俠客冷卻 −5%',
+      apply: (ctx) => {
+        ctx.lockDurMul = (ctx.lockDurMul || 1) * 1.22;
+        ctx.heroCdMul = (ctx.heroCdMul || 1) * 0.95;
+      },
+    },
   ];
 
   function hashStr(s) {
@@ -1310,6 +1415,8 @@
       mergeRebateMul: 1,
       waveBonusMul: 1,
       heroCdMul: 1,
+      lockDurMul: 1,
+      heroAtkMul: 1,
       mods: mods || [],
     };
     for (const m of ctx.mods) {
@@ -1514,11 +1621,11 @@
     };
   }
 
-  /** 無盡：每次開局抽 1–2 個修飾詞（跟香港日＋開局次數） */
+  /** 無盡：每次開局抽 1–3 個修飾詞（v1.7 加厚；跟香港日＋開局次數） */
   function endlessModifiers(extraSeed) {
     const day = hashStr(hkDateString());
     const seed = (day ^ ((extraSeed || 0) * 2654435761)) >>> 0;
-    const count = 1 + (seed % 2); // 1 或 2
+    const count = 1 + (seed % 3); // 1、2 或 3
     return pickModifiers(seed, count);
   }
 
@@ -1739,6 +1846,8 @@
     '第 7 關「斷索開市」停牌符＋暗盤影混編——鎖倉居士減攻＋鐵衛更穩。',
     '鎖倉居士＋莊家鐵衛 →「鎖倉鐵壁」；配股息隱士再觸「細水鎖倉」。',
     '週挑戰睇連續週同本地最佳牆（設定／成就）；唔做線上排行。',
+    '第 8 關「銀樓守歲」停牌＋暗盤＋雙天鵝——鎖倉減攻先，再合星硬頂。',
+    '無盡而家可抽到 3 個修飾；見「升星紅包／靜盤緩行／鎖潮加印」優先合星。',
   ];
 
 
@@ -1771,7 +1880,8 @@
     { id: 'stage5', cat: 'stage', name: '熔斷倖存', blurb: '通關第 5 關', check: (s) => (s.maxStageCleared || 0) >= 5 },
     { id: 'stage6', cat: 'stage', name: '暗盤破曉', blurb: '通關第 6 關「盤後暗盤」', check: (s) => (s.maxStageCleared || 0) >= 6 },
     { id: 'stage7', cat: 'stage', name: '斷索開市', blurb: '通關第 7 關「斷索開市」', check: (s) => (s.maxStageCleared || 0) >= 7 },
-    { id: 'all_stages', cat: 'stage', name: '七關皆破', blurb: '通關全部主線關卡', check: (s) => (s.maxStageCleared || 0) >= STAGES.length },
+    { id: 'stage8', cat: 'stage', name: '銀樓守歲', blurb: '通關第 8 關「銀樓守歲」', check: (s) => (s.maxStageCleared || 0) >= 8 },
+    { id: 'all_stages', cat: 'stage', name: '八關皆破', blurb: '通關全部主線關卡', check: (s) => (s.maxStageCleared || 0) >= STAGES.length },
     { id: 'star3', cat: 'merge', name: '三星掛牌', blurb: '首次合成 3 星', check: (s) => !!s.ach && s.ach.star3 },
     { id: 'maxstar', cat: 'merge', name: '滿星開盤', blurb: '首次合成 4 星', check: (s) => !!s.ach && s.ach.maxstar },
     { id: 'upgrade', cat: 'merge', name: '鍛打開倉', blurb: '首次強化場上俠客', check: (s) => !!s.ach && s.ach.upgrade },
@@ -1810,6 +1920,8 @@
     { id: 'streak5', cat: 'combat', name: '連斬開市', blurb: '單局達成一次連斬 ×5', check: (s) => !!s.ach && !!s.ach.streak5 },
     { id: 'week_streak3', cat: 'meta', name: '三週連莊', blurb: '週挑戰連續週 ≥ 3', check: (s) => (s.weekStreakBest || 0) >= 3 || (s.weekStreak || 0) >= 3 },
     { id: 'lock_bond', cat: 'combat', name: '鎖倉開倉', blurb: '觸發鎖倉鐵壁或細水鎖倉', check: (s) => !!s.ach && !!s.ach.lock_bond },
+    { id: 'lock_procs30', cat: 'combat', name: '鐵筆連環', blurb: '單局施放鎖倉印 ≥ 30 次', check: (s) => !!s.ach && !!s.ach.lock_procs30 },
+    { id: 'endless_triple', cat: 'combat', name: '三修飾殺跌', blurb: '無盡單局抽中 3 個修飾詞', check: (s) => !!s.ach && !!s.ach.endless_triple },
   ];
 
   /** 首通銀兩獎勵（入累計帳） */
@@ -1821,7 +1933,8 @@
     5: 100,
     6: 150,
     7: 200,
-    all: 250,
+    8: 220,
+    all: 280,
   };
 
   function stageFirstClearBonus(stageId) {
@@ -2032,7 +2145,7 @@
   function mergeRebate(heroId, newStar) {
     const def = HEROES[heroId];
     if (!def) return 0;
-    return Math.round(def.cost * 0.16 * newStar);
+    return Math.round(def.cost * 0.165 * newStar);
   }
 
   function activeBonds(heroes) {
@@ -2072,7 +2185,7 @@
 
   function defaultSave() {
     return {
-      version: 16,
+      version: 17,
       totalSilver: 0,
       totalKills: 0,
       maxStageCleared: 0,

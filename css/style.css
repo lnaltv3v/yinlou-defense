@@ -56,6 +56,9 @@ header.title {
   color: #E8DCC8;
 }
 #hud .stat strong { color: #D4AF37; }
+#hud .stat.lock strong {
+  color: #406858;
+}
 #hud .stat.bond strong {
   color: #C9A227;
   font-size: 12px;
@@ -185,6 +188,7 @@ header.title {
 @media (max-width: 720px) {
   .hero-btn { flex: 1 1 46%; font-size: 11px; }
   #hud .stat.bond { display: none; }
+  #hud .stat.lock { display: none; }
 }
 
 .stage-btn.daily { border-color: #3A7A6A; }

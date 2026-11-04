@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v1.6.0
+ * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v1.7.0
  */
 (function (global) {
   const {
@@ -394,8 +394,20 @@
     const bondEl = $('stat-bonds');
     if (bondEl) {
       const bonds = state._bonds || [];
-      bondEl.textContent = bonds.length ? bonds.map((b) => b.name).join('、') : '—';
+      bondEl.textContent = bonds.length
+        ? '(' + bonds.length + ') ' + bonds.map((b) => b.name).join('、')
+        : '—';
       bondEl.title = bonds.map((b) => b.name + '：' + b.blurb).join('\n');
+    }
+    const lockEl = $('stat-locks');
+    if (lockEl) {
+      let locked = 0;
+      for (const e of state.enemies || []) {
+        if (e.hp > 0 && e.lockT > 0) locked += 1;
+      }
+      const procs = state.lockProcs || 0;
+      lockEl.textContent = locked || procs ? locked + (procs ? '/' + procs : '') : '—';
+      lockEl.title = '場上鎖倉數／本局鎖倉印次數';
     }
     const pauseBtn = $('btn-pause');
     if (pauseBtn) {

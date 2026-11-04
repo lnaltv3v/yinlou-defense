@@ -1,6 +1,6 @@
 /**
- * 銀樓防衛 — 主循環 v1.6.0
- * v1.6.0：第7關／鎖倉居士／週連續＋本地最佳牆／手感平衡
+ * 銀樓防衛 — 主循環 v1.7.0
+ * v1.7.0：第7關／鎖倉居士／週連續＋本地最佳牆／手感平衡
  */
 (function () {
   const {
@@ -111,6 +111,10 @@
         stageClears: save.maxStageCleared || 0,
       };
     }
+    writeSave(save);
+  }
+  if (save.version < 17) {
+    save.version = 17;
     writeSave(save);
   }
   if (!save.weekDailyMap) save.weekDailyMap = {};
@@ -251,6 +255,8 @@
       _eliteKills: 0,
       _rumorKills: 0,
       _darkKills: 0,
+      lockProcs: 0,
+      lockKills: 0,
       _killStreak: 0,
       _killStreakT: 0,
       _eliteAnnounced: false,
@@ -311,6 +317,21 @@
       state._bonds.some((b) => b.id === 'lock_vault' || b.id === 'lock_div')
     ) {
       save.ach.lock_bond = true;
+      writeSave(save);
+      notifyAchievements();
+    }
+    if ((state.lockProcs || 0) >= 30 && !save.ach.lock_procs30) {
+      save.ach.lock_procs30 = true;
+      writeSave(save);
+      notifyAchievements();
+    }
+    if (
+      state.endless &&
+      state.modifiers &&
+      state.modifiers.length >= 3 &&
+      !save.ach.endless_triple
+    ) {
+      save.ach.endless_triple = true;
       writeSave(save);
       notifyAchievements();
     }
@@ -632,6 +653,16 @@
     return lab ? '\n本局修飾：\n' + lab : '';
   }
 
+  function settleExtraBlock() {
+    const bits = [];
+    if (state.lockProcs) bits.push('鎖倉印 ×' + state.lockProcs);
+    if (state.lockKills) bits.push('鎖倉擊殺 ' + state.lockKills);
+    if (state._bonds && state._bonds.length) {
+      bits.push('羈絆：' + state._bonds.map((b) => b.name).join('、'));
+    }
+    return bits.length ? '\n' + bits.join('｜') : '';
+  }
+
   function resetWaveBtn() {
     const btn = document.getElementById('btn-wave');
     if (btn) {
@@ -764,7 +795,7 @@
             (typeof formatLocalBestWall === 'function' ? '\n' + formatLocalBestWall(save).label : '') +
             '\n重置：' +
             wp.resetHint +
-            runModBlock() +
+            runModBlock() + settleExtraBlock() +
             '\n累計銀兩帳 ' +
             save.totalSilver +
             '。',
@@ -822,7 +853,7 @@
             (wp.weeklyDone ? '本週已清' : '尚未清（通關第 2 關後可打）') +
             '\n週重置：' +
             wp.resetHint +
-            runModBlock() +
+            runModBlock() + settleExtraBlock() +
             '\n累計銀兩帳 ' +
             save.totalSilver +
             '。',
@@ -909,15 +940,19 @@
         },
       });
       const title =
-        stageId >= 7
+        stageId >= 8
           ? hasNext
-            ? '斷索開市'
-            : '七關皆破'
-          : stageId >= 6
-            ? '暗盤破曉'
-            : hasNext
-              ? '銀樓倖存'
-              : '七關皆破';
+            ? '銀樓守歲'
+            : '八關皆破'
+          : stageId >= 7
+            ? hasNext
+              ? '斷索開市'
+              : '八關皆破'
+            : stageId >= 6
+              ? '暗盤破曉'
+              : hasNext
+                ? '銀樓倖存'
+                : '八關皆破';
       const rewardBlock = rewardLines.length ? '\n' + rewardLines.join('\n') + '。' : '';
       UI.showOverlay(
         title,
@@ -929,10 +964,10 @@
           save.totalSilver +
           '。' +
           rewardBlock +
-          runModBlock() +
+          runModBlock() + settleExtraBlock() +
           (hasNext
             ? '\n已解鎖下一關' + (wasNew ? '「' + STAGES[nextIdx].name + '」' : '') + '。'
-            : '\n主線全破！可挑戰無盡／每日／週挑戰，或重溫斷索／暗盤。'),
+            : '\n主線全破！可挑戰無盡／每日／週挑戰，或重溫守歲／斷索。'),
         hasNext ? '下一關' : '回第 1 關',
         () => {
           UI.hideOverlay();
@@ -1033,7 +1068,7 @@
               ? '｜每日未過'
               : '') +
         '。' +
-        runModBlock() +
+        runModBlock() + settleExtraBlock() +
         '\n\n提示：' +
         tip +
         recLine,

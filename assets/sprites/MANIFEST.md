@@ -42,5 +42,5 @@
 - `_round1_roster.png`／`_round1_roster_x4.png` 僅 QA，唔使入遊戲
 
 
-## v1.6
+## v1.7
 | lock_hermit | 鎖倉居士 | **暫無 PNG** → 幾何 `brush` fallback |

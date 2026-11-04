@@ -1,4 +1,4 @@
-# 銀樓防衛 — 美術短規範（v1.6）
+# 銀樓防衛 — 美術短規範（v1.7）
 
 ## 風格名
 **墨點金融江湖（Ink-Pixel Finance）**：宣紙底、墨點色塊、硬邊直角、統一點陣。質感密度可對齊市面 Merge TD／Fortias 級**可讀性**，但**原創構圖與造型，唔抄 IP**。
@@ -83,6 +83,11 @@
 
 
 
-## v1.6
+## v1.7
 - 新剪影 `brush`（鎖倉居士鐵筆＋印匣）；敵「鎖倉」青綠框標。
 - 鎖倉居士暫無正式 PNG → 幾何 fallback；場景四層維持。
+
+
+## 鎖倉居士（v1.7）
+- `assets/sprites/lock_hermit.png`／`_attack`／`_sheet`（48×48／96×48）
+- `sprites.js` `KNOWN_IDS` 含 `lock_hermit`；`CACHE_VER=1.7.0`；缺檔回退幾何 brush／locker 剪影

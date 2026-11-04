@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — Canvas 繪製 v1.6.0
+ * 銀樓防衛 — Canvas 繪製 v1.7.0
  * v1.5：場景四層 ground→mid→wall→props；halt_seal PNG；擊破／暴擊
  */
 (function (global) {
@@ -532,6 +532,18 @@
     if (h.atkBuffT > 0 && !ghost) {
       drawPixelRect(ctx, h.x + s + 2 + lean, h.y - s - 18 + idle, 6, 6, '#C9A227');
     }
+    if (!ghost && h.id === 'lock_hermit') {
+      const every = (def.skill && def.skill.every) || 4;
+      const prog = ((h.atkCount || 0) % every) / every;
+      drawPixelRect(ctx, h.x - 8 + lean, h.y + 42, 16, 4, '#1A1510');
+      drawPixelRect(ctx, h.x - 8 + lean, h.y + 42, Math.max(1, 16 * prog), 4, '#406858');
+      if (prog >= 0.75) {
+        ctx.fillStyle = '#C9A227';
+        ctx.font = 'bold 9px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('印', h.x + lean, h.y + 54);
+      }
+    }
     if (h.guardProcT > 0 && !ghost) {
       ctx.globalAlpha = alpha * 0.5;
       ctx.strokeStyle = '#C9A227';
@@ -658,8 +670,13 @@
       ctx.strokeStyle = '#406858';
       ctx.lineWidth = 2;
       ctx.strokeRect(e.x - r - 5, e.y - r - 5 + bob, r * 2 + 10, r * 2 + 10);
-      drawPixelRect(ctx, e.x - 6, e.y - r - 14 + bob, 12, 4, '#406858');
-      drawPixelRect(ctx, e.x - 3, e.y - r - 13 + bob, 6, 2, '#C9A227');
+      drawPixelRect(ctx, e.x - 10, e.y - r - 16 + bob, 20, 10, '#406858');
+      drawPixelRect(ctx, e.x - 8, e.y - r - 14 + bob, 16, 6, '#1A1510');
+      ctx.fillStyle = '#C9A227';
+      ctx.font = 'bold 9px sans-serif';
+      ctx.textAlign = 'center';
+      const cut = e.lockAtkMul != null ? Math.round((1 - e.lockAtkMul) * 100) : 0;
+      ctx.fillText('鎖' + (cut ? cut : ''), e.x, e.y - r - 8 + bob);
     }
     if (e.boss) {
       // 羽翼感
@@ -902,8 +919,9 @@
     }
     for (const f of state.floats) {
       const by = f._bounceY || 0;
+      const sc = f._scale || 1;
       ctx.globalAlpha = Math.min(1, f.life * 2.2);
-      const size = f.size || 14;
+      const size = Math.round((f.size || 14) * sc);
       ctx.font = 'bold ' + size + 'px sans-serif';
       ctx.textAlign = 'center';
       ctx.lineJoin = 'round';
@@ -1061,12 +1079,51 @@
         ? '每日第 ' + state.waveIndex + ' / ' + state.stage.waves.length + ' 波'
         : '第 ' + state.waveIndex + ' / ' + state.stage.waves.length + ' 波';
     ctx.fillText(state.stage.name + '  ·  ' + waveLabel + '  ·  ' + phase, 480, 32);
+    drawBondStrip(ctx, state);
+    drawLockStatus(ctx, state);
+  }
 
-    if (state._bonds && state._bonds.length) {
-      ctx.font = '11px sans-serif';
+  /** v1.7 羈絆狀態列：芯片式可讀 */
+  function drawBondStrip(ctx, state) {
+    const bonds = state._bonds || [];
+    if (!bonds.length) return;
+    const chipW = Math.min(118, Math.floor(560 / bonds.length));
+    const total = bonds.length * chipW;
+    let x = 480 - total / 2;
+    const y = 46;
+    for (let i = 0; i < bonds.length; i++) {
+      const b = bonds[i];
+      drawPixelRect(ctx, x + 1, y, chipW - 4, 16, '#1A1510');
+      ctx.strokeStyle = '#C9A227';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x + 1, y, chipW - 4, 16);
       ctx.fillStyle = '#C9A227';
-      ctx.fillText('羈絆：' + state._bonds.map((b) => b.name).join(' · '), 480, 52);
+      ctx.font = 'bold 10px sans-serif';
+      ctx.textAlign = 'center';
+      const label = b.name.length > 5 ? b.name.slice(0, 5) : b.name;
+      ctx.fillText(label, x + chipW / 2 - 1, y + 12);
+      x += chipW;
     }
+  }
+
+  /** v1.7 鎖倉狀態：場上鎖倉數＋居士印記可讀 */
+  function drawLockStatus(ctx, state) {
+    let locked = 0;
+    for (const e of state.enemies || []) {
+      if (e.hp > 0 && e.lockT > 0) locked += 1;
+    }
+    const hasLocker = (state.heroes || []).some((h) => h.hp > 0 && h.id === 'lock_hermit');
+    if (!locked && !hasLocker) return;
+    const y = (state._bonds && state._bonds.length) ? 66 : 48;
+    drawPixelRect(ctx, 780, y, 160, 20, '#1A1510');
+    ctx.strokeStyle = '#406858';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(780, y, 160, 20);
+    ctx.fillStyle = '#406858';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.textAlign = 'center';
+    const procs = state.lockProcs || 0;
+    ctx.fillText('鎖倉 ' + locked + (procs ? '｜印' + procs : ''), 860, y + 14);
   }
 
   function drawPauseVeil(ctx, state) {

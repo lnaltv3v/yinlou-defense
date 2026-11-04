@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 戰鬥／生成／合併邏輯 v1.6.0
+ * 銀樓防衛 — 戰鬥／生成／合併邏輯 v1.7.0
  * v1.4：擊退／超殺／擊破爆點／陣亡墨塵
  */
 (function (global) {
@@ -365,6 +365,9 @@
 
     let dmg = hero.atk * mods.atkMul;
     if (hero.atkBuffT > 0 && hero.atkBuff) dmg *= 1 + hero.atkBuff;
+    if (state.modCtx && state.modCtx.heroAtkMul && state.modCtx.heroAtkMul !== 1) {
+      dmg *= state.modCtx.heroAtkMul;
+    }
     dmg = Math.round(dmg);
     let kind = 'hit';
     let splashMul = 1;
@@ -446,21 +449,25 @@
         state.fx.push({ type: 'skill', x: target.x, y: target.y, color: '#3A4060', life: 0.4, text: sk.name });
       }
       if (sk.id === 'lock_seal') {
-        const dur = (sk.lockDur || 3.6) + (mods.lockDurBonus || 0);
+        let dur = (sk.lockDur || 3.6) + (mods.lockDurBonus || 0);
+        if (state.modCtx && state.modCtx.lockDurMul) dur *= state.modCtx.lockDurMul;
         let mul = sk.lockMul != null ? sk.lockMul : 0.62;
         if (mods.lockBonus) mul = Math.max(0.35, mul - mods.lockBonus);
         target.lockT = Math.max(target.lockT || 0, dur);
         target.lockAtkMul = Math.min(target.lockAtkMul != null ? target.lockAtkMul : 1, mul);
+        state.lockProcs = (state.lockProcs || 0) + 1;
+        const cutPct = Math.round((1 - mul) * 100);
         pushFloat(floats, {
           x: target.x,
           y: target.y - 28,
-          text: '鎖倉！',
+          text: '鎖倉−' + cutPct + '%',
           color: '#406858',
-          size: 13,
-          vy: -24,
-          life: 0.8,
+          size: 14,
+          vy: -28,
+          life: 0.9,
+          bounce: 1.15,
         });
-        state.fx.push({ type: 'skill', x: target.x, y: target.y, color: '#406858', life: 0.45, text: sk.name, r: 18 });
+        state.fx.push({ type: 'skill', x: target.x, y: target.y, color: '#406858', life: 0.5, text: sk.name, r: 20 });
       }
     }
 
@@ -911,16 +918,18 @@
       if (e.x > CORE.x + 20) {
         let reward = e.reward;
         if (e.lockT > 0 || (e.lockAtkMul != null && e.lockAtkMul < 0.99)) {
-          const bonus = Math.max(1, Math.round(e.reward * 0.15));
+          const bonus = Math.max(1, Math.round(e.reward * 0.18));
           reward += bonus;
+          state.lockKills = (state.lockKills || 0) + 1;
           pushFloat(state.floats, {
             x: e.x + 12,
             y: e.y - 14,
             text: '鎖倉+' + bonus,
             color: '#406858',
-            size: 11,
-            vy: -26,
-            life: 0.7,
+            size: 12,
+            vy: -28,
+            life: 0.8,
+            bounce: 1.1,
           });
         }
         state.silver += reward;
@@ -1029,6 +1038,9 @@
       const bounce = f.bounce ? Math.sin(Math.min(1, t * 8) * Math.PI) * 4 * (1 - t) : 0;
       f.y += (f.vy || -20) * dt;
       f._bounceY = bounce;
+      // v1.7：前段略放大再回落
+      const pulse = f.bounce ? 1 + 0.18 * Math.sin(Math.min(1, t * 6) * Math.PI) * (1 - t * 0.5) : 1;
+      f._scale = pulse;
     }
     compactAlive(state.floats, 48);
     for (const fx of state.fx) fx.life -= dt;
