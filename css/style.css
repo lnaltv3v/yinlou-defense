@@ -569,3 +569,49 @@ header.title {
   background: #2A241C;
   font-size: 10px;
 }
+
+
+/* v1.8 本地最佳牆可讀性 */
+.wp-wall {
+  margin-top: 6px;
+  padding: 6px 8px;
+  background: rgba(26, 21, 16, 0.55);
+  border: 1px solid #5A4030;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #E8DCC8;
+}
+.wp-wall-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+.wp-wall-label { color: #C9A227; font-weight: bold; }
+.wp-wall-note { color: #8A7A68; font-size: 11px; }
+.wp-wall-short { color: #D4AF37; margin-bottom: 4px; }
+.wp-wall-lines { display: grid; gap: 3px; }
+.wp-wall-line {
+  display: grid;
+  grid-template-columns: 72px 1fr 80px;
+  align-items: center;
+  gap: 6px;
+}
+.wp-wall-line span { color: #A89880; }
+.wp-wall-line strong { color: #E8DCC8; font-size: 11px; }
+.wp-bar-wall { height: 4px; background: #2A241C; }
+.wp-fill.wall { background: linear-gradient(90deg, #406858, #C9A227); }
+.wall-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 8px 0 4px;
+}
+.wall-cell {
+  background: rgba(26,21,16,0.4);
+  border: 1px solid #5A4030;
+  padding: 6px 8px;
+  border-radius: 4px;
+}
+.wall-cell span { display: block; color: #A89880; font-size: 11px; }
+.wall-cell strong { color: #C9A227; font-size: 13px; }

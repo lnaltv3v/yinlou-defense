@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v1.7.0
+ * 銀樓防衛 — HUD／商店／Toast／設定／圖鑑／成就／陣容／存檔／強化 v1.8.0
  */
 (function (global) {
   const {
@@ -757,6 +757,29 @@
         '<div class="paper-row"><span>本地牆</span><strong>' +
         (st.localBest || (typeof formatLocalBestWall === 'function' ? formatLocalBestWall(save).label : '—')) +
         '</strong></div>' +
+        (typeof formatLocalBestWall === 'function'
+          ? (function () {
+              const w = formatLocalBestWall(save);
+              if (!w.lines) return '';
+              return (
+                '<div class="wall-grid">' +
+                w.lines
+                  .map(function (ln) {
+                    return (
+                      '<div class="wall-cell"><span>' +
+                      ln.name +
+                      '</span><strong>' +
+                      ln.value +
+                      '</strong><div class="wp-bar"><i class="wp-fill wall" style="width:' +
+                      (ln.pct || 0) +
+                      '%"></i></div></div>'
+                    );
+                  })
+                  .join('') +
+                '</div>'
+              );
+            })()
+          : '') +
         '</div>'
     );
     const cats = ACHIEVEMENT_CATS || [{ id: 'all', name: '全部' }];
@@ -856,8 +879,30 @@
       wp.resetHint +
       '</div>' +
       (wall
-        ? '<div class="wp-wall" title="僅本機紀錄，唔做線上排行"><span class="wp-wall-label">本地最佳牆</span> ' +
+        ? '<div class="wp-wall" title="' +
+          (wall.label || '').replace(/"/g, '') +
+          '"><div class="wp-wall-head"><span class="wp-wall-label">本地最佳牆</span><span class="wp-wall-note">本機｜唔做線上排行</span></div>' +
+          '<div class="wp-wall-short">' +
           wall.short +
+          '</div>' +
+          (wall.lines
+            ? '<div class="wp-wall-lines">' +
+              wall.lines
+                .map(function (ln) {
+                  return (
+                    '<div class="wp-wall-line"><span>' +
+                    ln.name +
+                    '</span><strong>' +
+                    ln.value +
+                    '</strong>' +
+                    '<div class="wp-bar wp-bar-wall"><i class="wp-fill wall" style="width:' +
+                    (ln.pct || 0) +
+                    '%"></i></div></div>'
+                  );
+                })
+                .join('') +
+              '</div>'
+            : '') +
           '</div>'
         : '');
   }

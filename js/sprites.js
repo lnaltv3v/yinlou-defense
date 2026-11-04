@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 正式 PNG 精靈載入（有就用、無就幾何 fallback）v1.7.0
+ * 銀樓防衛 — 正式 PNG 精靈載入（有就用、無就幾何 fallback）v1.8.0
  * sheet 96×48：frame0 idle／frame1 attack；亦可 *_attack.png
  * v1.5：場景 mid／props；halt_seal PNG；cache-bust／尺寸校驗／missing 重試／動態 id
  */
@@ -7,7 +7,7 @@
   const BASE = 'assets/sprites/';
   const SCENE_BASE = 'assets/scenes/';
   const FRAME = 48;
-  const CACHE_VER = '1.7.0';
+  const CACHE_VER = '1.8.0';
   const KNOWN_IDS = [
     'long_bull',
     'short_blade',
@@ -30,6 +30,7 @@
     'panic_board',
     'dark_tape',
     'halt_seal',
+    'circuit_swan',
   ];
 
   /** @type {Record<string, {idle: CanvasImageSource|null, attack: CanvasImageSource|null, status: string, tried: boolean, promise: Promise|null, retries: number}>} */
@@ -177,14 +178,34 @@
   }
 
   function getFrame(id, attacking) {
-    const e = cache[id];
-    if (!e) return null;
+    let e = cache[id];
+    if (!e) {
+      // 熔斷天鵝未有專用 PNG 時借黑天鵝幀（仍可幾何 fallback）
+      if (id === 'circuit_swan') {
+        ensure('circuit_swan');
+        e = cache['black_swan'];
+        if (!e || e.status !== 'ready') {
+          ensure('black_swan');
+          return null;
+        }
+      } else {
+        return null;
+      }
+    }
     if (e.status === 'pending' || e.status === 'loading') {
-      // 懶觸發；繪製暫時走幾何
       ensure(id);
+      if (id === 'circuit_swan') ensure('black_swan');
       return null;
     }
-    if (e.status !== 'ready' || !e.idle) return null;
+    if (e.status !== 'ready' || !e.idle) {
+      if (id === 'circuit_swan') {
+        const alt = cache['black_swan'];
+        if (alt && alt.status === 'ready' && alt.idle) {
+          return attacking && alt.attack ? alt.attack : alt.idle;
+        }
+      }
+      return null;
+    }
     if (attacking && e.attack) return e.attack;
     return e.idle;
   }

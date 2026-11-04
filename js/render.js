@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — Canvas 繪製 v1.7.0
+ * 銀樓防衛 — Canvas 繪製 v1.8.0
  * v1.5：場景四層 ground→mid→wall→props；halt_seal PNG；擊破／暴擊
  */
 (function (global) {
@@ -705,13 +705,14 @@
       ctx.strokeRect(e.x - r - 1, e.y - r - 1 + bob, r * 2 + 2, r * 2 + 2);
     }
     if (e.boss) {
-      ctx.strokeStyle = '#C9A227';
-      ctx.lineWidth = 2;
+      const circuit = e.id === 'circuit_swan';
+      ctx.strokeStyle = circuit ? '#E8C96A' : '#C9A227';
+      ctx.lineWidth = circuit ? 3 : 2;
       ctx.strokeRect(e.x - r - 2, e.y - r - 2 + bob, r * 2 + 4, r * 2 + 4);
-      ctx.fillStyle = '#C9A227';
-      ctx.font = '9px sans-serif';
+      ctx.fillStyle = circuit ? '#E8C96A' : '#C9A227';
+      ctx.font = 'bold 9px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('黑天鵝', e.x, e.y - r - 8 + bob);
+      ctx.fillText(circuit ? '熔斷天鵝' : '黑天鵝', e.x, e.y - r - 8 + bob);
     } else if (e.elite) {
       ctx.fillStyle = '#C45C4A';
       ctx.font = 'bold 9px sans-serif';
@@ -895,8 +896,17 @@
           ctx.globalAlpha = 1;
         }
       } else if (fx.type === 'bossWarn') {
-        ctx.globalAlpha = Math.min(state.reduceFlash ? 0.1 : 0.25, fx.life * 0.2);
+        ctx.globalAlpha = Math.min(state.reduceFlash ? 0.1 : 0.28, fx.life * 0.22);
         drawPixelRect(ctx, 0, 0, ctx.canvas.width, ctx.canvas.height, '#5A4060');
+        ctx.globalAlpha = 1;
+      } else if (fx.type === 'circuitWarn') {
+        const pulse = 0.15 + 0.12 * Math.sin((fx.life || 0) * 14);
+        ctx.globalAlpha = Math.min(state.reduceFlash ? 0.12 : pulse + 0.18, 0.4);
+        drawPixelRect(ctx, 0, 0, ctx.canvas.width, ctx.canvas.height, '#2A1828');
+        ctx.globalAlpha = Math.min(0.5, fx.life);
+        ctx.strokeStyle = '#C9A227';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(40, 40, ctx.canvas.width - 80, ctx.canvas.height - 80);
         ctx.globalAlpha = 1;
       } else if (fx.type === 'eliteWarn') {
         ctx.globalAlpha = Math.min(state.reduceFlash ? 0.08 : 0.2, fx.life * 0.18);
@@ -999,14 +1009,22 @@
     const alpha = p > 0.85 ? (1 - p) / 0.15 : p < 0.2 ? p / 0.2 : 1;
     ctx.globalAlpha = Math.min(1, alpha);
     const elite = b.kind === 'elite';
-    drawPixelRect(ctx, 160, 200, 640, 56, '#1A1510');
-    ctx.strokeStyle = elite ? '#C45C4A' : '#C9A227';
-    ctx.lineWidth = 3;
-    ctx.strokeRect(162, 202, 636, 52);
-    ctx.fillStyle = elite ? '#C45C4A' : '#C9A227';
+    const circuit = b.kind === 'circuit';
+    const h = b.blurb ? 72 : 56;
+    drawPixelRect(ctx, 140, 188, 680, h, '#1A1510');
+    ctx.strokeStyle = elite ? '#C45C4A' : circuit ? '#E8C96A' : '#C9A227';
+    ctx.lineWidth = circuit ? 4 : 3;
+    ctx.strokeRect(142, 190, 676, h - 4);
+    ctx.fillStyle = elite ? '#C45C4A' : circuit ? '#E8C96A' : '#C9A227';
     ctx.font = 'bold 22px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText((elite ? '⚔ 精英來襲 — ' : '⚠ Boss 入場 — ') + b.name, 480, 236);
+    const prefix = elite ? '⚔ 精英來襲 — ' : circuit ? '🔔 熔斷 Boss — ' : '⚠ Boss 入場 — ';
+    ctx.fillText(prefix + b.name, 480, 222);
+    if (b.blurb) {
+      ctx.fillStyle = '#E8DCC8';
+      ctx.font = '12px sans-serif';
+      ctx.fillText(b.blurb, 480, 246);
+    }
     ctx.globalAlpha = 1;
   }
 

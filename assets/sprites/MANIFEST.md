@@ -42,5 +42,8 @@
 - `_round1_roster.png`／`_round1_roster_x4.png` 僅 QA，唔使入遊戲
 
 
-## v1.7
+## v1.8
 | lock_hermit | 鎖倉居士 | **暫無 PNG** → 幾何 `brush` fallback |
+
+
+Boss 變體 `circuit_swan`（熔斷天鵝）暫無專用 PNG → 借黑天鵝幀／幾何金邊標（v1.8）。

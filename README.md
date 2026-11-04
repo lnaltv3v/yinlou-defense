@@ -32,7 +32,7 @@ python3 -m http.server 8765
 - 存檔：`localStorage` key `yinlou-defense-save-v1`（version 16；可 JSON 匯出／匯入）
 
 ## 版本
-而家 **v1.7.0**（第 8 關銀樓守歲＋鎖倉正式 PNG＋修飾第 2 池／無盡 1–3＋羈絆列／鎖倉狀態；成就 37；音檔仍後補）。詳見 `CHANGELOG.md`、`DESIGN.md`。
+而家 **v1.8.0**（第 9 關開年軋空＋熔斷天鵝＋場景 mid／props 加厚＋修飾第 3 池＋本地牆可讀；成就 40；音檔仍後補）。詳見 `CHANGELOG.md`、`DESIGN.md`。
 
 ### 已知問題／後補
 - 戰場已接**場景四層 PNG**（ground／mid／wall／props）；俠 **12**（鎖倉居士暫幾何）＋敵 9 正式 PNG。

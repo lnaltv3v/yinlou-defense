@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 戰鬥／生成／合併邏輯 v1.7.0
+ * 銀樓防衛 — 戰鬥／生成／合併邏輯 v1.8.0
  * v1.4：擊退／超殺／擊破爆點／陣亡墨塵
  */
 (function (global) {
@@ -774,6 +774,32 @@
       // 回血喺呼叫處處理
     } else if (sk.type === 'stun') {
       if (hero) hero.stunT = Math.max(hero.stunT || 0, sk.dur || 1);
+    } else if (sk.type === 'circuit') {
+      const stunDur = sk.stunDur || 0.85;
+      const pad = sk.heroCdPad || 0.7;
+      for (const h of state.heroes) {
+        if (h.hp <= 0) continue;
+        h.stunT = Math.max(h.stunT || 0, stunDur);
+        h.cd = Math.max(h.cd || 0, pad);
+        h.hitFlash = Math.max(h.hitFlash || 0, 0.28);
+      }
+      if (sk.coreDmg) {
+        state.coreHp -= sk.coreDmg;
+        state.coreHitFlash = 0.5;
+        state.shake = Math.max(state.shake || 0, 0.32);
+        pushFloat(state.floats, {
+          x: CORE.x,
+          y: CORE.y - 52,
+          text: '熔斷 -' + sk.coreDmg,
+          color: '#C9A227',
+          size: 16,
+          vy: -30,
+          life: 1.1,
+          bounce: 1.2,
+        });
+      }
+      pushFx(state, { type: 'circuitWarn', life: 0.9 });
+      state._circuitProcs = (state._circuitProcs || 0) + 1;
     }
   }
 
@@ -947,6 +973,7 @@
         state._killStreakT = 1.4;
         if (e.id === 'rumor_swarm') state._rumorKills = (state._rumorKills || 0) + 1;
         if (e.id === 'dark_tape') state._darkKills = (state._darkKills || 0) + 1;
+        if (e.id === 'circuit_swan') state._circuitKills = (state._circuitKills || 0) + 1;
         if (e.elite) {
           state._eliteKills = (state._eliteKills || 0) + 1;
           pushFloat(state.floats, {
@@ -1065,24 +1092,39 @@
   }
 
   function announceBoss(state, enemy) {
+    const isCircuit = enemy.id === 'circuit_swan' || (enemy.def && enemy.def.id === 'circuit_swan');
     state.bossBanner = {
       name: enemy.def.name,
-      life: 2.6,
-      maxLife: 2.6,
-      kind: 'boss',
+      life: isCircuit ? 3.2 : 2.9,
+      maxLife: isCircuit ? 3.2 : 2.9,
+      kind: isCircuit ? 'circuit' : 'boss',
+      blurb: isCircuit ? '熔斷鐘將響 — 俠客短暫停刀' : (enemy.def.skill && enemy.def.skill.blurb) || '',
     };
-    state.shake = Math.max(state.shake || 0, 0.28);
-    state.fx.push({ type: 'bossWarn', life: 2.4 });
+    state.shake = Math.max(state.shake || 0, isCircuit ? 0.4 : 0.32);
+    state.coreHitFlash = Math.max(state.coreHitFlash || 0, isCircuit ? 0.55 : 0.35);
+    state.fx.push({ type: isCircuit ? 'circuitWarn' : 'bossWarn', life: isCircuit ? 2.8 : 2.5 });
     pushFloat(state.floats, {
       x: 480,
-      y: 200,
-      text: '⚠ ' + enemy.def.name + ' 入場',
-      color: '#C9A227',
-      size: 22,
-      vy: -12,
-      life: 2.2,
-      bounce: 0,
+      y: 190,
+      text: (isCircuit ? '🔔 ' : '⚠ ') + enemy.def.name + ' 入場',
+      color: isCircuit ? '#E8C96A' : '#C9A227',
+      size: isCircuit ? 24 : 22,
+      vy: -10,
+      life: isCircuit ? 2.6 : 2.3,
+      bounce: 0.4,
     });
+    if (isCircuit) {
+      pushFloat(state.floats, {
+        x: 480,
+        y: 230,
+        text: '開年熔斷 — 守住內息',
+        color: '#C45C4A',
+        size: 14,
+        vy: -8,
+        life: 2.0,
+        bounce: 0,
+      });
+    }
   }
 
   function announceElite(state, enemy) {

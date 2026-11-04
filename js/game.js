@@ -1,6 +1,6 @@
 /**
- * 銀樓防衛 — 主循環 v1.7.0
- * v1.7.0：第7關／鎖倉居士／週連續＋本地最佳牆／手感平衡
+ * 銀樓防衛 — 主循環 v1.8.0
+ * v1.8.0：第7關／鎖倉居士／週連續＋本地最佳牆／手感平衡
  */
 (function () {
   const {
@@ -115,6 +115,10 @@
   }
   if (save.version < 17) {
     save.version = 17;
+    writeSave(save);
+  }
+  if (save.version < 18) {
+    save.version = 18;
     writeSave(save);
   }
   if (!save.weekDailyMap) save.weekDailyMap = {};
@@ -257,6 +261,8 @@
       _darkKills: 0,
       lockProcs: 0,
       lockKills: 0,
+      _circuitKills: 0,
+      _circuitProcs: 0,
       _killStreak: 0,
       _killStreakT: 0,
       _eliteAnnounced: false,
@@ -332,6 +338,11 @@
       !save.ach.endless_triple
     ) {
       save.ach.endless_triple = true;
+      writeSave(save);
+      notifyAchievements();
+    }
+    if ((state._circuitKills || 0) >= 1 && !save.ach.circuit_kill) {
+      save.ach.circuit_kill = true;
       writeSave(save);
       notifyAchievements();
     }
@@ -657,8 +668,12 @@
     const bits = [];
     if (state.lockProcs) bits.push('鎖倉印 ×' + state.lockProcs);
     if (state.lockKills) bits.push('鎖倉擊殺 ' + state.lockKills);
+    if (state._circuitKills) bits.push('熔斷天鵝擊破 ×' + state._circuitKills);
     if (state._bonds && state._bonds.length) {
       bits.push('羈絆：' + state._bonds.map((b) => b.name).join('、'));
+    }
+    if (state.weekly && typeof formatLocalBestWall === 'function') {
+      bits.push(formatLocalBestWall(save).short);
     }
     return bits.length ? '\n' + bits.join('｜') : '';
   }
@@ -940,19 +955,23 @@
         },
       });
       const title =
-        stageId >= 8
+        stageId >= 9
           ? hasNext
-            ? '銀樓守歲'
-            : '八關皆破'
-          : stageId >= 7
+            ? '開年軋空'
+            : '九關皆破'
+          : stageId >= 8
             ? hasNext
-              ? '斷索開市'
-              : '八關皆破'
-            : stageId >= 6
-              ? '暗盤破曉'
-              : hasNext
-                ? '銀樓倖存'
-                : '八關皆破';
+              ? '銀樓守歲'
+              : '九關皆破'
+            : stageId >= 7
+              ? hasNext
+                ? '斷索開市'
+                : '九關皆破'
+              : stageId >= 6
+                ? '暗盤破曉'
+                : hasNext
+                  ? '銀樓倖存'
+                  : '九關皆破';
       const rewardBlock = rewardLines.length ? '\n' + rewardLines.join('\n') + '。' : '';
       UI.showOverlay(
         title,
@@ -967,7 +986,7 @@
           runModBlock() + settleExtraBlock() +
           (hasNext
             ? '\n已解鎖下一關' + (wasNew ? '「' + STAGES[nextIdx].name + '」' : '') + '。'
-            : '\n主線全破！可挑戰無盡／每日／週挑戰，或重溫守歲／斷索。'),
+            : '\n主線全破！可挑戰無盡／每日／週挑戰，或重溫軋空／守歲。'),
         hasNext ? '下一關' : '回第 1 關',
         () => {
           UI.hideOverlay();
