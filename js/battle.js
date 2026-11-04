@@ -1,8 +1,8 @@
 /**
- * 銀樓防衛 — 戰鬥／生成／合併邏輯 v0.2.0
+ * 銀樓防衛 — 戰鬥／生成／合併邏輯 v0.3.0
  */
 (function (global) {
-  const { HEROES, ENEMIES, GRID, CORE, heroStats } = global.YD;
+  const { HEROES, ENEMIES, GRID, CORE, heroStats, activeBonds, bondModsFor } = global.YD;
 
   function cellCenter(lane, slot) {
     const x = GRID.originX + slot * (GRID.cellW + GRID.gapX) + GRID.cellW / 2;
@@ -34,6 +34,8 @@
       cd: Math.random() * 0.3,
       auraT: 0,
       hitFlash: 0,
+      atkBuff: 0,
+      atkBuffT: 0,
       def,
     };
   }
@@ -62,7 +64,7 @@
       attackCd: def.attackCd || 1,
       cd: Math.random() * 0.4,
       preferHero: def.preferHero != null ? def.preferHero : 0.5,
-      mode: 'march', // march | fight
+      mode: 'march',
       hitFlash: 0,
     };
   }
@@ -85,7 +87,7 @@
 
     const next = makeHero(target.id, lane, slot, nextStar);
     next.uid = keepUid;
-    next.hp = Math.max(1, Math.round(next.maxHp * Math.min(1, ratio + 0.25)));
+    next.hp = Math.max(1, Math.round(next.maxHp * Math.min(1, ratio + 0.28)));
 
     const sid = source.uid;
     const tid = target.uid;
@@ -105,7 +107,7 @@
     const inRange = enemies.filter((e) => {
       if (e.hp <= 0) return false;
       const sameLane = e.lane === hero.lane;
-      if (hero.def.role === 'support') {
+      if (hero.def.role === 'support' || hero.def.role === 'buffer') {
         if (Math.abs(e.lane - hero.lane) > 1) return false;
       } else if (!sameLane) {
         return false;
@@ -116,6 +118,9 @@
     if (!inRange.length) return null;
     if (hero.def.preferBack) {
       return inRange.reduce((a, b) => (a.x > b.x ? a : b));
+    }
+    if (hero.def.role === 'hunter') {
+      return inRange.reduce((a, b) => (a.hp / a.maxHp > b.hp / b.maxHp ? a : b));
     }
     return inRange.reduce((a, b) => (a.x < b.x ? a : b));
   }
@@ -149,13 +154,17 @@
     });
   }
 
-  function applyHeroDamage(hero, amount, floats) {
-    hero.hp -= amount;
+  function applyHeroDamage(hero, amount, floats, state) {
+    const bonds = state._bonds || activeBonds(state.heroes);
+    const mods = bondModsFor(hero.id, bonds);
+    let dmg = amount;
+    if (hero.def.role === 'tank') dmg = Math.round(dmg * mods.tankDmgMul);
+    hero.hp -= dmg;
     hero.hitFlash = 0.15;
     pushFloat(floats, {
       x: hero.x,
       y: hero.y - 28,
-      text: '-' + Math.round(amount),
+      text: '-' + Math.round(dmg),
       color: '#C45C4A',
       size: 13,
       vy: -30,
@@ -164,14 +173,54 @@
   }
 
   function heroAttack(hero, enemies, floats, state) {
+    const bonds = state._bonds || activeBonds(state.heroes);
+    const mods = bondModsFor(hero.id, bonds);
+
+    // buffer：優先 buff 鄰格俠客
+    if (hero.def.role === 'buffer') {
+      let buffed = false;
+      const bonus = (hero.def.buffAtk || 0.15) + mods.buffBonus;
+      for (const h of state.heroes) {
+        if (h.uid === hero.uid || h.hp <= 0) continue;
+        if (Math.abs(h.lane - hero.lane) > 1) continue;
+        if (Math.abs(h.slot - hero.slot) > 1) continue;
+        h.atkBuff = Math.max(h.atkBuff || 0, bonus);
+        h.atkBuffT = Math.max(h.atkBuffT || 0, hero.def.buffDur || 2);
+        buffed = true;
+      }
+      if (buffed) {
+        pushFloat(floats, {
+          x: hero.x,
+          y: hero.y - 22,
+          text: '開市！',
+          color: '#C9A227',
+          size: 12,
+          vy: -22,
+          life: 0.7,
+        });
+        state.fx.push({ type: 'hit', x: hero.x, y: hero.y, color: '#C9A227', life: 0.25, r: 18 });
+      }
+    }
+
     const target = pickTarget(hero, enemies);
     if (!target) return;
 
-    let dmg = hero.atk;
+    let dmg = hero.atk * mods.atkMul;
+    if (hero.atkBuffT > 0 && hero.atkBuff) dmg *= 1 + hero.atkBuff;
+    dmg = Math.round(dmg);
     let kind = 'hit';
+
     if (hero.def.role === 'assassin' && target.x > 700) {
       dmg = Math.round(dmg * 1.35);
       kind = 'crit';
+    }
+    if (hero.def.role === 'hunter' || hero.def.highHpBonus) {
+      const ratio = target.hp / target.maxHp;
+      if (ratio >= 0.5) {
+        const bonus = (hero.def.highHpBonus || 0.35) + mods.highHpExtra;
+        dmg = Math.round(dmg * (1 + bonus));
+        kind = 'crit';
+      }
     }
 
     applyDamage(target, dmg, floats, kind);
@@ -224,19 +273,23 @@
 
   function tickSupport(hero, heroes, state, dt) {
     if (hero.def.role !== 'support') return;
+    const bonds = state._bonds || activeBonds(heroes);
+    const mods = bondModsFor(hero.id, bonds);
     hero.auraT += dt;
     if (hero.auraT < 1) return;
     hero.auraT = 0;
+    const heal = (hero.def.auraHeal || 0) * hero.star * mods.auraMul;
+    const sil = (hero.def.auraSilver || 0) * hero.star * mods.auraMul;
     for (const h of heroes) {
       if (Math.abs(h.lane - hero.lane) <= 1) {
-        h.hp = Math.min(h.maxHp, h.hp + (hero.def.auraHeal || 0) * hero.star);
+        h.hp = Math.min(h.maxHp, h.hp + heal);
       }
     }
-    state.silver += (hero.def.auraSilver || 0) * hero.star;
+    state.silver += sil;
     pushFloat(state.floats, {
       x: hero.x,
       y: hero.y - 24,
-      text: '+' + ((hero.def.auraSilver || 0) * hero.star).toFixed(1) + '兩',
+      text: '+' + sil.toFixed(1) + '兩',
       color: '#D4AF37',
       size: 12,
       vy: -18,
@@ -245,14 +298,30 @@
   }
 
   function tickHeroes(state, dt) {
+    state._bonds = activeBonds(state.heroes);
     for (const h of state.heroes) {
       if (h.hp <= 0) continue;
       if (h.hitFlash > 0) h.hitFlash -= dt;
+      if (h.atkBuffT > 0) {
+        h.atkBuffT -= dt;
+        if (h.atkBuffT <= 0) {
+          h.atkBuffT = 0;
+          h.atkBuff = 0;
+        }
+      }
       tickSupport(h, state.heroes, state, dt);
+      const mods = bondModsFor(h.id, state._bonds);
       h.cd -= dt;
       if (h.cd > 0) continue;
-      if (!pickTarget(h, state.enemies)) continue;
-      h.cd = h.cooldown;
+      if (h.def.role === 'buffer') {
+        const allies = state.heroes.some(
+          (o) => o.uid !== h.uid && o.hp > 0 && Math.abs(o.lane - h.lane) <= 1 && Math.abs(o.slot - h.slot) <= 1
+        );
+        if (!allies && !pickTarget(h, state.enemies)) continue;
+      } else if (!pickTarget(h, state.enemies)) {
+        continue;
+      }
+      h.cd = h.cooldown * mods.cdMul;
       heroAttack(h, state.enemies, state.floats, state);
     }
   }
@@ -263,7 +332,6 @@
     for (const h of heroes) {
       if (h.hp <= 0) continue;
       if (h.lane !== enemy.lane) continue;
-      // 俠客要喺敵人左邊（銀樓方向）或貼近
       if (h.x > enemy.x + 8) continue;
       const d = enemy.x - h.x;
       if (d < bestD) {
@@ -288,7 +356,6 @@
       const distHero = hero ? Math.abs(e.x - hero.x) : Infinity;
       const inHeroRange = hero && distHero <= e.attackRange + 18;
 
-      // 混用：有機率／距離內就打塔，否則衝核心
       if (inHeroRange && (e.mode === 'fight' || Math.random() < e.preferHero * 0.02 + (inHeroRange ? 0.5 : 0))) {
         e.mode = 'fight';
       } else if (!inHeroRange) {
@@ -296,10 +363,9 @@
       }
 
       if (e.mode === 'fight' && hero && hero.hp > 0) {
-        // 停下攻擊最近俠客
         if (e.cd <= 0) {
           e.cd = e.attackCd;
-          applyHeroDamage(hero, e.atk, state.floats);
+          applyHeroDamage(hero, e.atk, state.floats, state);
           state.fx.push({
             type: 'hit',
             x: hero.x,
@@ -330,10 +396,7 @@
         vy: -34,
         life: 1.0,
       });
-      state.fx.push({
-        type: 'coreHit',
-        life: 0.35,
-      });
+      state.fx.push({ type: 'coreHit', life: 0.35 });
       e.hp = 0;
     }
   }
@@ -357,7 +420,6 @@
       }
     }
     state.enemies = state.enemies.filter((e) => e.hp > 0);
-    // 俠客陣亡
     const deadH = state.heroes.filter((h) => h.hp <= 0);
     for (const h of deadH) {
       pushFloat(state.floats, {
@@ -428,6 +490,16 @@
     return null;
   }
 
+  /** 合併成功特效包 */
+  function spawnMergeFx(state, hero) {
+    state.fx.push({ type: 'merge', x: hero.x, y: hero.y, star: hero.star, life: 0.55 });
+    state.fx.push({ type: 'hit', x: hero.x, y: hero.y, color: '#C9A227', life: 0.4, r: 28 });
+    if (hero.star >= 3) {
+      state.fx.push({ type: 'maxstar', x: hero.x, y: hero.y, life: 0.9 });
+    }
+    if (!state.shake || state.shake < 0.14) state.shake = 0.14;
+  }
+
   global.YDBattle = {
     cellCenter,
     laneY,
@@ -443,5 +515,8 @@
     createSpawner,
     hitTestCell,
     hitTestHero,
+    spawnMergeFx,
+    pushFloat,
+    activeBonds,
   };
 })(window);
