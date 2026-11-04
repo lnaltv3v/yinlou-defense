@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 靜態資料 v1.8.0
+ * 銀樓防衛 — 靜態資料 v1.9.0
  * 角色為原創綽號，影射金融江湖氣氛；唔用真人真名／金庸名／Fortias IP。
  */
 (function (global) {
@@ -409,6 +409,24 @@
       lockDurBonus: 0.8,
       applyTo: ['lock_hermit', 'dividend_hermit'],
     },
+    {
+      id: 'squeeze_lock',
+      name: '軋空鎖倉',
+      need: ['squeeze_blade', 'lock_hermit'],
+      blurb: '逼空加成＋12%；鎖倉減攻再 −6%',
+      highHpExtra: 0.12,
+      lockBonus: 0.06,
+      applyTo: ['squeeze_blade', 'lock_hermit'],
+    },
+    {
+      id: 'ipo_lock',
+      name: '招股鎖倉',
+      need: ['ipo_herald', 'lock_hermit'],
+      blurb: '鼓手加攻更強；鎖倉持續 +0.5 秒',
+      buffBonus: 0.06,
+      lockDurBonus: 0.5,
+      applyTo: ['ipo_herald', 'lock_hermit'],
+    },
   ];
 
   const ENEMIES = {
@@ -501,26 +519,28 @@
     circuit_swan: {
       id: 'circuit_swan',
       name: '熔斷天鵝',
-      lore: '開年第一聲熔斷鐘——黑羽披金邊，專停俠客刀口。唔係普通黑天鵝：佢一鳴，櫃檯燈光齊閃，內息一滯。',
-      hp: 410,
-      atk: 24,
+      lore: '開年第一聲熔斷鐘——黑羽披金邊，專停俠客刀口。唔係普通黑天鵝：佢一鳴，櫃檯燈光齊閃，內息一滯。正式像素後金邊更易辨——鐘響先鎖倉。',
+      hp: 430,
+      atk: 25,
       speed: 18,
-      reward: 95,
+      reward: 100,
       color: '#2A1828',
       radius: 21,
       boss: true,
-      attackRange: 74,
-      attackCd: 1.35,
-      preferHero: 0.4,
+      attackRange: 76,
+      attackCd: 1.32,
+      preferHero: 0.42,
       skill: {
         id: 'circuit_break',
         name: '熔斷鐘',
         every: 3,
-        blurb: '每第 3 擊：全場俠客短暫停刀＋核心震盪',
+        blurb: '每第 3 擊：全場停刀＋核心震盪；鄰近敵短暫加速',
         type: 'circuit',
-        stunDur: 0.85,
-        coreDmg: 14,
-        heroCdPad: 0.7,
+        stunDur: 0.95,
+        coreDmg: 16,
+        heroCdPad: 0.75,
+        allyRush: 0.55,
+        allyRushMul: 1.12,
       },
     },
     margin_call: {
@@ -1083,8 +1103,8 @@
       name: '開年軋空',
       story: '正月開市第一鑼，軋空客同熔斷天鵝一齊殺入銀樓巷——掌櫃拍門環：今夜唔睇紅盤，只守開年第一倉。鎖倉減攻、鐵衛擋門、逼空收割，軋得過先有來年。',
       challenge: true,
-      startSilver: 315,
-      coreHp: 348,
+      startSilver: 322,
+      coreHp: 352,
       unlockHeroes: Object.keys(HEROES),
       firstClearBonus: 260,
       waves: [
@@ -1144,6 +1164,77 @@
           { enemy: 'circuit_swan', count: 1, lane: 2, interval: 0, delay: 2.2 },
           { enemy: 'margin_call', count: 8, lane: 'cycle', interval: 0.45, delay: 0.6 },
           { enemy: 'chase_zombie', count: 6, lane: 'random', interval: 0.52, delay: 0.8 },
+        ]),
+      ],
+    },
+
+    {
+      id: 10,
+      name: '雙天鵝夜',
+      story: '子夜兩聲鐘——黑羽同金邊一齊落。掌櫃熄一半燈：今夜唔係單 Boss，係雙天鵝夾擊。先軋黑羽，再擋熔斷；鎖倉、逼空、鐵衛，一個都唔能少，否則銀樓只剩空帳同空城。',
+      challenge: true,
+      startSilver: 335,
+      coreHp: 365,
+      unlockHeroes: Object.keys(HEROES),
+      firstClearBonus: 300,
+      waves: [
+        wavePack([
+          { enemy: 'halt_seal', count: 6, lane: 'cycle', interval: 0.62 },
+          { enemy: 'retail_tide', count: 12, lane: 'random', interval: 0.32, delay: 0.4 },
+          { enemy: 'rumor_swarm', count: 10, lane: 'cycle', interval: 0.3, delay: 0.35 },
+        ]),
+        wavePack([
+          { enemy: 'dark_tape', count: 11, lane: 'cycle', interval: 0.36 },
+          { enemy: 'margin_call', count: 7, lane: 'random', interval: 0.62, delay: 0.55 },
+          { enemy: 'chase_zombie', count: 7, lane: 'cycle', interval: 0.65, delay: 0.9 },
+        ]),
+        wavePack([
+          { enemy: 'panic_board', count: 5, lane: 'cycle', interval: 0.88, delay: 0.35, elite: true },
+          { enemy: 'leverage_fiend', count: 3, lane: 'random', interval: 1.1, delay: 1.4 },
+          { enemy: 'halt_seal', count: 6, lane: 'cycle', interval: 0.68, delay: 0.9 },
+          { enemy: 'dark_tape', count: 9, lane: 'random', interval: 0.36, delay: 0.7 },
+        ]),
+        wavePack([
+          { enemy: 'rumor_swarm', count: 14, lane: 'cycle', interval: 0.25 },
+          { enemy: 'margin_call', count: 8, lane: 'random', interval: 0.52, delay: 0.45 },
+          { enemy: 'black_swan', count: 1, lane: 1, interval: 0, delay: 3.2 },
+          { enemy: 'halt_seal', count: 5, lane: 'cycle', interval: 0.7, delay: 1.0 },
+        ]),
+        wavePack([
+          { enemy: 'panic_board', count: 6, lane: 'cycle', interval: 0.8 },
+          { enemy: 'dark_tape', count: 12, lane: 'random', interval: 0.32, delay: 0.3 },
+          { enemy: 'leverage_fiend', count: 4, lane: 'cycle', interval: 0.92, delay: 0.9, elite: true },
+          { enemy: 'chase_zombie', count: 7, lane: 'random', interval: 0.55, delay: 0.65 },
+        ]),
+        wavePack([
+          { enemy: 'halt_seal', count: 8, lane: 'cycle', interval: 0.5 },
+          { enemy: 'margin_call', count: 8, lane: 'random', interval: 0.48, delay: 0.4 },
+          { enemy: 'circuit_swan', count: 1, lane: 2, interval: 0, delay: 2.8 },
+          { enemy: 'panic_board', count: 5, lane: 'cycle', interval: 0.82, delay: 1.1 },
+        ]),
+        wavePack([
+          { enemy: 'retail_tide', count: 16, lane: 'cycle', interval: 0.25 },
+          { enemy: 'dark_tape', count: 13, lane: 'random', interval: 0.28, delay: 0.2 },
+          { enemy: 'leverage_fiend', count: 4, lane: 'cycle', interval: 0.88, delay: 0.85 },
+          { enemy: 'rumor_swarm', count: 12, lane: 'random', interval: 0.24, delay: 0.25 },
+          { enemy: 'halt_seal', count: 7, lane: 'cycle', interval: 0.55, delay: 0.7 },
+        ]),
+        wavePack([
+          { enemy: 'panic_board', count: 6, lane: 'cycle', interval: 0.72 },
+          { enemy: 'dark_tape', count: 14, lane: 'random', interval: 0.27, delay: 0.25 },
+          { enemy: 'black_swan', count: 1, lane: 0, interval: 0, delay: 2.5 },
+          { enemy: 'black_swan', count: 1, lane: 3, interval: 0, delay: 4.8 },
+          { enemy: 'margin_call', count: 8, lane: 'cycle', interval: 0.46, delay: 0.45 },
+        ]),
+        wavePack([
+          { enemy: 'halt_seal', count: 10, lane: 'cycle', interval: 0.42 },
+          { enemy: 'panic_board', count: 7, lane: 'random', interval: 0.65, delay: 0.25 },
+          { enemy: 'leverage_fiend', count: 5, lane: 'cycle', interval: 0.82, delay: 0.65, elite: true },
+          { enemy: 'dark_tape', count: 14, lane: 'random', interval: 0.26, delay: 0.35 },
+          { enemy: 'black_swan', count: 1, lane: 1, interval: 0, delay: 1.8 },
+          { enemy: 'circuit_swan', count: 1, lane: 2, interval: 0, delay: 3.6 },
+          { enemy: 'margin_call', count: 9, lane: 'cycle', interval: 0.42, delay: 0.5 },
+          { enemy: 'chase_zombie', count: 6, lane: 'random', interval: 0.5, delay: 0.7 },
         ]),
       ],
     },
@@ -1793,6 +1884,11 @@
       { name: '熔斷演練', focus: 'black_swan', blurb: '黑天鵝更早｜演練盤' },
       { name: '暗盤加時', focus: 'dark_tape', blurb: '暗盤影偏多｜盤後加時' },
       { name: '斷索週結', focus: 'halt_seal', blurb: '停牌符偏多｜斷索週' },
+      { name: '金羽熔斷週', focus: 'circuit_swan', blurb: '熔斷天鵝壓軸｜金羽鐘' },
+      { name: '雙天鵝週', focus: 'dual_swan', blurb: '黑羽＋金邊夾擊｜本地牆' },
+      { name: '鎖倉週練', focus: 'halt_seal', blurb: '停牌偏多｜鎖倉加練', tip: 'lock' },
+      { name: '軋空開年週', focus: 'panic_board', blurb: '恐慌＋逼空節奏｜開年盤' },
+      { name: '巷口風聲週', focus: 'rumor_swarm', blurb: '傳聞蚊潮｜清風再硬頂' },
     ];
     const theme = themes[h % themes.length];
     const base = STAGES[2 + (h % Math.max(1, STAGES.length - 2))]; // 3–末關難度帶
@@ -1812,11 +1908,11 @@
         (mods.map((m) => m.name + '—' + m.blurb).join('；') || '平盤') +
         '」。週挑戰比每日更密——合星、強化、羈絆齊人再開倉。結算頁會顯示本週每日進度同下週重置。',
       focus: theme.focus,
-      startSilver: 180 + (h % 6) * 6,
-      coreHp: 205 + (h % 5) * 8,
+      startSilver: 188 + (h % 6) * 7,
+      coreHp: 212 + (h % 5) * 9,
       seed: h,
       unlockHeroes: Object.keys(HEROES),
-      waveCount: 6 + (h % 3), // 6–8
+      waveCount: 6 + (h % 3) + (theme.focus === 'dual_swan' || theme.focus === 'circuit_swan' ? 1 : 0), // 6–9
       baseStageId: base.id,
       modifiers: mods,
       hpScale: 1.08 + (h % 3) * 0.02,
@@ -1832,7 +1928,7 @@
         if (sp.enemy === 'retail_tide') sp.count = Math.max(1, Math.round((sp.count || 1) * 1.15));
       }
     }
-    // 末波再加一隻槓桿精英壓迫
+    // 末波再加一隻槓桿精英壓迫；雙天鵝週再加金羽壓軸（若未有）
     if (waves.length) {
       const last = waves[waves.length - 1];
       last.spawns = last.spawns || [];
@@ -1845,6 +1941,19 @@
         elite: true,
         hpMul: 1.15 * scale,
       });
+      if (meta.focus === 'dual_swan') {
+        const hasCircuit = last.spawns.some((s) => s.enemy === 'circuit_swan');
+        if (!hasCircuit) {
+          last.spawns.push({
+            enemy: 'circuit_swan',
+            count: 1,
+            lane: 2,
+            interval: 0,
+            delay: 5.5,
+            hpMul: 1.12 * scale,
+          });
+        }
+      }
     }
     return waves;
   }
@@ -1853,8 +1962,9 @@
     const n = meta.waveCount;
     const focus = meta.focus;
     const waves = [];
-    const bossish = focus === 'black_swan';
+    const bossish = focus === 'black_swan' || focus === 'circuit_swan' || focus === 'dual_swan';
     const swarmish = focus === 'rumor_swarm' || focus === 'dark_tape';
+    const focusEnemy = focus === 'dual_swan' ? 'black_swan' : focus === 'circuit_swan' ? 'circuit_swan' : focus;
     for (let i = 1; i <= n; i++) {
       const spawns = [
         { enemy: 'retail_tide', count: 6 + i, lane: 'cycle', interval: Math.max(0.32, 0.7 - i * 0.04) },
@@ -1868,26 +1978,54 @@
           delay: 0.8,
         });
       }
-      if (i >= 2) {
-        const focusCount = bossish ? (i >= n - 1 ? 1 : 0) : 2 + Math.floor(i / 2);
+      if (i >= 2 && !bossish) {
+        const focusCount = 2 + Math.floor(i / 2);
         spawns.push({
-          enemy: focus,
+          enemy: focusEnemy,
           count: focusCount,
-          lane: bossish ? (i % 4) : 'cycle',
-          interval: bossish ? 0 : focus === 'panic_board' ? 1.15 : focus === 'dark_tape' ? 0.55 : 1.0,
-          delay: bossish ? 3.5 : 1.2,
+          lane: 'cycle',
+          interval: focus === 'panic_board' ? 1.15 : focus === 'dark_tape' ? 0.55 : 1.0,
+          delay: 1.2,
           hpMul: focus === 'panic_board' ? 1.05 : 1,
         });
       }
       if (i === n || (bossish && i >= n - 1)) {
-        spawns.push({
-          enemy: 'black_swan',
-          count: 1,
-          lane: 2,
-          interval: 0,
-          delay: 4,
-          hpMul: 1 + i * 0.04,
-        });
+        if (focus === 'dual_swan') {
+          spawns.push({
+            enemy: 'black_swan',
+            count: 1,
+            lane: 1,
+            interval: 0,
+            delay: 3.2,
+            hpMul: 1 + i * 0.04,
+          });
+          spawns.push({
+            enemy: 'circuit_swan',
+            count: 1,
+            lane: 2,
+            interval: 0,
+            delay: 5.0,
+            hpMul: 1 + i * 0.045,
+          });
+        } else if (focus === 'circuit_swan') {
+          spawns.push({
+            enemy: 'circuit_swan',
+            count: 1,
+            lane: 2,
+            interval: 0,
+            delay: 3.8,
+            hpMul: 1 + i * 0.045,
+          });
+        } else {
+          spawns.push({
+            enemy: 'black_swan',
+            count: 1,
+            lane: 2,
+            interval: 0,
+            delay: 4,
+            hpMul: 1 + i * 0.04,
+          });
+        }
       }
       waves.push({ spawns: spawns.filter((s) => s.count > 0) });
     }
@@ -1953,6 +2091,13 @@
       blurb: '鎖倉＋坦＋奶｜觸發鎖倉鐵壁／細水鎖倉',
       tip: '鐵筆鎖敵攻、鐵衛頂、隱士回血',
     },
+    {
+      id: 'squeeze_lock',
+      name: '軋空鎖倉',
+      heroes: ['squeeze_blade', 'lock_hermit', 'market_guard'],
+      blurb: '逼空＋鎖倉＋坦｜觸發軋空鎖倉',
+      tip: '高血逼空收割；鐵筆減攻；鐵衛頂雙天鵝',
+    },
   ];
 
   /** 失敗後隨機提示 */
@@ -1979,6 +2124,8 @@
     '無盡而家可抽到 3 個修飾；見「升星紅包／靜盤緩行／鎖潮加印」優先合星。',
     '第 9 關「開年軋空」末波有熔斷天鵝——停刀鐘響前先鎖倉減攻。',
     '熔斷天鵝唔係普通黑天鵝：全場短暫停刀，鐵衛＋鎖倉更穩。',
+    '第 10 關「雙天鵝夜」末波黑羽＋金邊夾擊——先鎖倉再逼空收割。',
+    '逼空客＋鎖倉居士 →「軋空鎖倉」；週挑戰見「雙天鵝週／金羽熔斷週」優先合星。',
   ];
 
 
@@ -2013,7 +2160,8 @@
     { id: 'stage7', cat: 'stage', name: '斷索開市', blurb: '通關第 7 關「斷索開市」', check: (s) => (s.maxStageCleared || 0) >= 7 },
     { id: 'stage8', cat: 'stage', name: '銀樓守歲', blurb: '通關第 8 關「銀樓守歲」', check: (s) => (s.maxStageCleared || 0) >= 8 },
     { id: 'stage9', cat: 'stage', name: '開年軋空', blurb: '通關第 9 關「開年軋空」', check: (s) => (s.maxStageCleared || 0) >= 9 },
-    { id: 'all_stages', cat: 'stage', name: '九關皆破', blurb: '通關全部主線關卡', check: (s) => (s.maxStageCleared || 0) >= STAGES.length },
+    { id: 'stage10', cat: 'stage', name: '雙天鵝夜', blurb: '通關第 10 關「雙天鵝夜」', check: (s) => (s.maxStageCleared || 0) >= 10 },
+    { id: 'all_stages', cat: 'stage', name: '十關皆破', blurb: '通關全部主線關卡', check: (s) => (s.maxStageCleared || 0) >= STAGES.length },
     { id: 'star3', cat: 'merge', name: '三星掛牌', blurb: '首次合成 3 星', check: (s) => !!s.ach && s.ach.star3 },
     { id: 'maxstar', cat: 'merge', name: '滿星開盤', blurb: '首次合成 4 星', check: (s) => !!s.ach && s.ach.maxstar },
     { id: 'upgrade', cat: 'merge', name: '鍛打開倉', blurb: '首次強化場上俠客', check: (s) => !!s.ach && s.ach.upgrade },
@@ -2056,6 +2204,8 @@
     { id: 'endless_triple', cat: 'combat', name: '三修飾殺跌', blurb: '無盡單局抽中 3 個修飾詞', check: (s) => !!s.ach && !!s.ach.endless_triple },
     { id: 'circuit_seen', cat: 'combat', name: '熔斷過招', blurb: '圖鑑見過熔斷天鵝', check: (s) => !!(s.seenEnemies && s.seenEnemies.circuit_swan) },
     { id: 'circuit_kill', cat: 'combat', name: '軋斷金羽', blurb: '擊敗一次熔斷天鵝', check: (s) => !!s.ach && !!s.ach.circuit_kill },
+    { id: 'dual_swan_kill', cat: 'combat', name: '雙羽同軋', blurb: '單局擊破黑天鵝＋熔斷天鵝各 ≥1', check: (s) => !!s.ach && !!s.ach.dual_swan_kill },
+    { id: 'squeeze_lock_bond', cat: 'combat', name: '軋空開鎖', blurb: '觸發軋空鎖倉或招股鎖倉', check: (s) => !!s.ach && !!s.ach.squeeze_lock_bond },
   ];
 
   /** 首通銀兩獎勵（入累計帳） */
@@ -2069,7 +2219,8 @@
     7: 200,
     8: 220,
     9: 260,
-    all: 320,
+    10: 300,
+    all: 360,
   };
 
   function stageFirstClearBonus(stageId) {
@@ -2331,7 +2482,7 @@
 
   function defaultSave() {
     return {
-      version: 18,
+      version: 19,
       totalSilver: 0,
       totalKills: 0,
       maxStageCleared: 0,

@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — Canvas 繪製 v1.8.0
+ * 銀樓防衛 — Canvas 繪製 v1.9.0
  * v1.5：場景四層 ground→mid→wall→props；halt_seal PNG；擊破／暴擊
  */
 (function (global) {
@@ -1009,16 +1009,23 @@
     const alpha = p > 0.85 ? (1 - p) / 0.15 : p < 0.2 ? p / 0.2 : 1;
     ctx.globalAlpha = Math.min(1, alpha);
     const elite = b.kind === 'elite';
-    const circuit = b.kind === 'circuit';
+    const circuit = b.kind === 'circuit' || b.kind === 'dual';
+    const dual = b.kind === 'dual';
     const h = b.blurb ? 72 : 56;
     drawPixelRect(ctx, 140, 188, 680, h, '#1A1510');
-    ctx.strokeStyle = elite ? '#C45C4A' : circuit ? '#E8C96A' : '#C9A227';
-    ctx.lineWidth = circuit ? 4 : 3;
+    ctx.strokeStyle = elite ? '#C45C4A' : dual ? '#E8C96A' : circuit ? '#E8C96A' : '#C9A227';
+    ctx.lineWidth = circuit || dual ? 4 : 3;
     ctx.strokeRect(142, 190, 676, h - 4);
-    ctx.fillStyle = elite ? '#C45C4A' : circuit ? '#E8C96A' : '#C9A227';
+    ctx.fillStyle = elite ? '#C45C4A' : dual ? '#E8C96A' : circuit ? '#E8C96A' : '#C9A227';
     ctx.font = 'bold 22px sans-serif';
     ctx.textAlign = 'center';
-    const prefix = elite ? '⚔ 精英來襲 — ' : circuit ? '🔔 熔斷 Boss — ' : '⚠ Boss 入場 — ';
+    const prefix = elite
+      ? '⚔ 精英來襲 — '
+      : dual
+        ? '🦢🦢 雙天鵝 — '
+        : circuit
+          ? '🔔 熔斷 Boss — '
+          : '⚠ Boss 入場 — ';
     ctx.fillText(prefix + b.name, 480, 222);
     if (b.blurb) {
       ctx.fillStyle = '#E8DCC8';

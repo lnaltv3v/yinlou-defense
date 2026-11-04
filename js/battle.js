@@ -1,5 +1,5 @@
 /**
- * 銀樓防衛 — 戰鬥／生成／合併邏輯 v1.8.0
+ * 銀樓防衛 — 戰鬥／生成／合併邏輯 v1.9.0
  * v1.4：擊退／超殺／擊破爆點／陣亡墨塵
  */
 (function (global) {
@@ -781,24 +781,52 @@
         if (h.hp <= 0) continue;
         h.stunT = Math.max(h.stunT || 0, stunDur);
         h.cd = Math.max(h.cd || 0, pad);
-        h.hitFlash = Math.max(h.hitFlash || 0, 0.28);
+        h.hitFlash = Math.max(h.hitFlash || 0, 0.32);
+      }
+      // 鄰近敵短暫加速（金羽帶動殺跌）
+      if (sk.allyRush) {
+        for (const o of state.enemies) {
+          if (o.hp <= 0 || o.uid === enemy.uid) continue;
+          if (Math.hypot(o.x - enemy.x, o.y - enemy.y) > 140) continue;
+          o.speed = o.baseSpeed * (sk.allyRushMul || 1.12);
+          o.rushT = Math.max(o.rushT || 0, sk.allyRush);
+        }
       }
       if (sk.coreDmg) {
         state.coreHp -= sk.coreDmg;
-        state.coreHitFlash = 0.5;
-        state.shake = Math.max(state.shake || 0, 0.32);
+        state.coreHitFlash = 0.58;
+        state.shake = Math.max(state.shake || 0, 0.38);
         pushFloat(state.floats, {
           x: CORE.x,
           y: CORE.y - 52,
-          text: '熔斷 -' + sk.coreDmg,
-          color: '#C9A227',
-          size: 16,
-          vy: -30,
-          life: 1.1,
-          bounce: 1.2,
+          text: '熔斷鐘 -' + sk.coreDmg,
+          color: '#E8C96A',
+          size: 17,
+          vy: -32,
+          life: 1.2,
+          bounce: 1.25,
         });
       }
-      pushFx(state, { type: 'circuitWarn', life: 0.9 });
+      pushFloat(state.floats, {
+        x: enemy.x,
+        y: enemy.y - 40,
+        text: '🔔 熔斷！',
+        color: '#E8C96A',
+        size: 15,
+        vy: -26,
+        life: 1.0,
+        bounce: 1.15,
+      });
+      pushFx(state, { type: 'circuitWarn', life: 1.15 });
+      pushFx(state, {
+        type: 'skill',
+        x: enemy.x,
+        y: enemy.y,
+        color: '#C9A227',
+        life: 0.55,
+        text: sk.name,
+        r: 28,
+      });
       state._circuitProcs = (state._circuitProcs || 0) + 1;
     }
   }
@@ -974,6 +1002,7 @@
         if (e.id === 'rumor_swarm') state._rumorKills = (state._rumorKills || 0) + 1;
         if (e.id === 'dark_tape') state._darkKills = (state._darkKills || 0) + 1;
         if (e.id === 'circuit_swan') state._circuitKills = (state._circuitKills || 0) + 1;
+        if (e.id === 'black_swan') state._swanKills = (state._swanKills || 0) + 1;
         if (e.elite) {
           state._eliteKills = (state._eliteKills || 0) + 1;
           pushFloat(state.floats, {
@@ -1114,16 +1143,23 @@
       bounce: 0.4,
     });
     if (isCircuit) {
+      const dual = (state.enemies || []).some(
+        (e) => e.hp > 0 && e.boss && e.uid !== enemy.uid && (e.id === 'black_swan' || e.id === 'circuit_swan')
+      );
       pushFloat(state.floats, {
         x: 480,
         y: 230,
-        text: '開年熔斷 — 守住內息',
+        text: dual ? '雙天鵝夾擊 — 先鎖倉再收割' : '熔斷鐘響 — 守住內息',
         color: '#C45C4A',
         size: 14,
         vy: -8,
-        life: 2.0,
+        life: 2.2,
         bounce: 0,
       });
+      if (dual) {
+        state.bossBanner.blurb = '雙天鵝夜 — 黑羽＋金邊同時在場';
+        state.bossBanner.kind = 'dual';
+      }
     }
   }
 

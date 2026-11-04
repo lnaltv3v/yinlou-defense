@@ -1,6 +1,6 @@
 /**
- * 銀樓防衛 — 主循環 v1.8.0
- * v1.8.0：第7關／鎖倉居士／週連續＋本地最佳牆／手感平衡
+ * 銀樓防衛 — 主循環 v1.9.0
+ * v1.9.0：第7關／鎖倉居士／週連續＋本地最佳牆／手感平衡
  */
 (function () {
   const {
@@ -119,6 +119,10 @@
   }
   if (save.version < 18) {
     save.version = 18;
+    writeSave(save);
+  }
+  if (save.version < 19) {
+    save.version = 19;
     writeSave(save);
   }
   if (!save.weekDailyMap) save.weekDailyMap = {};
@@ -263,6 +267,7 @@
       lockKills: 0,
       _circuitKills: 0,
       _circuitProcs: 0,
+      _swanKills: 0,
       _killStreak: 0,
       _killStreakT: 0,
       _eliteAnnounced: false,
@@ -343,6 +348,23 @@
     }
     if ((state._circuitKills || 0) >= 1 && !save.ach.circuit_kill) {
       save.ach.circuit_kill = true;
+      writeSave(save);
+      notifyAchievements();
+    }
+    if (
+      (state._circuitKills || 0) >= 1 &&
+      (state._swanKills || 0) >= 1 &&
+      !save.ach.dual_swan_kill
+    ) {
+      save.ach.dual_swan_kill = true;
+      writeSave(save);
+      notifyAchievements();
+    }
+    if (
+      !save.ach.squeeze_lock_bond &&
+      state._bonds.some((b) => b.id === 'squeeze_lock' || b.id === 'ipo_lock')
+    ) {
+      save.ach.squeeze_lock_bond = true;
       writeSave(save);
       notifyAchievements();
     }
@@ -955,23 +977,27 @@
         },
       });
       const title =
-        stageId >= 9
+        stageId >= 10
           ? hasNext
-            ? '開年軋空'
-            : '九關皆破'
-          : stageId >= 8
+            ? '雙天鵝夜'
+            : '十關皆破'
+          : stageId >= 9
             ? hasNext
-              ? '銀樓守歲'
-              : '九關皆破'
-            : stageId >= 7
+              ? '開年軋空'
+              : '十關皆破'
+            : stageId >= 8
               ? hasNext
-                ? '斷索開市'
-                : '九關皆破'
-              : stageId >= 6
-                ? '暗盤破曉'
-                : hasNext
-                  ? '銀樓倖存'
-                  : '九關皆破';
+                ? '銀樓守歲'
+                : '十關皆破'
+              : stageId >= 7
+                ? hasNext
+                  ? '斷索開市'
+                  : '十關皆破'
+                : stageId >= 6
+                  ? '暗盤破曉'
+                  : hasNext
+                    ? '銀樓倖存'
+                    : '十關皆破';
       const rewardBlock = rewardLines.length ? '\n' + rewardLines.join('\n') + '。' : '';
       UI.showOverlay(
         title,
@@ -986,7 +1012,7 @@
           runModBlock() + settleExtraBlock() +
           (hasNext
             ? '\n已解鎖下一關' + (wasNew ? '「' + STAGES[nextIdx].name + '」' : '') + '。'
-            : '\n主線全破！可挑戰無盡／每日／週挑戰，或重溫軋空／守歲。'),
+            : '\n主線全破！可挑戰無盡／每日／週挑戰，或重溫雙天鵝／軋空。'),
         hasNext ? '下一關' : '回第 1 關',
         () => {
           UI.hideOverlay();
